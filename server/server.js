@@ -6,7 +6,7 @@ import session from 'express-session';
 import authRouter from './routes/authRoutes.js'
 import userRouter from './routes/userRoutes.js'
 import adminRouter from './routes/adminRoutes.js';
-import { sequelize } from './config/database.js';
+import sequelize from './config/database.js';
 import passport from 'passport';
 import './config/googleAuth.js';
 import path from 'path';
@@ -21,6 +21,17 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 sequelize.sync();
+
+const testDB = async () => {
+    try {
+      await sequelize.authenticate();
+      console.log("✅ Database connected successfully!");
+    } catch (error) {
+      console.error("❌ Database connection error:", error);
+    }
+  };
+  
+  testDB();
 
 const allowedOrigins = [
     'http://localhost:5173',

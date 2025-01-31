@@ -1,7 +1,7 @@
 import Investment from '../models/Investment.js';
 import User from '../models/userModel.js';
 import { Op } from 'sequelize';
-import { sequelize } from '../config/database.js';
+import sequelize from '../config/database.js';
 
 export const calculateAndUpdateProfits = async () => {
     try {
