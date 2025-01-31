@@ -1,0 +1,5 @@
+# Node modules and environment files
+node_modules/
+.env
+dist/
+*.log
