@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { toast } from 'react-toastify';
 import debounce from 'lodash.debounce';
 
 // Set default base URL for axios
@@ -366,20 +365,17 @@ const useStore = create(
       },
 
       // Add submitMessage action
-      submitMessage: async (messageData) => {
+      submitMessage: async (formData) => {
+        set({ isLoading: true });
         try {
-          const { data } = await axios.post('/api/user/contact', {
-            subject: messageData.subject,
-            message: messageData.message
-          });
-          
+          const { data } = await axios.post('/api/user/contact', formData);
           if (data.success) {
+            set({ isLoading: false });
             return true;
           }
           throw new Error(data.message);
         } catch (error) {
-          console.error('Error details:', error.response?.data || error.message);
-          toast.error(error.response?.data?.message || 'Error sending message. Please try again.');
+          set({ isLoading: false, error: error.message });
           return false;
         }
       },

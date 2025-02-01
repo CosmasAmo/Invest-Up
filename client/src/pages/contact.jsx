@@ -7,13 +7,14 @@ import useStore from '../store/useStore'
 function Contact() {
   const { submitMessage, isLoading } = useStore()
   const [formData, setFormData] = useState({
+    email: '',
     subject: '',
     message: ''
   })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.subject.trim() || !formData.message.trim()) {
+    if (!formData.email || !formData.subject.trim() || !formData.message.trim()) {
       toast.error('Please fill in all fields')
       return
     }
@@ -22,6 +23,7 @@ function Contact() {
     if (success) {
       toast.success('Message sent successfully')
       setFormData({
+        email: '',
         subject: '',
         message: ''
       })
@@ -63,6 +65,21 @@ function Contact() {
                 onSubmit={handleSubmit}
                 className="space-y-6"
               >
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                    Your Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg
+                      text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="Your email address"
+                  />
+                </div>
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
                     Subject

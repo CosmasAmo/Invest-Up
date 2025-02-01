@@ -10,7 +10,7 @@ const Contact = sequelize.define('Contact', {
     },
     userId: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
         references: {
             model: User,
             key: 'id'
@@ -18,7 +18,7 @@ const Contact = sequelize.define('Contact', {
     },
     email: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: false
     },
     subject: {
         type: DataTypes.STRING,

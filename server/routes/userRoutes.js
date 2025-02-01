@@ -10,7 +10,7 @@ userRouter.get('/data', userAuth, getUserdata);
 userRouter.put('/update-profile', userAuth, updateProfile);
 userRouter.get('/dashboard', userAuth, getDashboardData);
 userRouter.get('/deposits', userAuth, getUserDeposits);
-userRouter.post('/contact', userAuth, submitMessage);
+userRouter.post('/contact', submitMessage);
 userRouter.get('/messages', userAuth, getUserMessages);
 userRouter.post('/mark-message-read', userAuth, markMessageAsRead);
 

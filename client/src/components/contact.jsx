@@ -12,25 +12,27 @@ function Contact() {
   })
 
   const [formData, setFormData] = useState({
+    email: '',
     subject: '',
     message: ''
   })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.subject || !formData.message) {
+    if (!formData.email || !formData.subject || !formData.message) {
       toast.error('Please fill in all fields')
       return
     }
     
     const success = await submitMessage({
+      email: formData.email,
       subject: formData.subject,
       message: formData.message
     })
     
     if (success) {
       toast.success('Message sent successfully! We will contact you soon.')
-      setFormData({ subject: '', message: '' })
+      setFormData({ email: '', subject: '', message: '' })
     }
   }
 
@@ -62,6 +64,21 @@ function Contact() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="space-y-6"
           >
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                Your Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg
+                  text-white focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="Your email address"
+              />
+            </div>
             <div>
               <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
                 Subject
