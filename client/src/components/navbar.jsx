@@ -1,60 +1,46 @@
-import {  useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useStore  from '../store/useStore';
+import useStore from '../store/useStore'
 import { Link } from 'react-router-dom'
-import { EnvelopeIcon } from '@heroicons/react/24/outline'
-import Logo from './Logo';
+import Logo from './Logo'
 
 function Navbar() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const { 
     userData,
     isScrolled,
     isMobileMenuOpen,
     setIsScrolled,
     toggleMobileMenu: setIsMobileMenuOpen,
-    logout,
-    messages,
-    fetchUserMessages
-  } = useStore();
+    logout
+  } = useStore()
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
-    };
-    window.addEventListener('scroll', handleScroll);
-
-    // Fetch messages periodically
-    const fetchMessages = async () => {
-      await fetchUserMessages();
-    };
-    
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 30000); // Check every 30 seconds
+      setIsScrolled(window.scrollY > 0)
+    }
+    window.addEventListener('scroll', handleScroll)
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      clearInterval(interval);
-    };
-  }, [setIsScrolled, fetchUserMessages]);
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [setIsScrolled])
 
-  // Get initial letter safely
   const getInitial = () => {
     if (userData && userData.name) {
-      return userData.name[0].toUpperCase();
+      return userData.name[0].toUpperCase()
     }
-    return '?';
-  };
+    return '?'
+  }
 
-  const navItems = [
-    {
-      label: 'Messages',
-      path: '/messages',
-      icon: EnvelopeIcon,
-      showBadge: messages?.some(m => m.status === 'replied' && !m.isRead),
-      badgeCount: messages?.filter(m => m.status === 'replied' && !m.isRead).length || 0,
-    }
-  ];
+  const navigation = [
+    { name: 'Home', href: '/' },
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Investments', href: '/investments' },
+    { name: 'Deposits', href: '/deposits' },
+    { name: 'Withdrawals', href: '/withdrawals' },
+    { name: 'Contact', href: '/contact' }
+  ]
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
@@ -76,21 +62,6 @@ function Navbar() {
             <Link to="/about" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">About</Link>
             <Link to="/contact" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Contact</Link>
             <Link to="/faqs" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">FAQs</Link>
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="relative flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white"
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.label}</span>
-                {item.showBadge && (
-                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {item.badgeCount}
-                  </span>
-                )}
-              </Link>
-            ))}
           </div>
 
           {/* Auth Buttons */}
@@ -158,7 +129,7 @@ function Navbar() {
       </div>
 
       {/* Mobile menu */}
-      <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
+      <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'} bg-slate-900/95 backdrop-blur-sm shadow-lg`}>
         <div className="px-2 pt-2 pb-3 space-y-1">
           <Link to="/" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Home</Link>
           {userData?.isAccountVerified && (
@@ -169,21 +140,6 @@ function Navbar() {
           <Link to="/faqs" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">FAQs</Link>
           {userData ? (
             <>
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className="relative flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white"
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                  {item.showBadge && (
-                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {item.badgeCount}
-                    </span>
-                  )}
-                </Link>
-              ))}
               <button
                 onClick={logout}
                 className="block w-full text-left px-3 py-2 text-white hover:bg-blue-600 rounded-md"

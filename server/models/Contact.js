@@ -1,6 +1,5 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
-import User from './userModel.js';
 
 const Contact = sequelize.define('Contact', {
     id: {
@@ -8,17 +7,16 @@ const Contact = sequelize.define('Contact', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    userId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: User,
-            key: 'id'
-        }
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
     },
     email: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            isEmail: true
+        }
     },
     subject: {
         type: DataTypes.STRING,
@@ -35,14 +33,7 @@ const Contact = sequelize.define('Contact', {
     status: {
         type: DataTypes.ENUM('unread', 'read', 'replied'),
         defaultValue: 'unread'
-    },
-    isRead: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
     }
 });
-
-Contact.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Contact, { foreignKey: 'userId' });
 
 export default Contact; 

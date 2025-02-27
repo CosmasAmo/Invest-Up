@@ -16,6 +16,8 @@ import fs from 'fs';
 import { startProfitCron } from './cron/profitCron.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import withdrawalRouter from './routes/withdrawalRoutes.js';
+import { calculateProfits } from './utils/profitCalculator.js';
+import { auditLogMiddleware } from './middleware/auditLogMiddleware.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -87,8 +89,14 @@ app.use('/api/transactions', transactionRouter);
 app.use('/api/investments', investmentRoutes);
 app.use('/api/withdrawals', withdrawalRouter);
 
+// Add this before your routes
+app.use(auditLogMiddleware);
+
 // Add after your other initializations
 startProfitCron();
+
+// Run profit calculation every minute
+setInterval(calculateProfits, 60 * 1000);
 
 app.listen(port, () => {
     console.log(`Server running on port: ${port}`);

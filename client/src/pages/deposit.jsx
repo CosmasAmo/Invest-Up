@@ -9,19 +9,19 @@ const PAYMENT_METHODS = {
     name: 'Bitcoin',
     icon: '₿',
     address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-    minimumDeposit: 100
+    minimumDeposit: 3
   },
   ETH: {
     name: 'Ethereum',
     icon: 'Ξ',
     address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    minimumDeposit: 100
+    minimumDeposit: 3
   },
   USDT: {
     name: 'USDT TRC20',
     icon: '₮',
     address: 'TWd2yzk3xPBRYwKcaXxMQjBukVeGK7EZ8E',
-    minimumDeposit: 100
+    minimumDeposit: 3
   }
 };
 
@@ -36,8 +36,8 @@ function Deposit() {
     const value = e.target.value;
     if (/^\d*\.?\d*$/.test(value)) {
       setAmount(value);
-      if (parseFloat(value) < 100) {
-        toast.error('Minimum deposit amount is $100');
+      if (parseFloat(value) < 3) {
+        toast.error('Minimum deposit amount is $3');
         return;
       }
       setAmount(value);
@@ -45,8 +45,8 @@ function Deposit() {
   };
 
   const handleMethodSelect = (method) => {
-    if (parseFloat(amount) < 100) {
-      toast.error('Please enter an amount of $100 or more');
+    if (parseFloat(amount) < 3) {
+      toast.error('Please enter an amount of $3 or more');
       return;
     }
     setSelectedMethod(method);
@@ -129,7 +129,7 @@ function Deposit() {
                   required
                   className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
                 />
-                <p className="text-sm text-gray-400 mt-1">Minimum deposit: $100</p>
+                <p className="text-sm text-gray-400 mt-1">Minimum deposit: $3</p>
               </div>
 
               <div>

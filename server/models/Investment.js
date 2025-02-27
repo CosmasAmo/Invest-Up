@@ -24,10 +24,6 @@ const Investment = sequelize.define('Investment', {
     type: DataTypes.ENUM('pending', 'approved', 'rejected', 'completed'),
     defaultValue: 'pending'
   },
-  dailyProfitRate: {
-    type: DataTypes.DECIMAL(4, 2),
-    defaultValue: 6.00 // 6% daily profit
-  },
   totalProfit: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0.00
@@ -41,7 +37,14 @@ const Investment = sequelize.define('Investment', {
 });
 
 // Define association
-Investment.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Investment, { foreignKey: 'userId' });
+Investment.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+
+User.hasMany(Investment, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
 
 export default Investment; 

@@ -23,8 +23,9 @@ function Home() {
                 Welcome to<br />Invest Up Trading
               </h1>
               <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-12">
-                Experience professional cryptocurrency trading with our advanced AI-powered
-                platform. Join thousands of successful traders worldwide.
+              Start earning 5% profits on your stake by signing up on our platform today.
+              Experience the future of cryptocurrency investment with our AI-driven solutions that put you at the forefront of market opportunities.
+
               </p>
               <div className="flex justify-center gap-6">
                 <Link to="/register" 

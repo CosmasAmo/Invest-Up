@@ -380,33 +380,7 @@ const useStore = create(
         }
       },
 
-      fetchUserMessages: async () => {
-        set({ isLoading: true });
-        try {
-          const { data } = await axios.get('/api/user/messages');
-          if (data.success) {
-            set({ messages: data.messages, isLoading: false });
-          }
-        } catch (error) {
-          console.error('Error fetching user messages:', error);
-          set({ isLoading: false });
-        }
-      },
-
-      markMessageAsRead: debounce(async (messageId) => {
-        try {
-          const { data } = await axios.post('/api/user/mark-message-read', { messageId });
-          if (data.success) {
-            set(state => ({
-              messages: state.messages.map(msg => 
-                msg.id === messageId ? { ...msg, isRead: true } : msg
-              )
-            }));
-          }
-        } catch (error) {
-          console.error('Error marking message as read:', error);
-        }
-      }, 300)
+     
     }),
     {
       name: 'auth-storage',

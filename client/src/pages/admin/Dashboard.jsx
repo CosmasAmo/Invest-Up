@@ -31,6 +31,7 @@ function Dashboard() {
 
     const [replyModal, setReplyModal] = useState({ isOpen: false, message: null });
     const [reply, setReply] = useState('');
+    const [isReplying, setIsReplying] = useState(false);
 
     useEffect(() => {
         fetchDashboardStats();
@@ -40,7 +41,28 @@ function Dashboard() {
         fetchApprovedInvestments();
         fetchPendingWithdrawals();
         fetchMessages();
-    }, [fetchPendingDeposits, fetchApprovedDeposits, fetchPendingInvestments, fetchPendingWithdrawals, fetchMessages]);
+
+        // Set up interval for periodic updates
+        const interval = setInterval(() => {
+            fetchDashboardStats();
+            fetchPendingDeposits();
+            fetchApprovedDeposits();
+            fetchPendingInvestments();
+            fetchApprovedInvestments();
+            fetchPendingWithdrawals();
+            fetchMessages();
+        }, 30000); // Update every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [
+        fetchDashboardStats,
+        fetchPendingDeposits,
+        fetchApprovedDeposits,
+        fetchPendingInvestments,
+        fetchApprovedInvestments,
+        fetchPendingWithdrawals,
+        fetchMessages
+    ]);
 
     const statsCards = [
         { 
@@ -236,7 +258,7 @@ function Dashboard() {
             return (
                 <tr>
                     <td colSpan="6" className="py-4 text-center text-gray-400">
-                        No messages
+                        No messages found
                     </td>
                 </tr>
             );
@@ -246,8 +268,8 @@ function Dashboard() {
             <tr key={message.id} className="border-t border-gray-700">
                 <td className="py-3">
                     <div>
-                        <p className="font-medium">{message.User?.name || 'Unknown'}</p>
-                        <p className="text-sm text-gray-400">{message.User?.email}</p>
+                        <p className="font-medium">{message.name}</p>
+                        <p className="text-sm text-gray-400">{message.email}</p>
                     </div>
                 </td>
                 <td className="py-3">{message.subject}</td>
@@ -288,11 +310,17 @@ function Dashboard() {
             return;
         }
 
-        const success = await replyToMessage(replyModal.message.id, reply);
-        if (success) {
-            toast.success('Reply sent successfully');
-            setReplyModal({ isOpen: false, message: null });
+        setIsReplying(true);
+        try {
+            const success = await replyToMessage(replyModal.message.id, reply);
+            if (success) {
+                toast.success('Reply sent successfully');
+                setReplyModal({ isOpen: false, message: null });
+            }
+        } catch (error) {
+            toast.error(error.message || 'Failed to send reply');
         }
+        setIsReplying(false);
     };
 
     return (
@@ -505,7 +533,7 @@ function Dashboard() {
                     <div className="bg-gray-800 p-6 rounded-lg w-full max-w-lg">
                         <h3 className="text-xl font-bold mb-4">Reply to Message</h3>
                         <div className="mb-4">
-                            <p className="text-gray-400">From: {replyModal.message.user?.name}</p>
+                            <p className="text-gray-400">From: {replyModal.message.name}</p>
                             <p className="text-gray-400">Email: {replyModal.message.email}</p>
                             <p className="text-gray-400">Subject: {replyModal.message.subject}</p>
                             <p className="mt-2">{replyModal.message.message}</p>
@@ -520,15 +548,25 @@ function Dashboard() {
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setReplyModal({ isOpen: false, message: null })}
-                                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+                                disabled={isReplying}
+                                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleReplySubmit}
-                                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700"
+                                disabled={isReplying}
+                                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center"
                             >
-                                Send Reply
+                                {isReplying ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Sending...
+                                    </>
+                                ) : 'Send Reply'}
                             </button>
                         </div>
                     </div>

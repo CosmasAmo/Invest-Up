@@ -1,202 +1,233 @@
-import { motion } from 'framer-motion'
-import { useState } from 'react'
-import Navbar from '../components/navbar'
+import { motion } from 'framer-motion';
+import { useState } from 'react';
+import Navbar from '../components/navbar';
+import Footer from '../components/footer';
+import { Link } from 'react-router-dom';
 
 function FAQs() {
-  const [openIndex, setOpenIndex] = useState(null)
+  const [openSection, setOpenSection] = useState(null);
 
-  const faqs = [
+  const faqSections = [
     {
-      category: "Getting Started",
+      title: "Deposits & Account Management",
       questions: [
         {
-          question: "What is cryptocurrency trading?",
-          answer: "Cryptocurrency trading involves buying and selling digital currencies on various exchanges to make a profit. It's similar to trading stocks, but with digital assets that operate on blockchain technology."
+          q: "How do I deposit funds into my account?",
+          a: `To deposit funds, log in to your account, navigate to the "Deposit" section, insert the amount you intend to deposit and copy the USDT wallet address.
+              Go to an exchanger like binance and Coinbase and send money to that address.
+              Screenshot the transaction and send it for confirmation. 
+              Once your deposit is confirmed, your staking will begin, and you'll start earning daily profits.`
         },
         {
-          question: "How do I create an account?",
-          answer: "Creating an account is simple. Click the 'Sign Up' button, provide your name, email, and create a secure password. You'll receive a verification code to your email to complete the registration process."
+          q: "How to send money from one account to another on binance?",
+          a: `1. On your binance homepage, click assets.
+              2. Click withdraw and select the withdraw method.
+              3. Select withdraw crypto or fiat
+              4. In the search bar, type USDT and click okay.
+              5. Withdraw options will show up:
+              
+              Option 1: Send via Crypto Network
+              • This prompts you to paste the wallet address you copied from the website.
+              • Note; the network you choose should be similar to the wallet address you copied.
+              
+              Option 2: Send via Email/Phone/ID (0 fee)
+              • Set the mode to Binance ID
+              • Paste the Binance ID you copied from our website and paste it there.
+              • Take a screenshot after the transaction and send them on the website for proof.`
         },
         {
-          question: "How does the email verification process work?",
-          answer: "After registering, we'll send a verification code to your email address. Enter this code on our platform to verify your account. This helps ensure the security of your account and confirms your email address."
+          q: "How to deposit money into your binance account?",
+          a: "Please visit: https://www.binance.com/en/square/post/11630134353593"
         },
         {
-          question: "What if I don't receive the verification email?",
-          answer: "If you haven't received the verification email, first check your spam folder. You can request a new verification code from the verification page or contact our support team for assistance."
+          q: "How to deposit money into your Coinbase account?",
+          a: "Please visit: https://www.coinbase.com/wallet/learn-web3/how-to-fund-your-coinbase-wallet"
+        },
+        {
+          q: "What is the minimum deposit required to start earning?",
+          a: "The minimum deposit required to start earning is 3 dollars. This allows you to participate in our staking program and earn up to 5% daily profits on your stake by clicking the invest button."
+        },
+        {
+          q: "How do I create an account?",
+          a: 'To create an account, simply click on the "Sign Up" button, provide the required information, and verify your email address. Once your account is set up, you can deposit funds and start earning.'
         }
       ]
     },
     {
-      category: "Deposits & Profits",
+      title: "Security & Safety",
       questions: [
         {
-          question: "How do I make a deposit?",
-          answer: "1) Log into your dashboard and click the 'Deposit' button, 2) Choose your preferred cryptocurrency (BTC, USDT, or ETH), 3) Copy the provided deposit address, 4) Go to your preferred platform (e.g., Binance) and send the funds to this address, 5) Take a screenshot of the transaction as proof, 6) Upload the screenshot through our platform for verification by admin."
+          q: "Is my investment safe?",
+          a: "We prioritize the security of your funds. Our platform uses advanced encryption and security protocols to protect your assets. However, as with any investment, there are risks involved, and we encourage you to only invest what you can afford to lose."
         },
         {
-          question: "What cryptocurrencies do you accept for deposits?",
-          answer: "We currently accept Bitcoin (BTC), Tether (USDT), and Ethereum (ETH) for deposits. Make sure to use the correct address for each cryptocurrency to avoid loss of funds."
+          q: "What happens if I forget my password or lose access to my account?",
+          a: 'If you lose access to your account, you can use the "Forgot Password" feature to reset your password.'
         },
         {
-          question: "How does the profit system work?",
-          answer: "Once you've made a deposit and your investment is confirmed, you'll earn a 6% daily profit. This profit will automatically accumulate and be visible on your dashboard."
-        },
-        {
-          question: "When do profits start accumulating?",
-          answer: "Your 6% daily profits start accumulating immediately after your deposit is confirmed by our admin. You can track your earnings in real-time through your dashboard."
-        },
-        {
-          question: "Why do I need to provide proof of payment?",
-          answer: "Proof of payment (screenshot) helps us verify your deposit and ensures proper crediting to your account. This security measure protects both you and our platform from unauthorized transactions."
+          q: "Can I lose my staked funds?",
+          a: "While we take measures to protect your funds, no investment is entirely risk-free. Always invest responsibly and only what you can afford to lose."
         }
       ]
     },
     {
-      category: "Account Security & Password",
+      title: "Withdrawals & Fees",
       questions: [
         {
-          question: "I forgot my password. How do I reset it?",
-          answer: "To reset your password: 1) Click 'Forgot Password' on the login page, 2) Enter your registered email address, 3) Check your email for an OTP (One-Time Password) code, 4) Enter the OTP code on the reset page, 5) Create and confirm your new password."
+          q: "Are there any fees for deposits or withdrawals?",
+          a: "Deposits are free of charge. However, a small network fee may apply for withdrawals to cover transaction costs on the blockchain."
         },
         {
-          question: "What if I don't receive the password reset OTP?",
-          answer: "First, check your spam folder. If you still don't see it, you can click 'Resend OTP' on the reset password page. The new code will invalidate any previous codes sent. If issues persist, contact our support team."
+          q: "How long does it take to process withdrawals?",
+          a: "Withdrawals are typically processed within 0 – 4 hours. However, processing times may vary depending on network congestion."
         },
         {
-          question: "How long is the password reset OTP valid?",
-          answer: "The password reset OTP is valid for 10 minutes. If you don't complete the reset process within this time, you'll need to request a new OTP code."
-        },
-        {
-          question: "What are the requirements for a new password?",
-          answer: "Your password must be at least 8 characters long and include: 1) At least one uppercase letter, 2) At least one lowercase letter, 3) At least one number, 4) At least one special character (!@#$%^&*)"
+          q: "Is there a minimum or maximum withdrawal amount?",
+          a: "The minimum withdrawal amount is 3$, and the maximum withdrawal amount per transaction is 100,000$ daily. These limits are in place to ensure smooth operations and security."
         }
       ]
     },
     {
-      category: "Security & Support",
+      title: "Earnings & Profits",
       questions: [
         {
-          question: "How secure is your platform?",
-          answer: "We implement bank-grade security measures including 2FA, cold storage for assets, regular security audits, and encryption. Our platform is protected against DDoS attacks and has never been compromised."
+          q: "How are the 5% daily profits calculated?",
+          a: "The 5% daily profit is calculated based on the amount you have staked. For example, if you stake 100$, you will earn 5$ daily."
         },
         {
-          question: "What should I do if someone else tries to reset my password?",
-          answer: "If you receive a password reset OTP that you didn't request, your account may be targeted. Don't share the code with anyone, change your password immediately, and contact our support team to report the incident."
+          q: "When will I start earning profits after depositing?",
+          a: "Earnings begin as soon as your deposit is confirmed on the blockchain. Profits are credited to your account daily and can be withdrawn or reinvested."
         },
         {
-          question: "How can I contact customer support?",
-          answer: "Our support team is available 24/7 through multiple channels: live chat, email, phone, and ticket system. We're here to help with any questions about deposits, profits, or account issues."
+          q: "Can I reinvest my earnings to compound my profits?",
+          a: 'Yes, you can reinvest your earnings to compound your profits. Simply navigate to the "Reinvest" section in your account and follow the instructions.'
+        },
+        {
+          q: "What happens if the market is volatile?",
+          a: "While we aim to provide consistent returns, cryptocurrency markets are inherently volatile. We manage risks through advanced risk management techniques, but profits are guaranteed."
+        }
+      ]
+    },
+    {
+      title: "General Information",
+      questions: [
+        {
+          q: "Do you have a referral program?",
+          a: 'Yes, we offer a referral program where you can earn 10$ for every 3 users you refer who makes a deposit. Check the "Referral" section in your account for more details.'
+        },
+        {
+          q: "Is this platform available in my country?",
+          a: "Our services are available in most countries, but some regions may have restrictions due to local regulations. Please check your local laws before signing up."
         }
       ]
     }
-  ]
-
-  const handleToggle = (index) => {
-    setOpenIndex(openIndex === index ? null : index)
-  }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 
-      text-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
-      <div className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            Frequently Asked Questions
+          </h1>
+          <div className="w-24 h-1 bg-blue-600 mx-auto mb-8"></div>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Find answers to common questions about our platform, investment process, and security measures.
+          </p>
+        </motion.div>
+
+        {/* FAQ Sections */}
+        {faqSections.map((section, sectionIndex) => (
           <motion.div
+            key={sectionIndex}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-20"
+            transition={{ duration: 0.8, delay: sectionIndex * 0.1 }}
+            className="mb-12"
           >
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent 
-              bg-gradient-to-r from-blue-400 to-blue-600">
-              Frequently Asked Questions
-            </h1>
-            <div className="w-20 h-1 bg-blue-600 mx-auto mb-8"></div>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Find answers to common questions about our platform, trading processes, 
-              and security measures.
-            </p>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 flex items-center">
+              <span className="text-blue-500 mr-4">
+                {sectionIndex === 0 ? "💳" : 
+                 sectionIndex === 1 ? "🔒" : 
+                 sectionIndex === 2 ? "💰" :
+                 sectionIndex === 3 ? "📈" : "ℹ️"}
+              </span>
+              {section.title}
+            </h2>
+
+            <div className="space-y-4">
+              {section.questions.map((faq, index) => (
+                <motion.div
+                  key={index}
+                  className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: (sectionIndex * 0.1) + (index * 0.1) }}
+                >
+                  <button
+                    onClick={() => setOpenSection(
+                      openSection === `${sectionIndex}-${index}` ? null : `${sectionIndex}-${index}`
+                    )}
+                    className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-700/50 transition-colors duration-200"
+                  >
+                    <span className="text-white font-medium">{faq.q}</span>
+                    <span className={`text-blue-500 transform transition-transform duration-200 ${
+                      openSection === `${sectionIndex}-${index}` ? 'rotate-180' : ''
+                    }`}>
+                      ▼
+                    </span>
+                  </button>
+                  
+                  {openSection === `${sectionIndex}-${index}` && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-6 py-4 text-gray-300 border-t border-slate-700 whitespace-pre-line"
+                    >
+                      {faq.a}
+                    </motion.div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
+        ))}
 
-          {/* FAQ Categories */}
-          <div className="space-y-12">
-            {faqs.map((category, categoryIndex) => (
-              <motion.div
-                key={categoryIndex}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: categoryIndex * 0.2 }}
-                className="bg-slate-800 rounded-2xl p-8 shadow-lg"
-              >
-                <h2 className="text-2xl font-bold mb-6 text-blue-400">
-                  {category.category}
-                </h2>
-                <div className="space-y-4">
-                  {category.questions.map((faq, index) => {
-                    const globalIndex = categoryIndex * 10 + index
-                    return (
-                      <div
-                        key={index}
-                        className="border-b border-slate-700 last:border-0 pb-4 last:pb-0"
-                      >
-                        <button
-                          onClick={() => handleToggle(globalIndex)}
-                          className="w-full text-left py-4 flex justify-between items-center 
-                            hover:text-blue-400 transition-colors"
-                        >
-                          <span className="text-lg font-medium pr-8">{faq.question}</span>
-                          <svg
-                            className={`w-6 h-6 transform transition-transform 
-                              ${openIndex === globalIndex ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                              d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        <div
-                          className={`overflow-hidden transition-all duration-300 
-                            ${openIndex === globalIndex ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-                        >
-                          <p className="text-gray-300 pb-4 leading-relaxed">
-                            {faq.answer}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Contact Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="mt-16 text-center bg-slate-800 rounded-2xl p-8 shadow-lg"
-          >
-            <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
-            <p className="text-gray-300 mb-6">
+        {/* Contact Support Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="mt-16 text-center"
+        >
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl p-8 md:p-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              Still have questions?
+            </h2>
+            <p className="text-blue-100 mb-8">
               Our support team is here to help you 24/7
             </p>
-            <a
-              href="/contact"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 
-                rounded-full transition-all duration-300 transform hover:scale-105"
-            >
-              Contact Support
-            </a>
-          </motion.div>
-        </div>
-      </div>
+            <Link to="/contact" 
+                className="inline-block px-8 py-4 bg-white text-blue-600 rounded-lg 
+                  font-semibold hover:bg-blue-50 transition-all">
+                Contact Support
+            </Link>
+          </div>
+        </motion.div>
+      </main>
+
+      <Footer />
     </div>
-  )
+  );
 }
 
-export default FAQs 
+export default FAQs;

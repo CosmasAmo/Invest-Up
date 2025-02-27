@@ -41,7 +41,10 @@ const Withdrawal = sequelize.define('Withdrawal', {
 });
 
 // Add associations
-Withdrawal.belongsTo(User, { foreignKey: 'userId' });
+Withdrawal.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
 User.hasMany(Withdrawal, { foreignKey: 'userId' });
 
 export default Withdrawal; 

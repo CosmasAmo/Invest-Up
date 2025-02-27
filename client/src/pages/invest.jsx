@@ -20,8 +20,8 @@ function Invest() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!amount || parseFloat(amount) < 1000) {
-      toast.error('Minimum investment amount is $1,000');
+    if (!amount || parseFloat(amount) < 3) {
+      toast.error('Minimum investment amount is $3');
       return;
     }
 
@@ -30,11 +30,15 @@ function Invest() {
       return;
     }
 
-    const success = await submitInvestment({ amount });
-    if (success) {
-      toast.success('Investment request submitted successfully. Awaiting admin approval.');
-      setAmount('');
-      navigate('/investments');
+    try {
+      const success = await submitInvestment({ amount: parseFloat(amount) });
+      if (success) {
+        toast.success('Investment request submitted successfully. Awaiting admin approval.');
+        setAmount('');
+        navigate('/investments');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to create investment');
     }
   };
 
@@ -50,7 +54,7 @@ function Invest() {
         >
           <h1 className="text-3xl font-bold text-white mb-6">Create Investment</h1>
           
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="text-gray-400 block mb-2">Amount (USD)</label>
               <input
@@ -59,32 +63,35 @@ function Invest() {
                 onChange={handleAmountChange}
                 placeholder="Enter amount"
                 className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
+                min="3"
+                step="0.01"
+                required
               />
               <p className="text-sm text-gray-400 mt-1">
-                Minimum investment: $1,000 <br/>
+                Minimum investment: $3 <br/>
                 Available balance: ${parseFloat(userData?.balance || 0).toFixed(2)}
               </p>
             </div>
 
             <div className="bg-slate-700 p-4 rounded-lg">
               <h3 className="text-white font-semibold mb-2">Investment Details</h3>
-              <p className="text-gray-400">Daily Profit: 6%</p>
-              {amount && parseFloat(amount) >= 1000 && (
+              <p className="text-gray-400">Profit Rate: 5% / 5min</p>
+              {amount && parseFloat(amount) >= 3 && (
                 <p className="text-gray-400">
-                  Daily Return: ${(parseFloat(amount) * 0.06).toFixed(2)}
+                  Expected Return per 5min: ${(parseFloat(amount) * 0.05).toFixed(2)}
                 </p>
               )}
             </div>
 
             <button
-              onClick={handleSubmit}
-              disabled={isLoading || !amount || parseFloat(amount) < 1000}
+              type="submit"
+              disabled={isLoading || !amount || parseFloat(amount) < 3}
               className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg
                 disabled:bg-gray-600 disabled:cursor-not-allowed text-white"
             >
               {isLoading ? 'Processing...' : 'Create Investment'}
             </button>
-          </div>
+          </form>
         </motion.div>
       </div>
     </div>

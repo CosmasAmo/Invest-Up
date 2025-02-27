@@ -4,6 +4,18 @@ import Deposit from '../models/Deposit.js';
 import Investment from '../models/Investment.js';
 import Withdrawal from '../models/Withdrawal.js';
 import Contact from '../models/Contact.js';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
+import { replyToMessage as sendReply } from './contactController.js';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.SENDER_EMAIL,
+        pass: process.env.SENDER_PASSWORD
+    }
+});
 
 export const getDashboardStats = async (req, res) => {
     try {
@@ -86,19 +98,47 @@ export const handleDeposit = async (req, res) => {
             return res.json({ success: false, message: 'Deposit not found' });
         }
 
-        await deposit.update({ status });
-
         if (status === 'approved') {
+            // Update user's balance
             await deposit.User.increment('balance', { by: parseFloat(deposit.amount) });
-            await deposit.User.reload();
+            
+            // If this is user's first approved deposit and they were referred
+            if (deposit.User.referredBy) {
+                const referrer = await User.findByPk(deposit.User.referredBy);
+                if (referrer) {
+                    // Check if this is their first deposit
+                    const previousDeposits = await Deposit.count({
+                        where: {
+                            userId: deposit.User.id,
+                            status: 'approved',
+                            id: { [Op.ne]: depositId }
+                        }
+                    });
+
+                    if (previousDeposits === 0) {
+                        // Increment successful referrals
+                        await referrer.increment('successfulReferrals');
+                        await referrer.reload();
+
+                        // If they now have 2 successful referrals and haven't received bonus
+                        if (referrer.successfulReferrals % 2 === 0) {
+                            await referrer.increment('referralEarnings', { by: 5.00 });
+                            await referrer.increment('balance', { by: 5.00 });
+                        }
+                    }
+                }
+            }
         }
 
+        await deposit.update({ status });
+        
         res.json({ 
             success: true, 
             message: `Deposit ${status}`,
             deposit
         });
     } catch (error) {
+        console.error('Error handling deposit:', error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -254,7 +294,6 @@ export const handleInvestment = async (req, res) => {
         });
 
         if (status === 'approved') {
-            // Deduct investment amount from user's balance
             await investment.User.decrement('balance', { 
                 by: parseFloat(investment.amount)
             });
@@ -307,6 +346,7 @@ export const getPendingWithdrawals = async (req, res) => {
 
 export const handleWithdrawal = async (req, res) => {
     const { withdrawalId, status } = req.body;
+    const withdrawalFee = 2.00;
     
     try {
         const withdrawal = await Withdrawal.findByPk(withdrawalId, {
@@ -317,18 +357,29 @@ export const handleWithdrawal = async (req, res) => {
             return res.json({ success: false, message: 'Withdrawal not found' });
         }
 
-        await withdrawal.update({ status });
-
-        // If rejected, return the amount to user's balance
-        if (status === 'rejected') {
-            await withdrawal.User.increment('balance', { by: parseFloat(withdrawal.amount) });
+        // Check if user has sufficient balance when approving
+        if (status === 'approved') {
+            const totalDeduction = parseFloat(withdrawal.amount) + withdrawalFee;
+            
+            if (parseFloat(withdrawal.User.balance) < totalDeduction) {
+                return res.json({ success: false, message: 'User has insufficient balance (including $2 fee)' });
+            }
+            
+            // Deduct both amount and fee from user's balance
+            await withdrawal.User.decrement('balance', { by: totalDeduction });
             await withdrawal.User.reload();
         }
+
+        await withdrawal.update({ status });
 
         res.json({ 
             success: true, 
             message: `Withdrawal ${status}`,
-            withdrawal
+            withdrawal: {
+                ...withdrawal.toJSON(),
+                fee: withdrawalFee,
+                totalDeducted: parseFloat(withdrawal.amount) + withdrawalFee
+            }
         });
     } catch (error) {
         console.error('Error handling withdrawal:', error);
@@ -339,13 +390,8 @@ export const handleWithdrawal = async (req, res) => {
 export const getMessages = async (req, res) => {
     try {
         const messages = await Contact.findAll({
-            include: [{
-                model: User,
-                attributes: ['id', 'name', 'email']
-            }],
             order: [['createdAt', 'DESC']]
         });
-        
         res.json({ success: true, messages });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -366,22 +412,83 @@ export const markAsRead = async (req, res) => {
     }
 };
 
-export const replyToMessage = async (req, res) => {
-    try {
-        const { messageId, reply } = req.body;
-        const message = await Contact.findByPk(messageId);
-        
-        if (!message) {
-            return res.json({ success: false, message: 'Message not found' });
-        }
+export { sendReply as replyToMessage };
 
-        await message.update({ 
-            reply,
-            status: 'replied'
-        });
-        
-        res.json({ success: true, message: 'Reply sent successfully' });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+export const createUser = async (req, res) => {
+  try {
+    const { name, email, password, isAdmin, isAccountVerified } = req.body;
+    
+    // Check if email already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.json({ success: false, message: 'Email already exists' });
     }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Generate referral code
+    const referralCode = crypto.randomBytes(4).toString('hex');
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      isAdmin: isAdmin || false,
+      isAccountVerified: isAccountVerified || false,
+      referralCode
+    });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.json({ success: false, message: 'User not found' });
+    }
+
+    await user.destroy();
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, email, isAdmin, isAccountVerified, balance } = req.body;
+    
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.json({ success: false, message: 'User not found' });
+    }
+
+    // Check if email is taken by another user
+    if (email !== user.email) {
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.json({ success: false, message: 'Email already exists' });
+      }
+    }
+
+    await user.update({
+      name,
+      email,
+      isAdmin,
+      isAccountVerified,
+      balance
+    });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 }; 

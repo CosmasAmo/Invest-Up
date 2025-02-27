@@ -5,38 +5,39 @@ export const requestWithdrawal = async (req, res) => {
     try {
         const { amount, paymentMethod, walletAddress } = req.body;
         const userId = req.userId;
+        const withdrawalFee = 2.00;
         
         const user = await User.findByPk(userId);
         if (!user) {
             return res.json({ success: false, message: 'User not found' });
         }
 
-        if (parseFloat(amount) < 10) {
-            return res.json({ success: false, message: 'Minimum withdrawal amount is $10' });
+        if (parseFloat(amount) < 3) {
+            return res.json({ success: false, message: 'Minimum withdrawal amount is $3' });
         }
 
-        if (parseFloat(amount) > parseFloat(user.balance)) {
-            return res.json({ success: false, message: 'Insufficient balance' });
+        const totalAmount = parseFloat(amount) + withdrawalFee;
+        
+        if (totalAmount > parseFloat(user.balance)) {
+            return res.json({ success: false, message: 'Insufficient balance (includes $2 withdrawal fee)' });
         }
 
         const withdrawal = await Withdrawal.create({
             userId,
-            amount,
+            amount: parseFloat(amount),
             paymentMethod,
             walletAddress,
             status: 'pending'
         });
 
-        // Deduct the amount from user's balance
-        await user.decrement('balance', { by: parseFloat(amount) });
-        await user.reload();
-
         res.json({ 
             success: true, 
-            message: 'Withdrawal request submitted successfully',
+            message: 'Withdrawal request submitted successfully. Note: A $2 processing fee will be charged upon approval.',
             withdrawal: {
                 ...withdrawal.toJSON(),
-                transactionId: withdrawal.transactionId
+                transactionId: withdrawal.transactionId,
+                fee: withdrawalFee,
+                totalDeduction: totalAmount
             }
         });
 

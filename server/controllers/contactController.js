@@ -4,23 +4,40 @@ import transporter from '../config/nodemailer.js';
 
 export const submitMessage = async (req, res) => {
     try {
-        const { email, subject, message } = req.body;
+        const { name, email, subject, message } = req.body;
         
         // Validate required fields
-        if (!email || !subject || !message) {
+        if (!name || !email || !subject || !message) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Email, subject and message are required' 
+                message: 'All fields are required' 
             });
         }
 
         // Create the contact message
-        await Contact.create({
-            userId: req.userId || null, // This is already correct
+        const contactMessage = await Contact.create({
+            name,
             email,
             subject,
             message
         });
+        
+        // Send confirmation email to user
+        const userMailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: email,
+            subject: 'Message Received - We\'ll Get Back to You Soon',
+            html: `
+                <h2>Thank you for contacting us, ${name}!</h2>
+                <p>We have received your message regarding "${subject}".</p>
+                <p>Our team will review your inquiry and respond as soon as possible.</p>
+                <p>For reference, here's a copy of your message:</p>
+                <blockquote>${message}</blockquote>
+                <p>Best regards,<br>Support Team</p>
+            `
+        };
+        
+        await transporter.sendMail(userMailOptions);
         
         res.json({ success: true, message: 'Message sent successfully' });
     } catch (error) {
@@ -32,10 +49,6 @@ export const submitMessage = async (req, res) => {
 export const getMessages = async (req, res) => {
     try {
         const messages = await Contact.findAll({
-            include: [{
-                model: User,
-                attributes: ['id', 'name', 'email']
-            }],
             order: [['createdAt', 'DESC']]
         });
         
@@ -90,11 +103,15 @@ export const replyToMessage = async (req, res) => {
             from: process.env.SENDER_EMAIL,
             to: message.email,
             subject: `Re: ${message.subject}`,
-            text: reply
+            html: `
+                <h2>Hello ${message.name},</h2>
+                <p>Thank you for your message. Here is our response:</p>
+                <blockquote>${reply}</blockquote>
+                <p>Best regards,<br>Support Team</p>
+            `
         };
 
         await transporter.sendMail(mailOptions);
-
         await message.update({ 
             reply,
             status: 'replied'

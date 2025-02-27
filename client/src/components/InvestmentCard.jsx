@@ -1,46 +1,46 @@
 import { motion } from 'framer-motion';
+import PropTypes from 'prop-types';
 
 function InvestmentCard({ investment }) {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved': return 'bg-green-500/20 text-green-500';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-500';
-      case 'rejected': return 'bg-red-500/20 text-red-500';
-      default: return 'bg-gray-500/20 text-gray-500';
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-slate-800 rounded-xl p-6 space-y-4"
+      className="bg-gray-800 p-6 rounded-lg shadow-lg"
     >
-      <div className="flex justify-between items-center">
-        <span className="text-xl text-white font-semibold">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold text-white">
           ${parseFloat(investment.amount).toFixed(2)}
-        </span>
-        <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(investment.status)}`}>
-          {investment.status.charAt(0).toUpperCase() + investment.status.slice(1)}
+        </h3>
+        <span
+          className={`px-2 py-1 rounded-full text-xs ${
+            investment.status === 'pending'
+              ? 'bg-yellow-500/20 text-yellow-500'
+              : investment.status === 'approved'
+              ? 'bg-green-500/20 text-green-500'
+              : 'bg-red-500/20 text-red-500'
+          }`}
+        >
+          {investment.status}
         </span>
       </div>
 
       <div className="space-y-2 text-gray-400">
         <div className="flex justify-between">
-          <span>Daily Profit Rate:</span>
-          <span className="text-green-400">{investment.dailyProfitRate}%</span>
+          <span>Profit Rate:</span>
+          <span className="text-green-400">5% / 5min</span>
         </div>
         <div className="flex justify-between">
-          <span>Daily Return:</span>
+          <span>Expected Return per 5min:</span>
           <span className="text-green-400">
-            ${investment.dailyReturn.toFixed(2)}
+            ${(parseFloat(investment.amount) * 0.05).toFixed(2)}
           </span>
         </div>
         {investment.status === 'approved' && (
           <div className="flex justify-between">
             <span>Total Profit Earned:</span>
             <span className="text-green-400">
-              ${parseFloat(investment.totalProfit).toFixed(2)}
+              ${parseFloat(investment.totalProfit || 0).toFixed(2)}
             </span>
           </div>
         )}
@@ -58,5 +58,15 @@ function InvestmentCard({ investment }) {
     </motion.div>
   );
 }
+
+InvestmentCard.propTypes = {
+  investment: PropTypes.shape({
+    amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    status: PropTypes.string.isRequired,
+    totalProfit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    createdAt: PropTypes.string.isRequired,
+    lastProfitUpdate: PropTypes.string
+  }).isRequired
+};
 
 export default InvestmentCard; 

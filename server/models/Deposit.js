@@ -42,7 +42,10 @@ const Deposit = sequelize.define('Deposit', {
 });
 
 // Add associations
-Deposit.belongsTo(User, { foreignKey: 'userId' });
+Deposit.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
 User.hasMany(Deposit, { foreignKey: 'userId' });
 
 export default Deposit;

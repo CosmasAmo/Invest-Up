@@ -51,8 +51,8 @@ function Contact() {
           </h2>
           <div className="w-20 h-1 bg-blue-600 mx-auto mb-8"></div>
           <p className="text-gray-300 max-w-2xl mx-auto">
-            Have questions about our investment platform? We're here to help.
-            Fill out the form below and we'll get back to you shortly.
+            Have questions about our investment platform? We&apos;re here to help.
+            Fill out the form below and we&apos;ll get back to you shortly.
           </p>
         </motion.div>
 
@@ -74,7 +74,7 @@ function Contact() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg
+                className="w-full px-4 py-6 bg-slate-800 border border-slate-600 rounded-lg
                   text-white focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Your email address"
               />
@@ -89,7 +89,7 @@ function Contact() {
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 required
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg
+                className="w-full px-4 py-6 bg-slate-800 border border-slate-600 rounded-lg
                   text-white focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Message subject"
               />
@@ -104,7 +104,7 @@ function Contact() {
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 required
                 rows={6}
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg
+                className="w-full px-4 py-6 bg-slate-800 border border-slate-600 rounded-lg
                   text-white focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Your message"
               ></textarea>

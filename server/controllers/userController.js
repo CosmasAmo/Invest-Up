@@ -150,13 +150,13 @@ export const getDashboardData = async (req, res) => {
             where: { userId }
         });
         
-        const totalWithdrawals = withdrawals.reduce((sum, w) => sum + Number(w.amount), 0);
+        const totalWithdrawals = withdrawals
+            .filter(w => w.status === 'approved')
+            .reduce((sum, w) => sum + Number(w.amount), 0);
         const pendingWithdrawals = withdrawals
             .filter(w => w.status === 'pending')
             .reduce((sum, w) => sum + Number(w.amount), 0);
-        const completedWithdrawals = withdrawals
-            .filter(w => w.status === 'approved')
-            .reduce((sum, w) => sum + Number(w.amount), 0);
+        const completedWithdrawals = totalWithdrawals; // Only approved withdrawals count
 
         // Combine deposits and investments into recent transactions
         const allTransactions = [

@@ -11,8 +11,8 @@ export const createInvestment = async (req, res) => {
             return res.json({ success: false, message: 'User not found' });
         }
 
-        if (parseFloat(amount) < 1000) {
-            return res.json({ success: false, message: 'Minimum investment amount is $1,000' });
+        if (parseFloat(amount) < 3) {
+            return res.json({ success: false, message: 'Minimum investment amount is $3' });
         }
 
         if (parseFloat(amount) > parseFloat(user.balance)) {

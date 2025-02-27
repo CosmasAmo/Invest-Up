@@ -38,8 +38,8 @@ function Withdraw() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!amount || parseFloat(amount) < 10) {
-      toast.error('Minimum withdrawal amount is $10');
+    if (!amount || parseFloat(amount) < 3) {
+      toast.error('Minimum withdrawal amount is $3');
       return;
     }
 
@@ -65,7 +65,7 @@ function Withdraw() {
     });
 
     if (success) {
-      toast.success('Withdrawal request submitted successfully');
+      toast.success('Withdrawal request submitted successfully. Contact support for any delays.');
       setAmount('');
       setSelectedMethod(null);
       setWalletAddress('');
@@ -84,6 +84,10 @@ function Withdraw() {
         >
           <h1 className="text-3xl font-bold text-white mb-6">Withdraw Funds</h1>
           
+          <p className="text-sm my-3 text-white">
+            The withdrawal process can take up to 4 hours to complete.
+          </p>
+
           <div className="space-y-6">
             <div>
               <label className="text-gray-400 block mb-2">Amount (USD)</label>
@@ -95,7 +99,8 @@ function Withdraw() {
                 className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
               />
               <p className="text-sm text-gray-400 mt-1">
-                Minimum withdrawal: $10 <br/>
+                Minimum withdrawal: $3 <br/>
+                Withdrawal fee: $2 <br/>
                 Available balance: ${parseFloat(userData?.balance || 0).toFixed(2)}
               </p>
             </div>

@@ -25,7 +25,6 @@ import Investments from './pages/Investments'
 import Deposits from './pages/Deposits'
 import Withdraw from './pages/withdraw'
 import Withdrawals from './pages/withdrawals'
-import Messages from './pages/Messages'
 
 
 
@@ -54,7 +53,6 @@ function App() {
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/deposit" element={<PrivateRoute><Deposit /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
         <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />

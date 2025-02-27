@@ -1,6 +1,5 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
-import User from './userModel.js';
 
 const AuditLog = sequelize.define('AuditLog', {
     id: {
@@ -11,10 +10,7 @@ const AuditLog = sequelize.define('AuditLog', {
     userId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: 'Users',
-            key: 'id'
-        }
+        defaultValue: '00000000-0000-0000-0000-000000000000' // Default UUID for system actions
     },
     action: {
         type: DataTypes.STRING,
@@ -34,11 +30,6 @@ const AuditLog = sequelize.define('AuditLog', {
     }
 }, {
     timestamps: true
-});
-
-AuditLog.belongsTo(User, { 
-  foreignKey: 'userId',
-  onDelete: 'CASCADE'
 });
 
 export default AuditLog; 

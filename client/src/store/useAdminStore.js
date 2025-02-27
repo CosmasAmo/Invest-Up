@@ -184,23 +184,6 @@ const useAdminStore = create((set) => ({
         }
     },
 
-    fetchMessages: async () => {
-        try {
-            const { data } = await axios.get('/api/admin/messages');
-            if (data.success) {
-                set({ 
-                    messages: data.messages,
-                    unreadCount: data.messages.filter(m => m.status === 'unread').length
-                });
-            } else {
-                throw new Error(data.message);
-            }
-        } catch (error) {
-            console.error('Error fetching messages:', error);
-            set({ error: error.message });
-        }
-    },
-
     markMessageAsRead: async (messageId) => {
         try {
             const { data } = await axios.post('/api/admin/mark-message-read', { messageId });
@@ -212,16 +195,70 @@ const useAdminStore = create((set) => ({
         }
     },
 
-    replyToMessage: async (messageId, reply) => {
+    createUser: async (userData) => {
         try {
-            const { data } = await axios.post('/api/admin/reply-message', { messageId, reply });
+            const { data } = await axios.post('/api/admin/users', userData);
             if (data.success) {
-                await useAdminStore.getState().fetchMessages();
+                return data.user;
+            }
+            throw new Error(data.message);
+        } catch (error) {
+            throw new Error(error.response?.data?.message || error.message);
+        }
+    },
+
+    deleteUser: async (userId) => {
+        try {
+            const { data } = await axios.delete(`/api/admin/users/${userId}`);
+            if (data.success) {
                 return true;
             }
             throw new Error(data.message);
         } catch (error) {
-            set({ error: error.message });
+            throw new Error(error.response?.data?.message || error.message);
+        }
+    },
+
+    updateUser: async (userId, userData) => {
+        try {
+            const { data } = await axios.put(`/api/admin/users/${userId}`, userData);
+            if (data.success) {
+                return data.user;
+            }
+            throw new Error(data.message);
+        } catch (error) {
+            throw new Error(error.response?.data?.message || error.message);
+        }
+    },
+
+    fetchMessages: async () => {
+        try {
+            const { data } = await axios.get('/api/admin/messages');
+            if (data.success) {
+                set({ messages: data.messages });
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    },
+
+    replyToMessage: async (messageId, reply) => {
+        try {
+            const { data } = await axios.post('/api/admin/reply-message', {
+                messageId,
+                reply
+            });
+            if (data.success) {
+                set(state => ({
+                    messages: state.messages.map(msg =>
+                        msg.id === messageId ? { ...msg, status: 'replied', reply } : msg
+                    )
+                }));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error sending reply:', error);
             return false;
         }
     }
