@@ -1,9 +1,7 @@
-import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
+import PropTypes from 'prop-types';
 
 function GoogleAuthButton({ type = 'login' }) {
-  const navigate = useNavigate();
-  
   const handleGoogleAuth = () => {
     window.location.href = 'http://localhost:5000/api/auth/google';
   };
@@ -23,5 +21,10 @@ function GoogleAuthButton({ type = 'login' }) {
     </button>
   );
 }
+
+// Add PropTypes validation
+GoogleAuthButton.propTypes = {
+  type: PropTypes.string
+};
 
 export default GoogleAuthButton; 

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDashboardStats, getAllUsers, updateUserStatus, getPendingDeposits, handleDeposit, getApprovedDeposits, getPendingInvestments, handleInvestment, getApprovedInvestments, getPendingWithdrawals, handleWithdrawal, getMessages, markAsRead, replyToMessage, createUser, deleteUser, updateUser } from '../controllers/adminController.js';
+import { getDashboardStats, getAllUsers, updateUserStatus, getPendingDeposits, handleDeposit, getApprovedDeposits, getPendingInvestments, handleInvestment, getApprovedInvestments, getPendingWithdrawals, handleWithdrawal, getMessages, markAsRead, replyToMessage, createUser, deleteUser, updateUser, getRecentTransactions } from '../controllers/adminController.js';
 import adminAuth from '../middleware/adminAuth.js';
 import { auditLogMiddleware } from '../middleware/auditLogMiddleware.js';
 
@@ -33,5 +33,6 @@ adminRouter.post('/reply-message', adminAuth, replyToMessage);
 adminRouter.post('/users', adminAuth, createUser);
 adminRouter.delete('/users/:userId', adminAuth, deleteUser);
 adminRouter.put('/users/:userId', adminAuth, updateUser);
+adminRouter.get('/transactions/recent', adminAuth, getRecentTransactions);
 
 export default adminRouter; 

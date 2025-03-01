@@ -1,24 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
+import axios from 'axios';
 
-const PAYMENT_METHODS = {
-  BTC: {
-    name: 'Bitcoin',
-    icon: '₿',
-    placeholder: 'Enter BTC wallet address'
-  },
-  ETH: {
-    name: 'Ethereum',
-    icon: 'Ξ',
-    placeholder: 'Enter ETH wallet address'
-  },
-  USDT: {
-    name: 'USDT TRC20',
+const WITHDRAWAL_METHODS = {
+  BINANCE: {
+    name: 'Binance ID',
     icon: '₮',
-    placeholder: 'Enter USDT TRC20 address'
+    placeholder: 'Enter your Binance ID'
+  },
+  TRC20: {
+    name: 'Tron (TRC20)',
+    icon: '₮',
+    placeholder: 'Enter your USDT TRC20 address'
+  },
+  BEP20: {
+    name: 'BNB Smart Chain (BEP20)',
+    icon: '₮',
+    placeholder: 'Enter your USDT BEP20 address'
+  },
+  ERC20: {
+    name: 'Ethereum (ERC20)',
+    icon: '₮',
+    placeholder: 'Enter your USDT ERC20 address'
+  },
+  OPTIMISM: {
+    name: 'Optimism',
+    icon: '₮',
+    placeholder: 'Enter your USDT Optimism address'
   }
 };
 
@@ -27,6 +38,34 @@ function Withdraw() {
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [walletAddress, setWalletAddress] = useState('');
+  const [settings, setSettings] = useState({
+    minWithdrawal: 3,
+    withdrawalFee: 2
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    // Fetch settings from the server
+    const fetchSettings = async () => {
+      try {
+        setIsLoadingSettings(true);
+        const response = await axios.get('/api/settings', { withCredentials: true });
+        if (response.data.success) {
+          setSettings({
+            minWithdrawal: response.data.settings.minWithdrawal,
+            withdrawalFee: response.data.settings.withdrawalFee
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // If there's an error, we'll use the default values
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
@@ -38,8 +77,8 @@ function Withdraw() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!amount || parseFloat(amount) < 3) {
-      toast.error('Minimum withdrawal amount is $3');
+    if (!amount || parseFloat(amount) < settings.minWithdrawal) {
+      toast.error(`Minimum withdrawal amount is $${settings.minWithdrawal}`);
       return;
     }
 
@@ -49,7 +88,7 @@ function Withdraw() {
     }
 
     if (!selectedMethod) {
-      toast.error('Please select a payment method');
+      toast.error('Please select a withdrawal method');
       return;
     }
 
@@ -82,7 +121,7 @@ function Withdraw() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-slate-800 rounded-2xl p-8"
         >
-          <h1 className="text-3xl font-bold text-white mb-6">Withdraw Funds</h1>
+          <h1 className="text-3xl font-bold text-white mb-6">Withdraw USDT</h1>
           
           <p className="text-sm my-3 text-white">
             The withdrawal process can take up to 4 hours to complete.
@@ -90,7 +129,7 @@ function Withdraw() {
 
           <div className="space-y-6">
             <div>
-              <label className="text-gray-400 block mb-2">Amount (USD)</label>
+              <label className="text-gray-400 block mb-2">Amount (USDT)</label>
               <input
                 type="number"
                 value={amount}
@@ -99,16 +138,22 @@ function Withdraw() {
                 className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
               />
               <p className="text-sm text-gray-400 mt-1">
-                Minimum withdrawal: $3 <br/>
-                Withdrawal fee: $2 <br/>
-                Available balance: ${parseFloat(userData?.balance || 0).toFixed(2)}
+                {isLoadingSettings ? (
+                  <span>Loading settings...</span>
+                ) : (
+                  <>
+                    Minimum withdrawal: ${settings.minWithdrawal} USDT <br/>
+                    Withdrawal fee: ${settings.withdrawalFee} USDT <br/>
+                    Available balance: ${parseFloat(userData?.balance || 0).toFixed(2)} USDT
+                  </>
+                )}
               </p>
             </div>
 
             <div>
-              <label className="text-gray-400 block mb-4">Select Payment Method</label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(PAYMENT_METHODS).map(([key, method]) => (
+              <label className="text-gray-400 block mb-4">Select Withdrawal Method</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(WITHDRAWAL_METHODS).map(([key, method]) => (
                   <button
                     key={key}
                     onClick={() => setSelectedMethod(key)}
@@ -125,16 +170,28 @@ function Withdraw() {
 
             {selectedMethod && (
               <div>
-                <label className="text-gray-400 block mb-2">Wallet Address</label>
+                <label className="text-gray-400 block mb-2">
+                  {selectedMethod === 'BINANCE' ? 'Binance ID' : 'Wallet Address'}
+                </label>
                 <input
                   type="text"
                   value={walletAddress}
                   onChange={(e) => setWalletAddress(e.target.value)}
-                  placeholder={PAYMENT_METHODS[selectedMethod].placeholder}
+                  placeholder={WITHDRAWAL_METHODS[selectedMethod].placeholder}
                   className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
                 />
+                <p className="text-xs text-gray-400 mt-1">
+                  Make sure to enter the correct {selectedMethod === 'BINANCE' ? 'Binance ID' : 'wallet address'} for USDT. 
+                  Incorrect information may result in permanent loss of funds.
+                </p>
               </div>
             )}
+
+            <div className="bg-amber-500/20 text-amber-400 border border-amber-500/30 p-4 rounded-lg">
+              <p className="text-sm">
+                <strong>Important:</strong> All withdrawals are processed in USDT only. Please ensure you&apos;re using the correct network for your withdrawal.
+              </p>
+            </div>
 
             <button
               onClick={handleSubmit}

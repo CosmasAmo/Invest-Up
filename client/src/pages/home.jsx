@@ -1,8 +1,12 @@
 import Navbar from '../components/navbar'
 import { motion } from 'framer-motion'
-import { ArrowRightIcon, ChartBarIcon, ShieldCheckIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, ShieldCheckIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 import Footer from '../components/footer'
+import { useInView } from 'react-intersection-observer'
+import Hero from '../components/hero'
+import SectionHeader from '../components/SectionHeader'
+import { fadeInUp } from '../utils/animations'
 
 function Home() {
   return (
@@ -10,46 +14,17 @@ function Home() {
       <Navbar />
       <main>
         {/* Hero Section */}
-        <section className="relative pt-32 pb-24 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center"
-            >
-              <h1 className="text-5xl md:text-7xl font-bold mb-8 bg-clip-text text-transparent 
-                bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600">
-                Welcome to<br />Invest Up Trading
-              </h1>
-              <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-12">
-              Start earning 5% profits on your stake by signing up on our platform today.
-              Experience the future of cryptocurrency investment with our AI-driven solutions that put you at the forefront of market opportunities.
-
-              </p>
-              <div className="flex justify-center gap-6">
-                <Link to="/register" 
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white 
-                    font-semibold transition-all flex items-center gap-2">
-                  Get Started <ArrowRightIcon className="w-5 h-5" />
-                </Link>
-                <Link to="/about" 
-                  className="px-8 py-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white 
-                    font-semibold transition-all">
-                  Learn More
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        <Hero />
 
         {/* Features Section */}
         <section className="py-24 bg-slate-800/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <SectionHeader 
+              title="Our Features" 
+              subtitle="Discover the tools that make our platform stand out"
+            />
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              {...fadeInUp(0.2)}
               className="grid md:grid-cols-3 gap-12"
             >
               <div className="bg-slate-800 p-8 rounded-2xl shadow-lg hover:shadow-blue-500/10 
@@ -87,9 +62,7 @@ function Home() {
         <section className="py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
+              {...fadeInUp(0.4)}
               className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl p-12 text-center"
             >
               <h2 className="text-4xl font-bold text-white mb-6">
@@ -107,10 +80,85 @@ function Home() {
             </motion.div>
           </div>
         </section>
+        
+        <ContactSection />
+        
       </main>
 
       <Footer />  
     </div>
+  )
+}
+
+function ContactSection() {
+  const [ref, inView] = useInView({
+    threshold: 0.3,
+    triggerOnce: true
+  })
+
+  return (
+    <section id="contact" className="py-20 bg-slate-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          ref={ref}
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Get in Touch
+          </h2>
+          <div className="w-20 h-1 bg-blue-600 mx-auto mb-8"></div>
+          <p className="text-gray-300 max-w-2xl mx-auto">
+            Have questions about our investment platform? We&apos;re here to help.
+            Our support team is available 24/7 to assist you with any inquiries.
+          </p>
+          
+          <div className="mt-10">
+            <Link
+              to="/contact"
+              className="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"
+            >
+              Contact Our Team
+            </Link>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 mt-16">
+            <div className="bg-slate-800/50 p-6 rounded-xl backdrop-blur-sm">
+              <div className="text-blue-400 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Email Us</h3>
+              <p className="text-gray-300">support@yourplatform.com</p>
+            </div>
+            
+            <div className="bg-slate-800/50 p-6 rounded-xl backdrop-blur-sm">
+              <div className="text-blue-400 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Support Hours</h3>
+              <p className="text-gray-300">24/7 Customer Support</p>
+            </div>
+            
+            <div className="bg-slate-800/50 p-6 rounded-xl backdrop-blur-sm">
+              <div className="text-blue-400 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Location</h3>
+              <p className="text-gray-300">Melbourne, Australia</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
   )
 }
 

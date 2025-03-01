@@ -1,25 +1,40 @@
 import Withdrawal from '../models/Withdrawal.js';
 import User from '../models/userModel.js';
+import { getSetting } from './settingsController.js';
+
+// Valid USDT withdrawal methods
+const VALID_WITHDRAWAL_METHODS = ['BINANCE', 'TRC20', 'BEP20', 'ERC20', 'OPTIMISM'];
 
 export const requestWithdrawal = async (req, res) => {
     try {
         const { amount, paymentMethod, walletAddress } = req.body;
         const userId = req.userId;
-        const withdrawalFee = 2.00;
+        
+        // Validate payment method
+        if (!VALID_WITHDRAWAL_METHODS.includes(paymentMethod)) {
+            return res.json({ 
+                success: false, 
+                message: 'Invalid withdrawal method. Only USDT withdrawals are accepted.' 
+            });
+        }
+        
+        // Get withdrawal fee and minimum withdrawal amount from settings
+        const withdrawalFee = await getSetting('withdrawalFee');
+        const minWithdrawal = await getSetting('minWithdrawal');
         
         const user = await User.findByPk(userId);
         if (!user) {
             return res.json({ success: false, message: 'User not found' });
         }
 
-        if (parseFloat(amount) < 3) {
-            return res.json({ success: false, message: 'Minimum withdrawal amount is $3' });
+        if (parseFloat(amount) < minWithdrawal) {
+            return res.json({ success: false, message: `Minimum withdrawal amount is $${minWithdrawal}` });
         }
 
         const totalAmount = parseFloat(amount) + withdrawalFee;
         
         if (totalAmount > parseFloat(user.balance)) {
-            return res.json({ success: false, message: 'Insufficient balance (includes $2 withdrawal fee)' });
+            return res.json({ success: false, message: `Insufficient balance (includes $${withdrawalFee} withdrawal fee)` });
         }
 
         const withdrawal = await Withdrawal.create({
@@ -32,7 +47,7 @@ export const requestWithdrawal = async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: 'Withdrawal request submitted successfully. Note: A $2 processing fee will be charged upon approval.',
+            message: `Withdrawal request submitted successfully. Note: A $${withdrawalFee} processing fee will be charged upon approval.`,
             withdrawal: {
                 ...withdrawal.toJSON(),
                 transactionId: withdrawal.transactionId,

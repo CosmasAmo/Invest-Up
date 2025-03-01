@@ -1,14 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function Invest() {
   const navigate = useNavigate();
   const { submitInvestment, isLoading, userData } = useStore();
   const [amount, setAmount] = useState('');
+  const [settings, setSettings] = useState({
+    minInvestment: 3,
+    profitPercentage: 5,
+    profitInterval: 5
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    // Fetch settings from the server
+    const fetchSettings = async () => {
+      try {
+        setIsLoadingSettings(true);
+        const response = await axios.get('/api/settings', { withCredentials: true });
+        if (response.data.success) {
+          setSettings({
+            minInvestment: response.data.settings.minInvestment,
+            profitPercentage: response.data.settings.profitPercentage,
+            profitInterval: response.data.settings.profitInterval
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // If there's an error, we'll use the default values
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
@@ -20,8 +51,8 @@ function Invest() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!amount || parseFloat(amount) < 3) {
-      toast.error('Minimum investment amount is $3');
+    if (!amount || parseFloat(amount) < settings.minInvestment) {
+      toast.error(`Minimum investment amount is $${settings.minInvestment}`);
       return;
     }
 
@@ -63,29 +94,35 @@ function Invest() {
                 onChange={handleAmountChange}
                 placeholder="Enter amount"
                 className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
-                min="3"
+                min={settings.minInvestment}
                 step="0.01"
                 required
               />
               <p className="text-sm text-gray-400 mt-1">
-                Minimum investment: $3 <br/>
-                Available balance: ${parseFloat(userData?.balance || 0).toFixed(2)}
+                {isLoadingSettings ? (
+                  "Loading investment settings..."
+                ) : (
+                  <>
+                    Minimum investment: ${settings.minInvestment} <br/>
+                    Available balance: ${parseFloat(userData?.balance || 0).toFixed(2)}
+                  </>
+                )}
               </p>
             </div>
 
             <div className="bg-slate-700 p-4 rounded-lg">
               <h3 className="text-white font-semibold mb-2">Investment Details</h3>
-              <p className="text-gray-400">Profit Rate: 5% / 5min</p>
-              {amount && parseFloat(amount) >= 3 && (
+              <p className="text-gray-400">Profit Rate: {settings.profitPercentage}% / day</p>
+              {amount && parseFloat(amount) >= settings.minInvestment && (
                 <p className="text-gray-400">
-                  Expected Return per 5min: ${(parseFloat(amount) * 0.05).toFixed(2)}
+                  Expected Return per day: ${(parseFloat(amount) * settings.profitPercentage / 100).toFixed(2)}
                 </p>
               )}
             </div>
 
             <button
               type="submit"
-              disabled={isLoading || !amount || parseFloat(amount) < 3}
+              disabled={isLoading || !amount || parseFloat(amount) < settings.minInvestment}
               className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg
                 disabled:bg-gray-600 disabled:cursor-not-allowed text-white"
             >

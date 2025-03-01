@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import PropTypes from 'prop-types';
 
 function DepositCard({ deposit }) {
   const getStatusColor = (status) => {
@@ -51,5 +52,16 @@ function DepositCard({ deposit }) {
     </motion.div>
   );
 }
+
+// Add PropTypes validation
+DepositCard.propTypes = {
+  deposit: PropTypes.shape({
+    amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    createdAt: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    paymentMethod: PropTypes.string.isRequired,
+    proofImage: PropTypes.string
+  }).isRequired
+};
 
 export default DepositCard;

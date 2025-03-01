@@ -28,10 +28,10 @@ function InvestmentCard({ investment }) {
       <div className="space-y-2 text-gray-400">
         <div className="flex justify-between">
           <span>Profit Rate:</span>
-          <span className="text-green-400">5% / 5min</span>
+          <span className="text-green-400">5% / day</span>
         </div>
         <div className="flex justify-between">
-          <span>Expected Return per 5min:</span>
+          <span>Expected Return per day:</span>
           <span className="text-green-400">
             ${(parseFloat(investment.amount) * 0.05).toFixed(2)}
           </span>

@@ -1,77 +1,59 @@
 import { motion } from 'framer-motion'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, EffectFade } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/effect-fade'
-import { assets } from '../assets/assets'
+import { Link } from 'react-router-dom'
+import { fadeInUp } from '../utils/animations'
+import PropTypes from 'prop-types'
 
-const slides = [
-	{ image: assets.graphs, alt: 'Crypto Trading' },
-	{ image: assets.bitcoin, alt: 'Bitcoin Investment' },
-	{ image: assets.graph2, alt: 'Crypto Growth' },
-	{ image: assets.coins, alt: 'Crypto Growth' }
-]
-
-function Hero() {
+function Hero({ 
+	title = "Invest in Your Future with Crypto",
+	subtitle = "Join our platform to earn competitive returns through expert crypto trading strategies",
+	showButtons = true,
+	backgroundClass = "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+}) {
 	return (
-		<div className="relative ">
-			<Swiper
-				modules={[Autoplay, EffectFade]}
-				effect="fade"
-				autoplay={{ delay: 3000 }}
-				loop={true}
-				className="absolute inset-0"
-				
-			>
-				{slides.map((slide, index) => (
-					<SwiperSlide key={index}>
-						<div className="relative h-[calc(100vh-10rem)] mt-16 py-20">
-							<img
-								src={slide.image}
-								alt={slide.alt}
-								className="absolute inset-0 w-full h-full object-cover"
-							/>
-							<div className="absolute inset-0 bg-black/0" />
-						</div>
-					</SwiperSlide>
-				))}
-			</Swiper>
-
-			<div className="relative z-10 h-full flex items-center justify-center px-4 py-6">
-				<div className="text-center">
-					<motion.h1
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8 }}
-						className="text-4xl md:text-6xl font-bold text-white mb-6"
-					>
-						Invest in Your Future with Crypto
-					</motion.h1>
-					<motion.p
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, delay: 0.2 }}
-						className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto"
-					>
-						Join our platform to earn competitive returns through expert crypto trading strategies
-					</motion.p>
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, delay: 0.4 }}
-					>
-						<a
-							href="#contact"
-							className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full
-								transition-all duration-300 inline-block text-lg font-semibold"
+		<section className={`relative pt-32 pb-24 overflow-hidden ${backgroundClass}`}>
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<motion.div
+					{...fadeInUp()}
+					className="text-center"
+				>
+					<h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+						{title}
+					</h1>
+					<p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
+						{subtitle}
+					</p>
+					
+					{showButtons && (
+						<motion.div
+							{...fadeInUp(0.4)}
 						>
-							Start Investing Now
-						</a>
-					</motion.div>
-				</div>
+							<Link
+								to="/register"
+								className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full
+									transition-all duration-300 inline-block text-lg font-semibold mr-4"
+							>
+								Start Investing Now
+							</Link>
+							<Link
+								to="/about"
+								className="bg-transparent border border-blue-500 text-blue-500 hover:bg-blue-500/10 px-8 py-3 rounded-full
+									transition-all duration-300 inline-block text-lg font-semibold"
+							>
+								Learn More
+							</Link>
+						</motion.div>
+					)}
+				</motion.div>
 			</div>
-		</div>
+		</section>
 	)
+}
+
+Hero.propTypes = {
+	title: PropTypes.string,
+	subtitle: PropTypes.string,
+	showButtons: PropTypes.bool,
+	backgroundClass: PropTypes.string
 }
 
 export default Hero 

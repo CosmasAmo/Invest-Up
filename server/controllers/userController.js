@@ -47,8 +47,10 @@ export const getUserdata = async (req, res) => {
                 isAccountVerified: user.isAccountVerified,
                 referralCode: user.referralCode,
                 referralCount: user.referralCount,
+                successfulReferrals: user.successfulReferrals || 0,
                 referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
                 balance: parseFloat(user.balance || 0).toFixed(2),
+                profileImage: user.profileImage,
                 recentTransactions: deposits.slice(0, 5), // Get last 5 transactions
                 referredBy: referrerName
             },
@@ -71,6 +73,9 @@ export const updateProfile = async (req, res) => {
     try {
         const { name, email } = req.body;
         const userId = req.userId;
+        const profileImage = req.file; // Get the uploaded file if any
+
+        console.log('Update profile request:', { name, email, hasImage: !!profileImage });
 
         const user = await User.findByPk(userId);
 
@@ -86,14 +91,33 @@ export const updateProfile = async (req, res) => {
             }
         }
 
-        // Update the user's profile
-        await user.update({ name, email });
+        // Prepare update data
+        const updateData = { name, email };
+        
+        // Handle profile image if uploaded
+        if (profileImage) {
+            // Store the image path in the database
+            console.log('Profile image received:', profileImage.filename);
+            updateData.profileImage = '/uploads/' + profileImage.filename;
+        }
 
-        // Update the email in the Contacts table for all messages associated with this user
-        await Contact.update(
-            { email },
-            { where: { userId } }
-        );
+        // Update the user's profile
+        await user.update(updateData);
+
+        // The Contact model no longer has a userId column as per the latest migration
+        // Instead of trying to update by userId, we'll update by email
+        if (user.email !== email) {
+            try {
+                // Update contacts that match the old email
+                await Contact.update(
+                    { email },
+                    { where: { email: user.email } }
+                );
+            } catch (error) {
+                console.log('Note: Could not update email in contacts:', error.message);
+                // Continue execution even if this fails
+            }
+        }
 
         return res.json({
             success: true,
@@ -101,6 +125,7 @@ export const updateProfile = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Profile update error:', error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -179,6 +204,15 @@ export const getDashboardData = async (req, res) => {
                 createdAt: inv.createdAt,
                 dailyProfitRate: inv.dailyProfitRate,
                 totalProfit: inv.totalProfit || 0
+            })),
+            ...withdrawals.map(withdrawal => ({
+                id: withdrawal.id,
+                type: 'withdrawal',
+                amount: withdrawal.amount,
+                status: withdrawal.status,
+                paymentMethod: withdrawal.paymentMethod,
+                walletAddress: withdrawal.walletAddress,
+                createdAt: withdrawal.createdAt
             }))
         ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -189,6 +223,7 @@ export const getDashboardData = async (req, res) => {
             success: true,
             user: {
                 ...user.toJSON(),
+                successfulReferrals: user.successfulReferrals || 0,
                 recentTransactions: allTransactions.slice(0, 10) // Get last 10 transactions
             },
             stats: {

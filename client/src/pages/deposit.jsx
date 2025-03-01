@@ -1,27 +1,40 @@
-import { useState} from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
+import axios from 'axios';
 
-const PAYMENT_METHODS = {
-  BTC: {
-    name: 'Bitcoin',
-    icon: '₿',
-    address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-    minimumDeposit: 3
-  },
-  ETH: {
-    name: 'Ethereum',
-    icon: 'Ξ',
-    address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    minimumDeposit: 3
-  },
-  USDT: {
-    name: 'USDT TRC20',
+const DEPOSIT_METHODS = {
+  BINANCE: {
+    name: 'Binance ID',
     icon: '₮',
-    address: 'TWd2yzk3xPBRYwKcaXxMQjBukVeGK7EZ8E',
-    minimumDeposit: 3
+    address: '374592285',
+    description: 'Deposit USDT to this Binance ID'
+  },
+  TRC20: {
+    name: 'Tron (TRC20)',
+    icon: '₮',
+    address: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+    description: 'Send USDT via Tron network'
+  },
+  BEP20: {
+    name: 'BNB Smart Chain (BEP20)',
+    icon: '₮',
+    address: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+    description: 'Send USDT via BNB Smart Chain'
+  },
+  ERC20: {
+    name: 'Ethereum (ERC20)',
+    icon: '₮',
+    address: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+    description: 'Send USDT via Ethereum network'
+  },
+  OPTIMISM: {
+    name: 'Optimism',
+    icon: '₮',
+    address: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+    description: 'Send USDT via Optimism network'
   }
 };
 
@@ -31,13 +44,39 @@ function Deposit() {
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [step, setStep] = useState(1);
   const [proofFile, setProofFile] = useState(null);
+  const [settings, setSettings] = useState({
+    minDeposit: 3 // Default value
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    // Fetch settings from the server
+    const fetchSettings = async () => {
+      try {
+        setIsLoadingSettings(true);
+        const response = await axios.get('/api/settings', { withCredentials: true });
+        if (response.data.success) {
+          setSettings({
+            minDeposit: response.data.settings.minDeposit
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // If there's an error, we'll use the default values
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
     if (/^\d*\.?\d*$/.test(value)) {
       setAmount(value);
-      if (parseFloat(value) < 3) {
-        toast.error('Minimum deposit amount is $3');
+      if (parseFloat(value) < settings.minDeposit) {
+        toast.error(`Minimum deposit amount is $${settings.minDeposit}`);
         return;
       }
       setAmount(value);
@@ -45,8 +84,8 @@ function Deposit() {
   };
 
   const handleMethodSelect = (method) => {
-    if (parseFloat(amount) < 3) {
-      toast.error('Please enter an amount of $3 or more');
+    if (parseFloat(amount) < settings.minDeposit) {
+      toast.error(`Please enter an amount of $${settings.minDeposit} or more`);
       return;
     }
     setSelectedMethod(method);
@@ -115,12 +154,12 @@ function Deposit() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-slate-800 rounded-2xl p-8"
         >
-          <h1 className="text-3xl font-bold text-white mb-6">Deposit Funds</h1>
+          <h1 className="text-3xl font-bold text-white mb-6">Deposit USDT</h1>
           
           {step === 1 ? (
             <div className="space-y-6">
               <div>
-                <label className="text-gray-400 block mb-2">Amount (USD)</label>
+                <label className="text-gray-400 block mb-2">Amount (USDT)</label>
                 <input
                   type="number"
                   value={amount}
@@ -129,21 +168,26 @@ function Deposit() {
                   required
                   className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg"
                 />
-                <p className="text-sm text-gray-400 mt-1">Minimum deposit: $3</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  {isLoadingSettings 
+                    ? "Loading minimum deposit amount..." 
+                    : `Minimum deposit: $${settings.minDeposit} USDT`}
+                </p>
               </div>
 
               <div>
-                <label className="text-gray-400 block mb-4">Select Payment Method</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(PAYMENT_METHODS).map(([key, method]) => (
+                <label className="text-gray-400 block mb-4">Select Deposit Method</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(DEPOSIT_METHODS).map(([key, method]) => (
                     <button
                       key={key}
                       onClick={() => handleMethodSelect(key)}
-                      className="flex items-center justify-center gap-2 p-4 rounded-lg bg-slate-700 
+                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-slate-700 
                         hover:bg-slate-600 transition-colors"
                     >
                       <span className="text-2xl">{method.icon}</span>
-                      <span className="text-white">{method.name}</span>
+                      <span className="text-white font-medium">{method.name}</span>
+                      <span className="text-gray-400 text-sm">{method.description}</span>
                     </button>
                   ))}
                 </div>
@@ -153,25 +197,32 @@ function Deposit() {
             <div className="space-y-6">
               <div className="bg-slate-700 p-6 rounded-lg">
                 <h3 className="text-xl text-white mb-4">Payment Details</h3>
-                <p className="text-gray-400 mb-2">Amount: ${amount}</p>
-                <p className="text-gray-400 mb-4">Method: {PAYMENT_METHODS[selectedMethod].name}</p>
+                <p className="text-gray-400 mb-2">Amount: {amount} USDT</p>
+                <p className="text-gray-400 mb-4">Method: {DEPOSIT_METHODS[selectedMethod].name}</p>
                 
                 <div className="bg-slate-600 p-4 rounded-lg mb-4">
                   <p className="text-sm text-gray-300 mb-2">Send payment to:</p>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      value={PAYMENT_METHODS[selectedMethod].address}
+                      value={DEPOSIT_METHODS[selectedMethod].address}
                       readOnly
                       className="bg-transparent text-white flex-1 outline-none"
                     />
                     <button
-                      onClick={() => copyToClipboard(PAYMENT_METHODS[selectedMethod].address)}
+                      onClick={() => copyToClipboard(DEPOSIT_METHODS[selectedMethod].address)}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
                     >
                       Copy
                     </button>
                   </div>
+                </div>
+
+                <div className="bg-amber-500/20 text-amber-400 border border-amber-500/30 p-4 rounded-lg mb-4">
+                  <p className="text-sm">
+                    <strong>Important:</strong> Only send USDT using the {DEPOSIT_METHODS[selectedMethod].name} method. 
+                    Sending any other currency may result in permanent loss of funds.
+                  </p>
                 </div>
 
                 <div className="space-y-4">

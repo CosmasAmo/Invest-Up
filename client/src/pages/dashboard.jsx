@@ -5,7 +5,7 @@ import useStore from '../store/useStore'
 import Navbar from '../components/navbar'
 import ReferralLink from '../components/ReferralLink'
 import { toast } from 'react-toastify'
-
+import Footer from '../components/footer'
 function Dashboard() {
   const navigate = useNavigate();
   const { userData, stats, fetchDashboardData, isVerified, fetchDeposits } = useStore()
@@ -57,11 +57,6 @@ function Dashboard() {
       title: 'Total Profit', 
       value: `$${parseFloat(stats?.totalProfit || 0).toFixed(2)}`, 
       icon: '📈' 
-    },
-    { 
-      title: 'Referral Earnings', 
-      value: `$${parseFloat(stats?.referralEarnings || 0).toFixed(2)}`, 
-      icon: '🤝' 
     }
   ]
 
@@ -195,6 +190,12 @@ function Dashboard() {
                           <span className="text-gray-400">
                             {transaction.dailyProfitRate}% Daily
                           </span>
+                        ) : transaction.type === 'withdrawal' ? (
+                          <span className="text-gray-400" title={transaction.walletAddress}>
+                            {transaction.walletAddress ? 
+                              `${transaction.walletAddress.substring(0, 10)}...` : 
+                              'N/A'}
+                          </span>
                         ) : 'N/A'}
                       </td>
                     </tr>
@@ -210,6 +211,7 @@ function Dashboard() {
         </motion.div>
 
       </div>
+      <Footer />
     </div>
   )
 }

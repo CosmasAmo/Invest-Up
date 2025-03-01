@@ -1,7 +1,8 @@
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import useStore from '../store/useStore';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
+import PropTypes from 'prop-types';
 
 function AdminRoute({ children }) {
     const { isAuthenticated, isAdmin, checkAuth } = useStore();
@@ -33,5 +34,10 @@ function AdminRoute({ children }) {
 
     return children;
 }
+
+// Add PropTypes validation
+AdminRoute.propTypes = {
+    children: PropTypes.node.isRequired
+};
 
 export default AdminRoute; 

@@ -8,6 +8,9 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { replyToMessage as sendReply } from './contactController.js';
+import sequelize from '../config/database.js';
+import { getSetting } from './settingsController.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -23,6 +26,15 @@ export const getDashboardStats = async (req, res) => {
         const verifiedUsers = await User.count({ where: { isAccountVerified: true } });
         const totalReferrals = await User.sum('referralCount');
         const totalReferralEarnings = await User.sum('referralEarnings');
+
+        // Calculate total investments from all users
+        const investments = await Investment.findAll({
+            where: { status: 'approved' }
+        });
+        
+        const totalInvestments = investments.reduce((sum, investment) => {
+            return sum + parseFloat(investment.amount || 0);
+        }, 0);
 
         const recentUsers = await User.findAll({
             order: [['createdAt', 'DESC']],
@@ -43,7 +55,8 @@ export const getDashboardStats = async (req, res) => {
                 totalUsers,
                 verifiedUsers,
                 totalReferrals,
-                totalReferralEarnings: parseFloat(totalReferralEarnings || 0).toFixed(2)
+                totalReferralEarnings: parseFloat(totalReferralEarnings || 0).toFixed(2),
+                totalInvestments: parseFloat(totalInvestments).toFixed(2)
             },
             recentUsers,
             topReferrers
@@ -64,7 +77,33 @@ export const getAllUsers = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        res.json({ success: true, users });
+        // Get all approved investments
+        const investments = await Investment.findAll({
+            where: { status: 'approved' },
+            attributes: ['userId', 'amount']
+        });
+
+        // Calculate total investments for each user
+        const userInvestments = {};
+        investments.forEach(investment => {
+            const userId = investment.userId;
+            const amount = parseFloat(investment.amount || 0);
+            
+            if (!userInvestments[userId]) {
+                userInvestments[userId] = 0;
+            }
+            
+            userInvestments[userId] += amount;
+        });
+
+        // Add total investments to each user
+        const usersWithInvestments = users.map(user => {
+            const userData = user.toJSON();
+            userData.totalInvestments = parseFloat(userInvestments[user.id] || 0).toFixed(2);
+            return userData;
+        });
+
+        res.json({ success: true, users: usersWithInvestments });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
@@ -99,44 +138,75 @@ export const handleDeposit = async (req, res) => {
         }
 
         if (status === 'approved') {
-            // Update user's balance
-            await deposit.User.increment('balance', { by: parseFloat(deposit.amount) });
-            
-            // If this is user's first approved deposit and they were referred
-            if (deposit.User.referredBy) {
-                const referrer = await User.findByPk(deposit.User.referredBy);
-                if (referrer) {
-                    // Check if this is their first deposit
-                    const previousDeposits = await Deposit.count({
-                        where: {
-                            userId: deposit.User.id,
-                            status: 'approved',
-                            id: { [Op.ne]: depositId }
-                        }
-                    });
+            // Start a transaction to ensure data consistency
+            await sequelize.transaction(async (t) => {
+                // Update user's balance
+                await deposit.User.increment('balance', { 
+                    by: parseFloat(deposit.amount),
+                    transaction: t 
+                });
+                
+                // If user was referred, handle referral bonus
+                if (deposit.User.referredBy) {
+                    const referrer = await User.findByPk(deposit.User.referredBy, { transaction: t });
+                    if (referrer) {
+                        // Check if this is their first deposit
+                        const previousDeposits = await Deposit.count({
+                            where: {
+                                userId: deposit.User.id,
+                                status: 'approved',
+                                id: { [Op.ne]: depositId }
+                            },
+                            transaction: t
+                        });
 
-                    if (previousDeposits === 0) {
-                        // Increment successful referrals
-                        await referrer.increment('successfulReferrals');
-                        await referrer.reload();
+                        if (previousDeposits === 0) {
+                            // Increment successful referrals for referrer
+                            await referrer.increment('successfulReferrals', { transaction: t });
+                            await referrer.reload({ transaction: t });
 
-                        // If they now have 2 successful referrals and haven't received bonus
-                        if (referrer.successfulReferrals % 2 === 0) {
-                            await referrer.increment('referralEarnings', { by: 5.00 });
-                            await referrer.increment('balance', { by: 5.00 });
+                            // Get referrals required from settings
+                            const referralsRequired = await getSetting('referralsRequired');
+                            
+                            // Award bonus when referrals reach the required number
+                            if (referrer.successfulReferrals % referralsRequired === 0) {
+                                const bonusAmount = await getSetting('referralBonus');
+                                await Promise.all([
+                                    referrer.increment('referralEarnings', { 
+                                        by: bonusAmount,
+                                        transaction: t 
+                                    }),
+                                    referrer.increment('balance', { 
+                                        by: bonusAmount,
+                                        transaction: t 
+                                    })
+                                ]);
+
+                                // Log the bonus award
+                                console.log(`Awarded $${bonusAmount} to referrer ${referrer.id} for reaching ${referrer.successfulReferrals} successful referrals`);
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        await deposit.update({ status });
-        
-        res.json({ 
-            success: true, 
-            message: `Deposit ${status}`,
-            deposit
-        });
+                // Update deposit status
+                await deposit.update({ status }, { transaction: t });
+            });
+            
+            res.json({ 
+                success: true, 
+                message: `Deposit ${status}`,
+                deposit
+            });
+        } else {
+            // If not approving, just update the status
+            await deposit.update({ status });
+            res.json({ 
+                success: true, 
+                message: `Deposit ${status}`,
+                deposit
+            });
+        }
     } catch (error) {
         console.error('Error handling deposit:', error);
         res.json({ success: false, message: error.message });
@@ -346,9 +416,11 @@ export const getPendingWithdrawals = async (req, res) => {
 
 export const handleWithdrawal = async (req, res) => {
     const { withdrawalId, status } = req.body;
-    const withdrawalFee = 2.00;
     
     try {
+        // Get withdrawal fee from settings
+        const withdrawalFee = await getSetting('withdrawalFee');
+        
         const withdrawal = await Withdrawal.findByPk(withdrawalId, {
             include: [{ model: User }]
         });
@@ -362,7 +434,7 @@ export const handleWithdrawal = async (req, res) => {
             const totalDeduction = parseFloat(withdrawal.amount) + withdrawalFee;
             
             if (parseFloat(withdrawal.User.balance) < totalDeduction) {
-                return res.json({ success: false, message: 'User has insufficient balance (including $2 fee)' });
+                return res.json({ success: false, message: `User has insufficient balance (including $${withdrawalFee} fee)` });
             }
             
             // Deduct both amount and fee from user's balance
@@ -491,4 +563,91 @@ export const updateUser = async (req, res) => {
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
+};
+
+export const getRecentTransactions = async (req, res) => {
+    try {
+        // Combine deposits, investments, and withdrawals into one list
+        const deposits = await Deposit.findAll({
+            include: [{
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }],
+            order: [['createdAt', 'DESC']],
+            limit: 20
+        });
+        
+        const investments = await Investment.findAll({
+            include: [{
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }],
+            order: [['createdAt', 'DESC']],
+            limit: 20
+        });
+        
+        const withdrawals = await Withdrawal.findAll({
+            include: [{
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }],
+            order: [['createdAt', 'DESC']],
+            limit: 20
+        });
+
+        // Combine and format all transactions
+        const allTransactions = [
+            ...deposits.map(dep => ({
+                id: dep.id,
+                type: 'deposit',
+                amount: dep.amount,
+                status: dep.status,
+                paymentMethod: dep.paymentMethod,
+                createdAt: dep.createdAt,
+                user: {
+                    id: dep.User.id,
+                    name: dep.User.name,
+                    email: dep.User.email
+                }
+            })),
+            ...investments.map(inv => ({
+                id: inv.id,
+                type: 'investment',
+                amount: inv.amount,
+                status: inv.status,
+                paymentMethod: 'Balance',
+                createdAt: inv.createdAt,
+                user: {
+                    id: inv.User.id,
+                    name: inv.User.name,
+                    email: inv.User.email
+                }
+            })),
+            ...withdrawals.map(wth => ({
+                id: wth.id,
+                type: 'withdrawal',
+                amount: wth.amount,
+                status: wth.status,
+                paymentMethod: wth.paymentMethod,
+                createdAt: wth.createdAt,
+                user: {
+                    id: wth.User.id,
+                    name: wth.User.name,
+                    email: wth.User.email
+                }
+            }))
+        ]
+        // Sort by date (newest first)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        // Limit to most recent 30 transactions
+        .slice(0, 30);
+
+        res.json({ 
+            success: true, 
+            transactions: allTransactions
+        });
+    } catch (error) {
+        console.error('Error fetching recent transactions:', error);
+        res.json({ success: false, message: error.message });
+    }
 }; 

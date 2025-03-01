@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  FaTwitter,
-  FaLinkedinIn,
-  FaTelegram,
-  FaDiscord,
   FaPhoneAlt,
   FaEnvelope,
   FaMapMarkerAlt
@@ -17,13 +13,6 @@ function Footer() {
     { label: 'Investments', path: '/investments' },
     { label: 'Contact', path: '/contact' },
     { label: 'FAQs', path: '/faqs' }
-  ];
-
-  const socialLinks = [
-    { icon: <FaTwitter size={20} />, href: '#', label: 'Twitter' },
-    { icon: <FaLinkedinIn size={20} />, href: '#', label: 'LinkedIn' },
-    { icon: <FaTelegram size={20} />, href: '#', label: 'Telegram' },
-    { icon: <FaDiscord size={20} />, href: '#', label: 'Discord' }
   ];
 
   const contactInfo = [
@@ -40,10 +29,7 @@ function Footer() {
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="inline-block mb-6">
               <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 
-                  rounded-lg flex items-center justify-center">
-                  <span className="text-xl font-bold text-white">IU</span>
-                </div>
+                <img src="/invest-up.png" alt="Invest Up Logo" className="h-12 w-auto" />
                 <div>
                   <h3 className="text-xl font-bold text-white">Invest Up</h3>
                   <p className="text-sm text-blue-400">Trading Company</p>
@@ -54,20 +40,6 @@ function Footer() {
               Your trusted partner in cryptocurrency trading. We provide professional 
               investment services with transparent operations and competitive returns.
             </p>
-            <div className="flex gap-4">
-              {socialLinks.map((social, index) => (
-                <motion.a
-                  key={index}
-                  href={social.href}
-                  whileHover={{ scale: 1.1 }}
-                  className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center
-                    text-gray-400 hover:text-blue-400 hover:bg-slate-700 transition-all"
-                  aria-label={social.label}
-                >
-                  {social.icon}
-                </motion.a>
-              ))}
-            </div>
           </div>
 
           {/* Quick Links */}

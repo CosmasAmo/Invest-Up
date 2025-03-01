@@ -1,18 +1,22 @@
 import Investment from '../models/Investment.js';
 import User from '../models/userModel.js';
+import { getSetting } from './settingsController.js';
 
 export const createInvestment = async (req, res) => {
     try {
         const { amount } = req.body;
         const userId = req.userId;
         
+        // Get minimum investment amount from settings
+        const minInvestment = await getSetting('minInvestment');
+        
         const user = await User.findByPk(userId);
         if (!user) {
             return res.json({ success: false, message: 'User not found' });
         }
 
-        if (parseFloat(amount) < 3) {
-            return res.json({ success: false, message: 'Minimum investment amount is $3' });
+        if (parseFloat(amount) < minInvestment) {
+            return res.json({ success: false, message: `Minimum investment amount is $${minInvestment}` });
         }
 
         if (parseFloat(amount) > parseFloat(user.balance)) {

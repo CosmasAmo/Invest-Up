@@ -5,7 +5,7 @@ import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
 
 function Withdrawals() {
-    const { fetchWithdrawals, withdrawals, isLoading } = useStore();
+    const { fetchWithdrawals, withdrawals } = useStore();
 
     useEffect(() => {
         fetchWithdrawals();

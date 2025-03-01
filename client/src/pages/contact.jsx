@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'react-toastify'
 import Navbar from '../components/navbar'
 import useStore from '../store/useStore'
+import Footer from '../components/footer'
 
 function Contact() {
   const { submitMessage } = useStore()
@@ -34,6 +35,7 @@ function Contact() {
         })
       }
     } catch (error) {
+      console.error('Message submission error:', error);
       toast.error('Failed to send message. Please try again.')
     }
     setIsLoading(false)
@@ -79,7 +81,7 @@ function Contact() {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-blue-400 mb-2">Location</h3>
-                  <p className="text-gray-300">Your Company Address</p>
+                  <p className="text-gray-300">Melbourne, Australia</p>
                 </div>
               </div>
             </motion.div>
@@ -98,7 +100,7 @@ function Contact() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="mt-1 block w-full rounded-lg bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-1 block w-full rounded-lg py-1 bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -108,7 +110,7 @@ function Contact() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mt-1 block w-full rounded-lg bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-1 block w-full rounded-lg py-1 bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -118,7 +120,7 @@ function Contact() {
                     type="text"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="mt-1 block w-full rounded-lg bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-1 block w-full rounded-lg py-1 bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -128,7 +130,7 @@ function Contact() {
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     rows={6}
-                    className="mt-1 block w-full rounded-lg bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="mt-1 block w-full rounded-lg py-1 bg-slate-700/50 border border-slate-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -154,6 +156,7 @@ function Contact() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

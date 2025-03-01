@@ -50,12 +50,14 @@ const User = sequelize.define('User', {
   },
   referralCode: {
     type: DataTypes.STRING,
-    unique: true
+    unique: true,
+    allowNull: false
   },
   referralCount: {
     type: DataTypes.INTEGER,
-    defaultValue: 0
-},
+    defaultValue: 0,
+    allowNull: false
+  },
   referredBy: {
     type: DataTypes.UUID,
     references: {
@@ -78,6 +80,10 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     allowNull: false
+  },
+  profileImage: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   successfulReferrals: {
     type: DataTypes.INTEGER,

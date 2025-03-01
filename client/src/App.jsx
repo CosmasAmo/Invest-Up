@@ -26,10 +26,8 @@ import Deposits from './pages/Deposits'
 import Withdraw from './pages/withdraw'
 import Withdrawals from './pages/withdrawals'
 
-
-
 function App() {
-  const { checkAuth, isAdmin, initialize } = useStore();
+  const { initialize } = useStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,13 +35,13 @@ function App() {
   }, [initialize]);
 
   return (
-    <div>
-      <ToastContainer />
+    <div className="app-container bg-slate-900 text-white min-h-screen">
+      <ToastContainer theme="dark" />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/email-verify" element={<EmailVerify />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />

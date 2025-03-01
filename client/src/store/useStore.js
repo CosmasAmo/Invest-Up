@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import debounce from 'lodash.debounce';
 
 // Set default base URL for axios
 axios.defaults.baseURL = 'http://localhost:5000'; // Update this with your backend URL
@@ -41,9 +40,9 @@ const useStore = create(
           if (data.success) {
             set({
               isAuthenticated: true,
-              userData: data.user,
-              isVerified: data.user.isAccountVerified,
-              isAdmin: data.user.isAdmin,
+              userData: data.userData || data.user,
+              isVerified: (data.userData || data.user).isAccountVerified,
+              isAdmin: (data.userData || data.user).isAdmin,
               isLoading: false
             });
           } else {
@@ -74,7 +73,20 @@ const useStore = create(
       register: async (userData) => {
         set({ isLoading: true });
         try {
-          const { data } = await axios.post('/api/auth/register', userData);
+          let endpoint = '/api/auth/register';
+          
+          // If referredBy (referral code) is provided, use the referral registration endpoint
+          if (userData.referredBy) {
+            endpoint = '/api/auth/register-with-referral';
+            // Rename referredBy to referralCode for the API
+            userData = {
+              ...userData,
+              referralCode: userData.referredBy,
+            };
+            delete userData.referredBy;
+          }
+          
+          const { data } = await axios.post(endpoint, userData);
           if (data.success) {
             set({ isLoading: false });
             return true;
@@ -127,16 +139,20 @@ const useStore = create(
       updateProfile: async (profileData) => {
         set({ isLoading: true, error: null });
         try {
-          const { data } = await axios.put('/api/user/update-profile', profileData);
+          const { data } = await axios.put('/api/user/update-profile', profileData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
           if (data.success) {
-            set(state => ({
-              userData: { ...state.userData, ...profileData }
-            }));
+            // Fetch updated user data to ensure we have the latest
+            await get().fetchUserData();
             return true;
           }
-          throw new Error(data.message);
+          throw new Error(data.message || 'Failed to update profile');
         } catch (error) {
-          set({ error: error.message });
+          console.error('Update profile error:', error);
+          set({ error: error.response?.data?.message || error.message });
           return false;
         } finally {
           set({ isLoading: false });
@@ -149,9 +165,9 @@ const useStore = create(
           const { data } = await axios.get('/api/user/data');
           if (data.success) {
             set({ 
-              userData: data.user,
+              userData: data.userData,
               isAuthenticated: true,
-              isVerified: data.user.isAccountVerified 
+              isVerified: data.userData.isAccountVerified 
             });
           }
         } catch (error) {
@@ -379,8 +395,6 @@ const useStore = create(
           return false;
         }
       },
-
-     
     }),
     {
       name: 'auth-storage',

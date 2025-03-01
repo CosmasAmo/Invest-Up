@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import PropTypes from 'prop-types';
 
 export function PrivateRoute({ children }) {
   const { isAuthenticated, isVerified, userData } = useStore();
@@ -35,3 +36,12 @@ export function PublicRoute({ children }) {
 
   return children;
 }
+
+// Add PropTypes validation
+PrivateRoute.propTypes = {
+  children: PropTypes.node.isRequired
+};
+
+PublicRoute.propTypes = {
+  children: PropTypes.node.isRequired
+};

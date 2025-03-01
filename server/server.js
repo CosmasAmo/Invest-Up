@@ -16,13 +16,20 @@ import fs from 'fs';
 import { startProfitCron } from './cron/profitCron.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import withdrawalRouter from './routes/withdrawalRoutes.js';
+import settingsRouter from './routes/settingsRoutes.js';
 import { calculateProfits } from './utils/profitCalculator.js';
 import { auditLogMiddleware } from './middleware/auditLogMiddleware.js';
+import { initializeSettings } from './controllers/settingsController.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-sequelize.sync();
+// Force sync to create new tables
+sequelize.sync({ alter: true }).then(() => {
+  console.log("✅ Database synced successfully!");
+  // Initialize settings after database sync
+  initializeSettings();
+});
 
 const testDB = async () => {
     try {
@@ -88,6 +95,7 @@ app.use('/api/admin', adminRouter)
 app.use('/api/transactions', transactionRouter);
 app.use('/api/investments', investmentRoutes);
 app.use('/api/withdrawals', withdrawalRouter);
+app.use('/api/settings', settingsRouter);
 
 // Add this before your routes
 app.use(auditLogMiddleware);
@@ -98,8 +106,8 @@ startProfitCron();
 // Run profit calculation every minute
 setInterval(calculateProfits, 60 * 1000);
 
-app.listen(port, () => {
-    console.log(`Server running on port: ${port}`);
+app.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on port: //0.0.0.0:${port}`);
 });
 
 

@@ -28,21 +28,8 @@ export const register = async (req, res) => {
             const referrer = await User.findOne({ where: { referralCode } });
             if (referrer) {
                 referredBy = referrer.id;
-                
-                // Add referral bonus to referrer
-                await Promise.all([
-                    referrer.increment('referralCount'),
-                    referrer.increment('referralEarnings', { by: 20.00 }),
-                    referrer.increment('balance', { by: 20.00 })
-                ]);
-
-                // Fetch updated referrer data
-                await referrer.reload();
-                console.log('Updated referrer data:', {
-                    referralCount: referrer.referralCount,
-                    referralEarnings: referrer.referralEarnings,
-                    balance: referrer.balance
-                });
+                // Remove the immediate bonus - will be given after first deposit
+                await referrer.increment('referralCount');
             }
         }
 
@@ -306,14 +293,37 @@ export const registerWithReferral = async (req, res) => {
             return res.json({success: false, message:'User already exists'});
         }
 
+        // Generate unique referral code for new user
+        const uniqueReferralCode = crypto.randomBytes(4).toString('hex');
+        
         const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Generate verification OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = Date.now() + 10 * 60 * 1000;
 
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
-            referredBy: referringUser.id
+            referralCode: uniqueReferralCode,
+            referredBy: referringUser.id,
+            verifyOtp: otp,
+            verifyOtpExpireAt: otpExpiry
         });
+
+        // Increment referral count for the referring user
+        await referringUser.increment('referralCount');
+
+        // Send verification email
+        const mailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: email,
+            subject: 'Email Verification',
+            html: EMAIL_VERIFY_TEMPLATE.replace("{{otp}}", otp).replace("{{email}}", email)
+        };
+
+        await transporter.sendMail(mailOptions);
 
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7days'});
 
@@ -354,7 +364,11 @@ export const checkAuth = async (req, res) => {
                 email: user.email,
                 isAccountVerified: user.isAccountVerified,
                 isAdmin: user.isAdmin,
-                balance: parseFloat(user.balance || 0).toFixed(2)
+                balance: parseFloat(user.balance || 0).toFixed(2),
+                referralCode: user.referralCode,
+                referralCount: user.referralCount,
+                referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
+                successfulReferrals: user.successfulReferrals || 0
             }
         });
     } catch (error) {

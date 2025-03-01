@@ -16,34 +16,54 @@ const useAdminStore = create((set) => ({
     approvedWithdrawals: [],
     messages: [],
     unreadCount: 0,
+    recentTransactions: [],
 
-    fetchDashboardStats: async () => {
-        set({ isLoading: true });
+    fetchAdminStats: async (timeRange = 'week') => {
+        set({ isLoading: true, error: null });
         try {
-            const { data } = await axios.get('http://localhost:5000/api/admin/stats');
+            const { data } = await axios.get(`/api/admin/stats?timeRange=${timeRange}`);
             if (data.success) {
-                set({ 
-                    stats: data.stats,
-                    recentUsers: data.recentUsers,
-                    topReferrers: data.topReferrers
-                });
+                set({ stats: data.stats });
+            } else {
+                throw new Error(data.message || 'Failed to fetch admin stats');
             }
         } catch (error) {
             set({ error: error.message });
+            console.error('Error fetching admin stats:', error);
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    fetchRecentTransactions: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const { data } = await axios.get('/api/admin/transactions/recent');
+            if (data.success) {
+                set({ recentTransactions: data.transactions });
+            } else {
+                throw new Error(data.message || 'Failed to fetch recent transactions');
+            }
+        } catch (error) {
+            set({ error: error.message });
+            console.error('Error fetching recent transactions:', error);
         } finally {
             set({ isLoading: false });
         }
     },
 
     fetchAllUsers: async () => {
-        set({ isLoading: true });
+        set({ isLoading: true, error: null });
         try {
             const { data } = await axios.get('/api/admin/users');
             if (data.success) {
                 set({ users: data.users });
+            } else {
+                throw new Error(data.message || 'Failed to fetch users');
             }
         } catch (error) {
             set({ error: error.message });
+            console.error('Error fetching users:', error);
         } finally {
             set({ isLoading: false });
         }
@@ -196,38 +216,53 @@ const useAdminStore = create((set) => ({
     },
 
     createUser: async (userData) => {
+        set({ isLoading: true, error: null });
         try {
             const { data } = await axios.post('/api/admin/users', userData);
             if (data.success) {
                 return data.user;
+            } else {
+                throw new Error(data.message || 'Failed to create user');
             }
-            throw new Error(data.message);
         } catch (error) {
-            throw new Error(error.response?.data?.message || error.message);
+            set({ error: error.message });
+            throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     deleteUser: async (userId) => {
+        set({ isLoading: true, error: null });
         try {
             const { data } = await axios.delete(`/api/admin/users/${userId}`);
             if (data.success) {
                 return true;
+            } else {
+                throw new Error(data.message || 'Failed to delete user');
             }
-            throw new Error(data.message);
         } catch (error) {
-            throw new Error(error.response?.data?.message || error.message);
+            set({ error: error.message });
+            throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     updateUser: async (userId, userData) => {
+        set({ isLoading: true, error: null });
         try {
             const { data } = await axios.put(`/api/admin/users/${userId}`, userData);
             if (data.success) {
                 return data.user;
+            } else {
+                throw new Error(data.message || 'Failed to update user');
             }
-            throw new Error(data.message);
         } catch (error) {
-            throw new Error(error.response?.data?.message || error.message);
+            set({ error: error.message });
+            throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 

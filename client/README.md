@@ -1,8 +1,45 @@
-# React + Vite
+# Client Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the client application for the investment platform.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+To run the application locally:
+
+```bash
+npm install
+npm run dev
+```
+
+## Features
+
+- User authentication (login, register, password reset)
+- Dashboard for account overview
+- Investment management
+- Deposit and withdrawal functionality
+- Profile and security management
+- Admin panel for user management
+
+## Project Structure
+
+The project follows a standard React application structure:
+
+- `src/components`: Reusable UI components
+- `src/pages`: Page components
+- `src/utils`: Utility functions and helpers
+- `src/store`: State management using Zustand
+- `src/assets`: Static assets like images
+
+## State Management
+
+The application uses Zustand for state management. The main store is defined in `src/store/useStore.js` and includes:
+
+- Authentication state
+- User data
+- Investment data
+- Transaction history
+- UI state
+
+## API Integration
+
+The application communicates with a backend API using Axios. API endpoints are defined in the store actions.

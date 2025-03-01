@@ -2,22 +2,27 @@ import Investment from '../models/Investment.js';
 import User from '../models/userModel.js';
 import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
+import { getSetting } from '../controllers/settingsController.js';
 
 export const calculateProfits = async () => {
     try {
+        // Get profit settings
+        const profitPercentage = await getSetting('profitPercentage');
+        const profitInterval = await getSetting('profitInterval');
+        
         const investments = await Investment.findAll({
             where: {
                 status: 'approved',
                 lastProfitUpdate: {
-                    [Op.lt]: new Date(Date.now() - 5 * 60 * 1000) // Get investments that haven't been updated in 5 minutes
+                    [Op.lt]: new Date(Date.now() - profitInterval * 60 * 1000) // Get investments that haven't been updated in the configured interval
                 }
             },
             include: [{ model: User }]
         });
 
         for (const investment of investments) {
-            // Calculate 5% profit
-            const profitAmount = parseFloat(investment.amount) * 0.05;
+            // Calculate profit based on the configured percentage
+            const profitAmount = parseFloat(investment.amount) * (profitPercentage / 100);
             
             // Add profit to user's balance
             await investment.User.increment('balance', { by: profitAmount });

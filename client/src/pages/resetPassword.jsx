@@ -1,155 +1,235 @@
-import React, { useState, useRef } from 'react'
-import { assets } from '../assets/assets'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import useStore  from '../store/useStore'
+import { useState, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import useStore from '../store/useStore';
+import { motion } from 'framer-motion';
+import { FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
 
 function ResetPassword() {
-
   axios.defaults.withCredentials = true;
 
-  const navigate = useNavigate()
-  const { sendResetOtp, resetPassword } = useStore();
+  const navigate = useNavigate();
+  const { sendResetOtp, resetPassword, isLoading } = useStore();
 
-  const [email, setEmail] = useState('')
-  const [newPassword, setNewPassword] = useState('')
+  const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
-  const[isEmailSent, setIsEmailSent] = useState(false)
-  const[otp, setOtp] = useState('')
-  const[isOtpSubmitted, setIsOtpSubmitted] = useState(false)
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isOtpSubmitted, setIsOtpSubmitted] = useState(false);
 
-  const inputRefs = useRef([])
+  const inputRefs = useRef([]);
 
   const handleInput = (e, index) => {
     if (e.target.value.length > 0 && index < inputRefs.current.length-1) {
-      inputRefs.current[index+1].focus()
+      inputRefs.current[index+1].focus();
     }
-  }
+  };
 
   const handleKeyDown = (e, index) => {
     if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
-      inputRefs.current[index-1].focus()
+      inputRefs.current[index-1].focus();
     }
-  }
+  };
 
   const handlePaste = (e) => {
-    const paste = e.clipboardData.getData('text')
-    const pasteArray = paste.split('')
+    e.preventDefault();
+    const paste = e.clipboardData.getData('text');
+    const pasteArray = paste.split('');
     pasteArray.forEach((char, index) => {
       if(inputRefs.current[index]) {
-        inputRefs.current[index].value = char
+        inputRefs.current[index].value = char;
+        if (index < inputRefs.current.length-1 && char) {
+          inputRefs.current[index+1].focus();
+        }
       }
-    })
-  }
+    });
+  };
 
   const onSubmitEmail = async (e) => {
-    e.preventDefault()
-    const success = await sendResetOtp(email)
+    e.preventDefault();
+    const success = await sendResetOtp(email);
     if (success) {
-      setIsEmailSent(true)
+      setIsEmailSent(true);
     }
-  }
+  };
 
   const onSubmitOtp = async (e) => {
-    e.preventDefault()
-
-    const otpArray = inputRefs.current.map(e => e.value)
-    setOtp(otpArray.join(''))
-    setIsOtpSubmitted(true)
-  }
+    e.preventDefault();
+    const otpArray = inputRefs.current.map(input => input.value);
+    setOtp(otpArray.join(''));
+    setIsOtpSubmitted(true);
+  };
 
   const onSubmitNewPassword = async (e) => {
-    e.preventDefault()
-    const success = await resetPassword(email, newPassword, otp)
+    e.preventDefault();
+    const success = await resetPassword(email, newPassword, otp);
     if (success) {
-      navigate('/login')
+      navigate('/login');
     }
-  }
+  };
 
   return (
-    <div className='flex items-center justify-center min-h-screen
-      bg-gradient-to-br from-blue-200 to-purple-400'>
-        <img 
-          onClick={() => navigate('/')}
-          src={assets.logo} alt="" className='absolute left-5
-          sm:left-20 top-5 w-28 sm:w-32 cursor-pointer' />
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center px-4 sm:px-6 lg:px-8'>
+      <Link 
+        to="/"
+        className="absolute left-5 top-5 flex items-center text-white hover:text-blue-300 transition-colors"
+      >
+        <FaArrowLeft className="mr-2" />
+        <span>Back to Home</span>
+      </Link>
 
-        {/* Enter email form */}
-        {!isEmailSent &&
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <div className="bg-slate-800 shadow-2xl rounded-2xl overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 py-6">
+            <h2 className="text-center text-3xl font-extrabold text-white">Reset Password</h2>
+            <p className="mt-2 text-center text-sm text-blue-200">
+              {!isEmailSent ? "Enter your email to reset password" : 
+               !isOtpSubmitted ? "Enter the verification code" : 
+               "Create your new password"}
+            </p>
+          </div>
 
-          <form onSubmit={onSubmitEmail}
-            className='bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm'>
-            <h1 className='text-center text-2xl text-white mb-6'>Reset password</h1>
-            
-            <p className='text-center mb-6 text-indigo-300'>Enter your registered email address</p>
+          <div className="px-8 py-8">
+            {!isEmailSent ? (
+              <form onSubmit={onSubmitEmail} className="space-y-6">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+                    Email Address
+                  </label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaEnvelope className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                </div>
 
-            <div className='mb-4 flex items-center gap-3 w-full px-5 py-2.5
-              bg-[#333A5C] rounded-full'>
-              <img src={assets.mail_icon} alt="" className='w-3 h-3' />
-              <input type="email" placeholder='Email' 
-                className='bg-transparent outline-none text-white'
-                value={email} onChange={e => setEmail(e.target.value)} required/>
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin mr-2 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Sending...
+                      </div>
+                    ) : (
+                      "Send Verification Code"
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : !isOtpSubmitted ? (
+              <form onSubmit={onSubmitOtp} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Enter the 6-digit code sent to your email
+                  </label>
+                  <div 
+                    onPaste={handlePaste} 
+                    className="flex justify-between gap-2"
+                  >
+                    {Array(6).fill(0).map((_, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => (inputRefs.current[index] = el)}
+                        type="text"
+                        maxLength="1"
+                        className="w-full h-12 text-center bg-slate-700 border border-slate-600 rounded-lg text-white text-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onInput={(e) => handleInput(e, index)}
+                        onKeyDown={(e) => handleKeyDown(e, index)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin mr-2 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Verifying...
+                      </div>
+                    ) : (
+                      "Verify Code"
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={onSubmitNewPassword} className="space-y-6">
+                <div>
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300">
+                    New Password
+                  </label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaLock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="newPassword"
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin mr-2 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Resetting...
+                      </div>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-400">
+                Remember your password?{' '}
+                <Link to="/login" className="font-medium text-blue-400 hover:text-blue-300">
+                  Sign in
+                </Link>
+              </p>
             </div>
-
-            <button type='submit' className='w-full bg-gradient-to-r from-indigo-500 to-indigo-900
-              text-white p-2 rounded-full'>Submit</button>
-
-          </form>
-        }
-
-        {/* password reset otp form */}
-        {!isOtpSubmitted && isEmailSent &&
-
-          <form onSubmit={onSubmitOtp}
-            className='bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm'>
-            <h1 className='text-center text-2xl text-white mb-6'>Password reset OTP</h1>
-            
-            <p className='text-center mb-6 text-indigo-300'>Enter the 6-digit code sent to your email.</p>
-
-            <div onPaste={handlePaste} className='flex justify-between mb-8'>
-              {Array(6).fill(0).map((_, index) => (
-
-                <input type="text" maxLength='1' key={index} required 
-                  className='w-12 h-12 text-center bg-slate-800 text-white 
-                  border-2 border-indigo-300 rounded-lg text-xl' 
-                  ref={e=>inputRefs.current[index] = e}
-                  onInput={(e) => handleInput(e, index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  
-                />
-              ))}
-            </div>
-          
-            <button type='submit' className='w-full bg-gradient-to-r from-indigo-500 to-indigo-900
-              text-white p-2 rounded-full'>Reset password</button>
-          </form>
-        }
-
-        {/*Enter new password form*/}
-        {isOtpSubmitted && isEmailSent && 
-
-          <form onSubmit={onSubmitNewPassword}
-            className='bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm'>
-            <h1 className='text-center text-2xl text-white mb-6'>Reset password</h1>
-            
-            <p className='text-center mb-6 text-indigo-300'>Enter new password</p>
-
-            <div className='mb-4 flex items-center gap-3 w-full px-5 py-2.5
-              bg-[#333A5C] rounded-full'>
-              <img src={assets.lock_icon} alt="" className='w-3 h-3' />
-              <input type="password" placeholder='newPassword' 
-                className='bg-transparent outline-none text-white'
-                value={newPassword} onChange={e => setNewPassword(e.target.value)} required/>
-            </div>
-
-            <button type='submit' className='w-full bg-gradient-to-r from-indigo-500 to-indigo-900
-              text-white p-2 rounded-full'>Submit</button>
-
-          </form>
-        }
-      
+          </div>
+        </div>
+      </motion.div>
     </div>
-  )
+  );
 }
 
-export default ResetPassword
+export default ResetPassword;
