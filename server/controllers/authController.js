@@ -61,15 +61,19 @@ export const register = async (req, res) => {
 
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7days'});
 
+        // Set cookie with more permissive settings for mobile
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
+            secure: true,
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
         });
 
+        // Also send token in response body for mobile clients
         return res.json({
             success: true,
+            token: token, // Include token in response for mobile clients
             userData: {
                 id: user.id,
                 name: user.name,
@@ -116,17 +120,19 @@ export const login = async (req, res) => {
             expiresIn: '30d'
         });
 
-        // Set cookie
+        // Set cookie with more permissive settings for mobile
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            secure: true,
+            sameSite: 'none',
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+            path: '/'
         });
 
         // Send user data without sensitive information
         res.json({
             success: true,
+            token: token, // Include token in response for mobile clients
             userData: {
                 id: user.id,
                 name: user.name,
@@ -148,7 +154,10 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
     res.cookie('token', '', {
         httpOnly: true,
-        expires: new Date(0)
+        secure: true,
+        sameSite: 'none',
+        expires: new Date(0),
+        path: '/'
     });
     res.json({success: true});
 };

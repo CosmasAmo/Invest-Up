@@ -3,7 +3,16 @@ import User from '../models/userModel.js';
 
 const userAuth = async (req, res, next) => {
     try {
-        const token = req.cookies.token;
+        // Get token from cookies or Authorization header
+        let token = req.cookies.token;
+        
+        // Check Authorization header if no cookie token (for mobile clients)
+        if (!token && req.headers.authorization) {
+            const authHeader = req.headers.authorization;
+            if (authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
         
         if (!token) {
             return res.json({ success: false, message: 'No token provided' });

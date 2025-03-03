@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import useStore from '../store/useStore';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { motion } from 'framer-motion';
-import { FaUser, FaEnvelope, FaLock, FaUserFriends, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaUserFriends, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 function Register() {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ function Register() {
   const referralCode = queryParams.get('ref');
   const { register, isAuthenticated, error, isLoading } = useStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +41,14 @@ function Register() {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -77,10 +87,10 @@ function Register() {
   const buttonDisabled = isSubmitting || isLoading;
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center px-4 sm:px-6 lg:px-8'>
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-16 sm:pt-0'>
       <Link 
         to="/"
-        className="absolute left-5 top-5 flex items-center text-white hover:text-blue-300 transition-colors"
+        className="absolute left-5 top-5 sm:top-5 flex items-center text-white hover:text-blue-300 transition-colors"
       >
         <FaArrowLeft className="mr-2" />
         <span>Back to Home</span>
@@ -164,15 +174,26 @@ function Register() {
                     <input
                       id="password"
                       name="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       autoComplete="new-password"
                       required
                       value={formData.password}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="bg-slate-700 block w-full pl-10 pr-10 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="••••••••"
                       disabled={buttonDisabled}
                     />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center z-10">
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="text-gray-400 hover:text-white focus:outline-none p-1"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        disabled={buttonDisabled}
+                      >
+                        {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -187,15 +208,26 @@ function Register() {
                     <input
                       id="confirmPassword"
                       name="confirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       autoComplete="new-password"
                       required
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="bg-slate-700 block w-full pl-10 pr-10 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="••••••••"
                       disabled={buttonDisabled}
                     />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center z-10">
+                      <button
+                        type="button"
+                        onClick={toggleConfirmPasswordVisibility}
+                        className="text-gray-400 hover:text-white focus:outline-none p-1"
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        disabled={buttonDisabled}
+                      >
+                        {showConfirmPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

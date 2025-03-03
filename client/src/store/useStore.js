@@ -1,10 +1,53 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { createRequestConfig, handleApiError } from '../utils/apiUtils';
+
+// Determine the API URL based on the environment
+const getApiUrl = () => {
+  // In production, you would use your actual domain
+  if (import.meta.env.PROD) {
+    return 'https://yourdomain.com'; // Replace with your production URL
+  }
+  
+  // For development, use localhost
+  return 'http://localhost:5000';
+};
 
 // Set default base URL for axios
-axios.defaults.baseURL = 'http://localhost:5000'; // Update this with your backend URL
+axios.defaults.baseURL = getApiUrl();
 axios.defaults.withCredentials = true;
+
+// Add axios interceptors for request handling
+axios.interceptors.request.use(
+  config => {
+    // Add the Authorization header if we have a token in localStorage
+    const token = localStorage.getItem('auth_token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Log requests in development
+    if (import.meta.env.DEV) {
+      console.log(`Making ${config.method.toUpperCase()} request to: ${config.url}`);
+    }
+    
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+// Add a function to update the API URL at runtime (for testing purposes)
+const updateApiUrl = (newUrl) => {
+  if (newUrl) {
+    axios.defaults.baseURL = newUrl;
+    console.log('API URL updated to:', newUrl);
+    return true;
+  }
+  return false;
+};
 
 const useStore = create(
   persist(
@@ -29,28 +72,75 @@ const useStore = create(
       deposits: [],
       withdrawals: [],
       messages: [],
+      
+      // Add updateApiUrl function to the store
+      updateApiUrl,
+
+      // Initialize authentication from localStorage
+      initAuth: () => {
+        const token = localStorage.getItem('auth_token');
+        const isAdmin = localStorage.getItem('is_admin') === 'true';
+        
+        if (token) {
+          // Set the token in the Authorization header for future requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          console.log('Restored authentication token from localStorage');
+          
+          // Also restore isAdmin flag if available
+          if (isAdmin) {
+            console.log('Restored admin status from localStorage');
+            set(state => ({ 
+              ...state,
+              isAdmin: true 
+            }));
+          }
+          
+          // We'll still need to verify this token with the server
+          // This will happen automatically with the checkAuth function
+        }
+      },
 
       // Add checkAuth function
       checkAuth: async () => {
         console.log('Checking authentication...');
         set({ isLoading: true });
         try {
-          const { data } = await axios.get('/api/auth/check');
+          // Use the createRequestConfig utility
+          const config = createRequestConfig();
+          
+          const { data } = await axios.get('/api/auth/check', config);
           console.log('Auth check response:', data);
+          
           if (data.success) {
+            const userData = data.userData || data.user;
+            const isAdmin = userData.isAdmin === true;
+            
+            console.log('User authenticated, isAdmin:', isAdmin);
+            
+            // Update localStorage with current admin status
+            localStorage.setItem('is_admin', isAdmin ? 'true' : 'false');
+            
             set({
               isAuthenticated: true,
-              userData: data.userData || data.user,
-              isVerified: (data.userData || data.user).isAccountVerified,
-              isAdmin: (data.userData || data.user).isAdmin,
+              userData: userData,
+              isVerified: userData.isAccountVerified,
+              isAdmin: isAdmin,
               isLoading: false
             });
           } else {
-            set({ isAuthenticated: false, isLoading: false });
+            console.log('Authentication check failed: Not authenticated');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('is_admin');
+            set({ isAuthenticated: false, isAdmin: false, isLoading: false });
           }
         } catch (error) {
-          console.error('Authentication check failed:', error);
-          set({ isAuthenticated: false, isLoading: false });
+          // Use the handleApiError utility
+          handleApiError(error, (errorMsg) => {
+            console.error('Authentication check failed:', errorMsg);
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('is_admin');
+            set({ isAuthenticated: false, isAdmin: false, isLoading: false, error: errorMsg });
+          }, 'Auth check error');
         }
       },
 
@@ -88,7 +178,21 @@ const useStore = create(
           
           const { data } = await axios.post(endpoint, userData);
           if (data.success) {
-            set({ isLoading: false });
+            // Store user data with token if registration is successful
+            if (data.userData && data.token) {
+              const userDataWithToken = {
+                ...data.userData,
+                token: data.token
+              };
+              
+              set({ 
+                userData: userDataWithToken,
+                isAuthenticated: true,
+                isLoading: false 
+              });
+            } else {
+              set({ isLoading: false });
+            }
             return true;
           }
           throw new Error(data.message);
@@ -292,22 +396,46 @@ const useStore = create(
       },
 
       login: async (credentials) => {
-        set({ isLoading: true });
+        set({ isLoading: true, error: null });
         try {
-          const { data } = await axios.post('/api/auth/login', credentials);
+          // Use the createRequestConfig utility
+          const config = createRequestConfig();
+          
+          const { data } = await axios.post('/api/auth/login', credentials, config);
           if (data.success) {
+            // Store the token in userData
+            const userData = {
+              ...data.userData,
+              token: data.token // Save the token in userData
+            };
+            
+            // Set the token in localStorage for mobile devices that might not handle cookies well
+            localStorage.setItem('auth_token', data.token);
+            
+            // Also store isAdmin flag in localStorage for persistence
+            localStorage.setItem('is_admin', userData.isAdmin ? 'true' : 'false');
+            
+            // Set the token in the Authorization header for future requests
+            axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+            
+            console.log('Login successful, user data:', userData);
+            console.log('Is admin:', userData.isAdmin);
+            
             set({ 
               isAuthenticated: true,
-              userData: data.userData,
-              isVerified: data.userData.isAccountVerified,
-              isAdmin: data.userData.isAdmin,
+              userData: userData,
+              isVerified: userData.isAccountVerified,
+              isAdmin: userData.isAdmin === true, // Ensure boolean value
               isLoading: false
             });
-            return true;
+            return userData;
           }
-          throw new Error(data.message);
+          throw new Error(data.message || 'Login failed');
         } catch (error) {
-          set({ error: error.message, isLoading: false });
+          // Use the handleApiError utility
+          handleApiError(error, (errorMsg) => {
+            set({ error: errorMsg, isLoading: false });
+          }, 'Login error');
           return false;
         }
       },
@@ -315,6 +443,16 @@ const useStore = create(
       logout: async () => {
         try {
           await axios.post('/api/auth/logout');
+          
+          // Clear the token from localStorage
+          localStorage.removeItem('auth_token');
+          
+          // Clear the isAdmin flag from localStorage
+          localStorage.removeItem('is_admin');
+          
+          // Remove the Authorization header
+          delete axios.defaults.headers.common['Authorization'];
+          
           set({ 
             userData: null, 
             isAuthenticated: false,
@@ -331,8 +469,15 @@ const useStore = create(
       // Add fetchDashboardData action
       fetchDashboardData: async () => {
         try {
-          const { data } = await axios.get('/api/user/dashboard');
+          console.log('Fetching dashboard data...');
+          
+          // Use the createRequestConfig utility
+          const config = createRequestConfig();
+          
+          const { data } = await axios.get('/api/user/dashboard', config);
+          
           if (data.success) {
+            console.log('Dashboard data fetched successfully');
             set({
               userData: data.user,
               stats: {
@@ -342,25 +487,40 @@ const useStore = create(
                 completedWithdrawals: data.stats.completedWithdrawals || 0
               }
             });
+          } else {
+            console.error('Dashboard data fetch failed:', data.message);
+            set({ error: data.message || 'Failed to fetch dashboard data' });
           }
         } catch (error) {
-          console.error('Error fetching dashboard data:', error);
-          set({ error: error.message });
+          // Use the handleApiError utility
+          handleApiError(error, (errorMsg) => {
+            set({ error: errorMsg });
+          }, 'Error fetching dashboard data');
         }
       },
 
       fetchDeposits: async () => {
         set({ isLoading: true, error: null });
         try {
-          const { data } = await axios.get('/api/user/deposits');
+          console.log('Fetching deposits...');
+          
+          // Use the createRequestConfig utility
+          const config = createRequestConfig();
+          
+          const { data } = await axios.get('/api/user/deposits', config);
+          
           if (data.success) {
+            console.log('Deposits fetched successfully');
             set({ deposits: data.deposits });
           } else {
-            throw new Error(data.message);
+            console.error('Deposits fetch failed:', data.message);
+            throw new Error(data.message || 'Failed to fetch deposits');
           }
         } catch (error) {
-          console.error('Error fetching deposits:', error);
-          set({ error: error.message });
+          // Use the handleApiError utility
+          handleApiError(error, (errorMsg) => {
+            set({ error: errorMsg });
+          }, 'Error fetching deposits');
         } finally {
           set({ isLoading: false });
         }

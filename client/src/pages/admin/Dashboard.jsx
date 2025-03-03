@@ -4,6 +4,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import useAdminStore from '../../store/useAdminStore';
 import { UsersIcon, CurrencyDollarIcon, UserGroupIcon, ArrowTrendingUpIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
+import axios from 'axios';
 
 function Dashboard() {
     const { 
@@ -118,12 +119,13 @@ function Dashboard() {
 
         return pendingDeposits.map((deposit) => (
             <tr key={deposit.id} className="border-t border-gray-700">
-                <td className="py-3">{deposit.user?.name || 'Unknown User'}</td>
-                <td>${parseFloat(deposit.amount).toFixed(2)}</td>
-                <td>{deposit.paymentMethod}</td>
-                <td>
+                <td className="px-2 sm:px-6 py-3">{deposit.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-6 py-3">${parseFloat(deposit.amount).toFixed(2)}</td>
+                <td className="px-2 sm:px-6 py-3 hidden sm:table-cell">{deposit.paymentMethod}</td>
+                <td className="px-2 sm:px-6 py-3 hidden md:table-cell">{new Date(deposit.createdAt).toLocaleDateString()}</td>
+                <td className="px-2 sm:px-6 py-3 hidden lg:table-cell">
                     <a 
-                        href={`http://localhost:5000/uploads/${deposit.proofImage}`}
+                        href={`${axios.defaults.baseURL}/uploads/${deposit.proofImage}`}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-400 hover:text-blue-300"
@@ -131,24 +133,21 @@ function Dashboard() {
                         View Proof
                     </a>
                 </td>
-                <td>
-                    <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500">
-                        Pending
-                    </span>
-                </td>
-                <td className="space-x-2">
-                    <button
-                        onClick={() => handleDeposit(deposit.id, 'approved')}
-                        className="px-3 py-1 rounded-md text-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
-                    >
-                        Approve
-                    </button>
-                    <button
-                        onClick={() => handleDeposit(deposit.id, 'rejected')}
-                        className="px-3 py-1 rounded-md text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                    >
-                        Reject
-                    </button>
+                <td className="px-2 sm:px-6 py-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                            onClick={() => handleDeposit(deposit.id, 'approved')}
+                            className="px-2 py-1 rounded-md text-xs sm:text-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                        >
+                            Approve
+                        </button>
+                        <button
+                            onClick={() => handleDeposit(deposit.id, 'rejected')}
+                            className="px-2 py-1 rounded-md text-xs sm:text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                        >
+                            Reject
+                        </button>
+                    </div>
                 </td>
             </tr>
         ));
@@ -168,27 +167,25 @@ function Dashboard() {
 
         return pendingInvestments.map((investment) => (
             <tr key={investment.id} className="border-t border-gray-700">
-                <td className="py-3">{investment.user?.name || 'Unknown User'}</td>
-                <td>${parseFloat(investment.amount).toFixed(2)}</td>
-                <td>
-                    <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500">
-                        Pending
-                    </span>
-                </td>
-                <td>{new Date(investment.createdAt).toLocaleDateString()}</td>
-                <td className="space-x-2">
-                    <button
-                        onClick={() => handleInvestment(investment.id, 'approved')}
-                        className="px-3 py-1 rounded-md text-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
-                    >
-                        Approve
-                    </button>
-                    <button
-                        onClick={() => handleInvestment(investment.id, 'rejected')}
-                        className="px-3 py-1 rounded-md text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                    >
-                        Reject
-                    </button>
+                <td className="px-2 sm:px-6 py-3">{investment.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-6 py-3">${parseFloat(investment.amount).toFixed(2)}</td>
+                <td className="px-2 sm:px-6 py-3 hidden sm:table-cell">{investment.plan || 'Standard'}</td>
+                <td className="px-2 sm:px-6 py-3 hidden md:table-cell">{new Date(investment.createdAt).toLocaleDateString()}</td>
+                <td className="px-2 sm:px-6 py-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                            onClick={() => handleInvestment(investment.id, 'approved')}
+                            className="px-2 py-1 rounded-md text-xs sm:text-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                        >
+                            Approve
+                        </button>
+                        <button
+                            onClick={() => handleInvestment(investment.id, 'rejected')}
+                            className="px-2 py-1 rounded-md text-xs sm:text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                        >
+                            Reject
+                        </button>
+                    </div>
                 </td>
             </tr>
         ));
@@ -199,7 +196,7 @@ function Dashboard() {
         if (!pendingWithdrawals || pendingWithdrawals.length === 0) {
             return (
                 <tr>
-                    <td colSpan="6" className="py-4 text-center text-gray-400">
+                    <td colSpan="5" className="py-4 text-center text-gray-400">
                         No pending withdrawals
                     </td>
                 </tr>
@@ -208,28 +205,25 @@ function Dashboard() {
 
         return pendingWithdrawals.map((withdrawal) => (
             <tr key={withdrawal.id} className="border-t border-gray-700">
-                <td className="py-3">{withdrawal.user?.name || 'Unknown User'}</td>
-                <td>${parseFloat(withdrawal.amount).toFixed(2)}</td>
-                <td>{withdrawal.paymentMethod}</td>
-                <td className="font-mono text-sm">{withdrawal.walletAddress}</td>
-                <td>
-                    <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500">
-                        Pending
-                    </span>
-                </td>
-                <td className="space-x-2">
-                    <button
-                        onClick={() => handleWithdrawal(withdrawal.id, 'approved')}
-                        className="px-3 py-1 rounded-md text-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
-                    >
-                        Approve
-                    </button>
-                    <button
-                        onClick={() => handleWithdrawal(withdrawal.id, 'rejected')}
-                        className="px-3 py-1 rounded-md text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                    >
-                        Reject
-                    </button>
+                <td className="px-2 sm:px-6 py-3">{withdrawal.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-6 py-3">${parseFloat(withdrawal.amount).toFixed(2)}</td>
+                <td className="px-2 sm:px-6 py-3 hidden sm:table-cell">{withdrawal.withdrawalMethod}</td>
+                <td className="px-2 sm:px-6 py-3 hidden md:table-cell">{new Date(withdrawal.createdAt).toLocaleDateString()}</td>
+                <td className="px-2 sm:px-6 py-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                            onClick={() => handleWithdrawal(withdrawal.id, 'approved')}
+                            className="px-2 py-1 rounded-md text-xs sm:text-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                        >
+                            Approve
+                        </button>
+                        <button
+                            onClick={() => handleWithdrawal(withdrawal.id, 'rejected')}
+                            className="px-2 py-1 rounded-md text-xs sm:text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                        >
+                            Reject
+                        </button>
+                    </div>
                 </td>
             </tr>
         ));
@@ -354,8 +348,8 @@ function Dashboard() {
 
         return recentTransactions.map((transaction) => (
             <tr key={transaction.id} className="border-t border-gray-700">
-                <td className="py-3">{transaction.user?.name || 'Unknown User'}</td>
-                <td>
+                <td className="px-2 sm:px-4 py-3">{transaction.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs 
                         ${transaction.type === 'deposit' 
                             ? 'bg-blue-500/20 text-blue-500'
@@ -367,8 +361,8 @@ function Dashboard() {
                         {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
                     </span>
                 </td>
-                <td>${parseFloat(transaction.amount).toFixed(2)}</td>
-                <td>
+                <td className="px-2 sm:px-4 py-3">${parseFloat(transaction.amount).toFixed(2)}</td>
+                <td className="px-2 sm:px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs 
                         ${transaction.status === 'pending' 
                             ? 'bg-yellow-500/20 text-yellow-500'
@@ -380,7 +374,7 @@ function Dashboard() {
                         {transaction.status}
                     </span>
                 </td>
-                <td>{new Date(transaction.createdAt).toLocaleString()}</td>
+                <td className="px-2 sm:px-4 py-3 hidden md:table-cell">{new Date(transaction.createdAt).toLocaleString()}</td>
             </tr>
         ));
     };
@@ -413,29 +407,29 @@ function Dashboard() {
                     </motion.div>
                 </div>
 
-                {/* Stats cards */}
-                <motion.div 
-                    className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                {/* Stats Cards */}
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
                 >
-                    {statsCards.map((card, index) => (
+                    {statsCards.map((stat, index) => (
                         <motion.div
-                            key={card.title}
-                            className={`${card.color} rounded-xl shadow-lg overflow-hidden`}
+                            key={stat.title}
                             initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                            animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                transition: { delay: index * 0.1 }
+                            }}
+                            className={`${stat.color} rounded-xl p-4 shadow-lg`}
                         >
-                            <div className="px-6 py-5 flex items-center justify-between">
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <p className={`text-sm font-medium ${card.textColor} opacity-80`}>{card.title}</p>
-                                    <p className="text-2xl font-bold text-white mt-1">{card.value}</p>
+                                    <p className={`text-sm font-medium ${stat.textColor}`}>{stat.title}</p>
+                                    <p className="text-white text-2xl font-bold mt-1">{stat.value}</p>
                                 </div>
-                                <div className="bg-white/20 p-3 rounded-lg">
-                                    <card.icon className="h-6 w-6 text-white" />
-                                </div>
+                                <stat.icon className="w-10 h-10 text-white/80" />
                             </div>
                         </motion.div>
                     ))}
@@ -450,19 +444,19 @@ function Dashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        <div className="px-6 py-4 bg-slate-700 border-b border-slate-600">
+                        <div className="px-4 sm:px-6 py-4 bg-slate-700 border-b border-slate-600">
                             <h2 className="text-lg font-semibold text-white">Pending Deposits</h2>
                         </div>
-                        <div className="p-4 overflow-x-auto">
+                        <div className="p-2 sm:p-4 overflow-x-auto">
                             <table className="min-w-full divide-y divide-slate-700">
                                 <thead className="bg-slate-800">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Method</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Proof</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Method</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Date</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden lg:table-cell">Proof</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-slate-800 divide-y divide-slate-700">
@@ -479,18 +473,18 @@ function Dashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                        <div className="px-6 py-4 bg-slate-700 border-b border-slate-600">
+                        <div className="px-4 sm:px-6 py-4 bg-slate-700 border-b border-slate-600">
                             <h2 className="text-lg font-semibold text-white">Pending Withdrawals</h2>
                         </div>
-                        <div className="p-4 overflow-x-auto">
+                        <div className="p-2 sm:p-4 overflow-x-auto">
                             <table className="min-w-full divide-y divide-slate-700">
                                 <thead className="bg-slate-800">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Method</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Method</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Date</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-slate-800 divide-y divide-slate-700">
@@ -507,18 +501,18 @@ function Dashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
-                        <div className="px-6 py-4 bg-slate-700 border-b border-slate-600">
+                        <div className="px-4 sm:px-6 py-4 bg-slate-700 border-b border-slate-600">
                             <h2 className="text-lg font-semibold text-white">Pending Investments</h2>
                         </div>
-                        <div className="p-4 overflow-x-auto">
+                        <div className="p-2 sm:p-4 overflow-x-auto">
                             <table className="min-w-full divide-y divide-slate-700">
                                 <thead className="bg-slate-800">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Plan</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Plan</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Date</th>
+                                        <th scope="col" className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-slate-800 divide-y divide-slate-700">

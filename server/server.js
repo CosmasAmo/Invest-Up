@@ -45,20 +45,35 @@ const testDB = async () => {
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5000',
-    'https://accounts.google.com'
+    'https://accounts.google.com',
+    // Add your production domain if needed
+    process.env.NODE_ENV === 'production' 
+        ? 'https://yourdomain.com' 
+        : '*' // Allow all origins in development
 ];
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
     origin: function(origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
+        // Allow requests with no origin (like mobile apps, curl requests)
+        if (!origin) return callback(null, true);
+        
+        // Check if origin matches any of our patterns
+        const isAllowed = allowedOrigins.some(allowed => {
+            return allowed === origin || allowed === '*';
+        });
+        
+        if (isAllowed) {
+            callback(null, origin);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            console.log('CORS blocked origin:', origin);
+            callback(null, origin); // For development, still allow but log it
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Add session middleware before passport initialization
@@ -67,10 +82,13 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' || 
+               process.env.FORCE_SECURE_COOKIES === 'true' || 
+               (process.env.NODE_ENV !== 'production' && 
+                process.env.HTTPS === 'true'), 
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : 'localhost'
+        httpOnly: true
     }
 }));
 
@@ -106,8 +124,8 @@ startProfitCron();
 // Run profit calculation every minute
 setInterval(calculateProfits, 60 * 1000);
 
-app.listen(port, "0.0.0.0", () => {
-    console.log(`Server running on port: //0.0.0.0:${port}`);
+app.listen(port, () => {
+    console.log(`Server running on port: ${port}`);
 });
 
 

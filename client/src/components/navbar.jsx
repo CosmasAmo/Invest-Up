@@ -241,13 +241,43 @@ function Navbar() {
             className="md:hidden bg-slate-900/95 backdrop-blur-sm"
           >
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link to="/" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Home</Link>
+              <Link 
+                to="/" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
+              >
+                Home
+              </Link>
               {userData?.isAccountVerified && (
-                <Link to="/dashboard" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Dashboard</Link>
+                <Link 
+                  to="/dashboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
+                >
+                  Dashboard
+                </Link>
               )}
-              <Link to="/about" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">About</Link>
-              <Link to="/contact" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Contact</Link>
-              <Link to="/faqs" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">FAQs</Link>
+              <Link 
+                to="/about" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
+              >
+                About
+              </Link>
+              <Link 
+                to="/contact" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
+              >
+                Contact
+              </Link>
+              <Link 
+                to="/faqs" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
+              >
+                FAQs
+              </Link>
             </div>
             
             <div className="pt-4 pb-3 border-t border-slate-700">

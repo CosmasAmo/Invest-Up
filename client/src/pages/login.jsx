@@ -4,7 +4,8 @@ import { toast } from 'react-toastify';
 import useStore from '../store/useStore';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { motion } from 'framer-motion';
-import { FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
+
 
 function Login() {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ function Login() {
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -29,29 +31,46 @@ function Login() {
     }));
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const success = await login(formData);
-      if (success) {
-        if (success.isAdmin) {
-          navigate('/admin/dashboard', { replace: true });
+      const userData = await login(formData);
+      if (userData) {
+        console.log('Login successful, userData:', userData);
+        
+        if (userData.isAdmin === true) {
+          console.log('Admin login detected, redirecting to admin dashboard');
+          // For admin users, redirect to admin dashboard
+          navigate('/admin', { replace: true });
+          toast.success('Admin login successful!');
         } else {
+          console.log('Regular user login, redirecting to dashboard');
+          // For regular users, redirect to user dashboard
           navigate('/dashboard', { replace: true });
+          toast.success('Login successful!');
         }
-        toast.success('Login successful!');
+      } else {
+        console.error('Login failed, no user data returned');
+        toast.error('Login failed. Please check your credentials.');
       }
+    } catch (error) {
+      // Simple error handling
+      toast.error(error.message || 'An error occurred during login');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center px-4 sm:px-6 lg:px-8'>
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-16 sm:pt-0'>
       <Link 
         to="/"
-        className="absolute left-5 top-5 flex items-center text-white hover:text-blue-300 transition-colors"
+        className="absolute left-5 top-5 sm:top-5 flex items-center text-white hover:text-blue-300 transition-colors"
       >
         <FaArrowLeft className="mr-2" />
         <span>Back to Home</span>
@@ -111,14 +130,24 @@ function Login() {
                     <input
                       id="password"
                       name="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       required
                       value={formData.password}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="bg-slate-700 block w-full pl-10 pr-10 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="••••••••"
                     />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center z-10">
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="text-gray-400 hover:text-white focus:outline-none p-1"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

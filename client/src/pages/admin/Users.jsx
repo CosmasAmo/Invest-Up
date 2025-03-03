@@ -135,32 +135,32 @@ function Users() {
                     className="bg-slate-800 rounded-xl overflow-hidden shadow-xl border border-slate-700"
                 >
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-gray-300">
+                        <table className="w-full text-left text-gray-300 min-w-[800px]">
                             <thead className="text-gray-400 bg-slate-700/50">
                                 <tr>
-                                    <th className="px-6 py-4 font-medium">Name</th>
-                                    <th className="px-6 py-4 font-medium">Email</th>
-                                    <th className="px-6 py-4 font-medium">Status</th>
-                                    <th className="px-6 py-4 font-medium">Role</th>
-                                    <th className="px-6 py-4 font-medium">Balance</th>
-                                    <th className="px-6 py-4 font-medium">Total Investments</th>
-                                    <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium">Name</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium">Email</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium">Status</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium">Role</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium">Balance</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium hidden md:table-cell">Total Investments</th>
+                                    <th className="px-4 sm:px-6 py-4 font-medium text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700">
                                 {filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-8 text-center text-gray-400">
+                                        <td colSpan="7" className="px-4 sm:px-6 py-8 text-center text-gray-400">
                                             {searchTerm ? 'No users match your search' : 'No users found'}
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredUsers.map((user) => (
                                         <tr key={user.id} className="hover:bg-slate-700/30 transition-colors">
-                                            <td className="px-6 py-4 font-medium">{user.name}</td>
-                                            <td className="px-6 py-4">{user.email}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                            <td className="px-4 sm:px-6 py-4 font-medium">{user.name}</td>
+                                            <td className="px-4 sm:px-6 py-4">{user.email}</td>
+                                            <td className="px-4 sm:px-6 py-4">
+                                                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                                                     user.isAccountVerified 
                                                         ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                                         : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
@@ -168,8 +168,8 @@ function Users() {
                                                     {user.isAccountVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                            <td className="px-4 sm:px-6 py-4">
+                                                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                                                     user.isAdmin
                                                         ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                                                         : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
@@ -177,9 +177,9 @@ function Users() {
                                                     {user.isAdmin ? 'Admin' : 'User'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium">${parseFloat(user.balance).toFixed(2)}</td>
-                                            <td className="px-6 py-4 font-medium">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                            <td className="px-4 sm:px-6 py-4 font-medium">${parseFloat(user.balance).toFixed(2)}</td>
+                                            <td className="px-4 sm:px-6 py-4 font-medium hidden md:table-cell">
+                                                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                                                     parseFloat(user.totalInvestments) > 0
                                                         ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                                                         : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
@@ -187,21 +187,23 @@ function Users() {
                                                     ${user.totalInvestments}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right space-x-2">
-                                                <button
-                                                    onClick={() => handleEdit(user)}
-                                                    className="px-3 py-1 rounded-md text-sm bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors inline-flex items-center gap-1"
-                                                >
-                                                    <PencilSquareIcon className="w-4 h-4" />
-                                                    <span>Edit</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="px-3 py-1 rounded-md text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors inline-flex items-center gap-1"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                    <span>Delete</span>
-                                                </button>
+                                            <td className="px-4 sm:px-6 py-4 text-right">
+                                                <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                                                    <button
+                                                        onClick={() => handleEdit(user)}
+                                                        className="px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors inline-flex items-center gap-1"
+                                                    >
+                                                        <PencilSquareIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span>Edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(user.id)}
+                                                        className="px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors inline-flex items-center gap-1"
+                                                    >
+                                                        <TrashIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span>Delete</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

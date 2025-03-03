@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Home from './pages/home'
 import Login from './pages/login'
 import ResetPassword from './pages/resetPassword'
@@ -25,12 +25,15 @@ import Investments from './pages/Investments'
 import Deposits from './pages/Deposits'
 import Withdraw from './pages/withdraw'
 import Withdrawals from './pages/withdrawals'
+import ApiDebug from './components/ApiDebug'
 
 function App() {
   const { initialize } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Initialize the store
     initialize();
   }, [initialize]);
 
@@ -49,29 +52,23 @@ function App() {
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/deposit" element={<PrivateRoute><Deposit /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/deposit" element={<PrivateRoute><Deposit /></PrivateRoute>} />
+        <Route path="/invest" element={<PrivateRoute><Invest /></PrivateRoute>} />
+        <Route path="/investments" element={<PrivateRoute><Investments /></PrivateRoute>} />
+        <Route path="/deposits" element={<PrivateRoute><Deposits /></PrivateRoute>} />
+        <Route path="/withdraw" element={<PrivateRoute><Withdraw /></PrivateRoute>} />
+        <Route path="/withdrawals" element={<PrivateRoute><Withdrawals /></PrivateRoute>} />
+        
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
         <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-        <Route path="/invest" element={
-          <PrivateRoute>
-            <Invest />
-          </PrivateRoute>
-        } />
-        <Route path="/investments" element={
-          <PrivateRoute>
-            <Investments />
-          </PrivateRoute>
-        } />
-        <Route path="/deposits" element={
-          <PrivateRoute>
-            <Deposits />
-          </PrivateRoute>
-        } />
-        <Route path="/withdraw" element={<Withdraw />} />
-        <Route path="/withdrawals" element={<Withdrawals />} />
       </Routes>
+      
+      {/* Add the API Debug component */}
+      <ApiDebug />
     </div>
   )
 }

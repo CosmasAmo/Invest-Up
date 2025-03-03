@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import useStore from '../store/useStore';
 import axios from 'axios';
@@ -11,6 +11,7 @@ function ReferralLink() {
     referralsRequired: 2
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const referralInputRef = useRef(null);
   
   // Calculate progress to next bonus
   const successfulReferrals = userData?.successfulReferrals || 0;
@@ -40,14 +41,46 @@ function ReferralLink() {
     fetchSettings();
   }, []);
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(userData?.referralCode || '');
-      setCopied(true);
-      toast.success('Referral code copied!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast.error(error.message);
+  const handleCopy = () => {
+    const referralCode = userData?.referralCode || '';
+    
+    // Try using the Clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(referralCode)
+        .then(() => {
+          setCopied(true);
+          toast.success('Referral code copied!');
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+    
+    // Fallback method for mobile devices
+    function fallbackCopy() {
+      try {
+        // Focus and select the input
+        if (referralInputRef.current) {
+          referralInputRef.current.select();
+          referralInputRef.current.setSelectionRange(0, 99999); // For mobile devices
+          
+          // Try execCommand for older browsers
+          const successful = document.execCommand('copy');
+          
+          if (successful) {
+            setCopied(true);
+            toast.success('Referral code copied!');
+            setTimeout(() => setCopied(false), 2000);
+          } else {
+            toast.info('Please tap and hold to copy the code manually');
+          }
+        } else {
+          toast.info('Please tap and hold to copy the code manually');
+        }
+      } catch {
+        toast.info('Please tap and hold to copy the code manually');
+      }
     }
   };
 
@@ -97,16 +130,18 @@ function ReferralLink() {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-white">Your Referral Code</h3>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <input
             type="text"
             readOnly
+            ref={referralInputRef}
             value={userData?.referralCode || ''}
-            className="flex-1 bg-slate-700 text-white p-3 rounded-lg"
+            className="w-full bg-slate-700 text-white p-3 rounded-lg text-center sm:text-left border border-slate-600"
+            onClick={(e) => e.target.select()}
           />
           <button
             onClick={handleCopy}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto mt-2 sm:mt-0"
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>

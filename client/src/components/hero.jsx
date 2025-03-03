@@ -26,11 +26,12 @@ function Hero({
 					{showButtons && (
 						<motion.div
 							{...fadeInUp(0.4)}
+							className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6"
 						>
 							<Link
 								to="/register"
 								className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full
-									transition-all duration-300 inline-block text-lg font-semibold mr-4"
+									transition-all duration-300 inline-block text-lg font-semibold"
 							>
 								Start Investing Now
 							</Link>

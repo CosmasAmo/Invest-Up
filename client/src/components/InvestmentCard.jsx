@@ -46,12 +46,12 @@ function InvestmentCard({ investment }) {
         )}
         <div className="flex justify-between">
           <span>Created:</span>
-          <span>{new Date(investment.createdAt).toLocaleDateString()}</span>
+          <span>{new Date(investment.createdAt).toLocaleString()}</span>
         </div>
         {investment.lastProfitUpdate && (
           <div className="flex justify-between">
             <span>Last Profit Update:</span>
-            <span>{new Date(investment.lastProfitUpdate).toLocaleDateString()}</span>
+            <span>{new Date(investment.lastProfitUpdate).toLocaleString()}</span>
           </div>
         )}
       </div>

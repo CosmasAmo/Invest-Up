@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import useStore from '../store/useStore';
 
@@ -8,6 +8,17 @@ const StoreContext = createContext();
 // Create a provider component
 export function StoreProvider({ children }) {
   const store = useStore();
+  
+  // Initialize authentication when the app loads
+  useEffect(() => {
+    // Initialize authentication from localStorage
+    store.initAuth();
+    
+    // Check authentication status with the server
+    store.checkAuth();
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   return (
     <StoreContext.Provider value={store}>

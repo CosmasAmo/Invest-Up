@@ -5,8 +5,7 @@ import {
     Cog6ToothIcon, 
     ArrowRightOnRectangleIcon, 
     Bars3Icon, 
-    XMarkIcon,
-    BellIcon
+    XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
@@ -23,7 +22,7 @@ function AdminLayout({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout, userData } = useStore();
-    const { isLoading, error, unreadCount, fetchMessages } = useAdminStore();
+    const { isLoading, error } = useAdminStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -33,11 +32,8 @@ function AdminLayout({ children }) {
             setCurrentTime(new Date());
         }, 60000);
 
-        // Fetch messages to get unread count
-        fetchMessages();
-
         return () => clearInterval(timer);
-    }, [fetchMessages]);
+    }, []);
 
     const handleLogout = async () => {
         await logout();
@@ -85,16 +81,6 @@ function AdminLayout({ children }) {
                         </div>
                         
                         <div className="flex items-center space-x-4">
-                            {/* Notifications */}
-                            <Link to="/admin/messages" className="relative p-2 text-gray-400 hover:text-white">
-                                <BellIcon className="h-6 w-6" />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
-                                        {unreadCount}
-                                    </span>
-                                )}
-                            </Link>
-                            
                             {/* Admin profile */}
                             <div className="flex items-center">
                                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
