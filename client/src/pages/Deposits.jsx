@@ -1,70 +1,296 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '../components/navbar';
 import DepositCard from '../components/DepositCard';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
+import { FaPlus, FaHistory, FaExclamationCircle, FaSpinner, FaFilter, FaSearch, FaCalendarAlt } from 'react-icons/fa';
 
 function Deposits() {
   const { deposits = [], fetchDeposits, isLoading, error } = useStore();
+  const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // desc = newest first
 
   useEffect(() => {
     fetchDeposits();
   }, [fetchDeposits]);
 
+  // Filter deposits
+  const filteredDeposits = deposits.filter(deposit => {
+    // Apply status filter
+    if (filter !== 'all' && deposit.status !== filter) return false;
+    
+    // Apply search filter (search by amount, status, or payment method)
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        deposit.amount.toString().includes(searchTerm) ||
+        deposit.status.toLowerCase().includes(searchLower) ||
+        (deposit.paymentMethod && deposit.paymentMethod.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    return true;
+  });
+
+  // Sort deposits
+  const sortedDeposits = [...filteredDeposits].sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
+
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 overflow-x-hidden">
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
         <Navbar />
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-16 sm:py-20">
-          <div className="text-red-500 text-center">{error}</div>
+        <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-6 text-center">
+            <FaExclamationCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">Error Loading Deposits</h2>
+            <p className="text-red-400">{error}</p>
+          </div>
         </div>
         <Footer />
       </div>
     );
   }
 
+  // Count deposits by status
+  const pendingCount = deposits.filter(d => d.status === 'pending').length;
+  const approvedCount = deposits.filter(d => d.status === 'approved').length;
+
+  // Calculate total amount deposited
+  const totalDeposited = deposits
+    .filter(d => d.status === 'approved')
+    .reduce((sum, deposit) => sum + parseFloat(deposit.amount), 0)
+    .toFixed(2);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
       
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Deposits History</h1>
+      <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row md:items-center md:justify-between mb-8"
+        >
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Deposits History</h1>
+            <p className="text-slate-400">Track and manage your deposit activities</p>
+          </div>
           <Link 
             to="/deposit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto text-center"
+            className="mt-4 md:mt-0 inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
           >
+            <FaPlus className="mr-2" />
             New Deposit
           </Link>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
+          >
+            <div className="flex items-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 mr-3">
+                <FaHistory className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-medium text-slate-300">Total Deposits</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{deposits.length}</p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
+          >
+            <div className="flex items-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-green-900/50 flex items-center justify-center text-green-400 mr-3">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-slate-300">Approved</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{approvedCount}</p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+            className="bg-gradient-to-br from-yellow-900/30 to-amber-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
+          >
+            <div className="flex items-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-yellow-900/50 flex items-center justify-center text-yellow-400 mr-3">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-slate-300">Pending</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{pendingCount}</p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+            className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-5 rounded-xl border border-slate-700/50 shadow-lg"
+          >
+            <div className="flex items-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-green-400 mr-3">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-slate-300">Total Amount</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">${totalDeposited}</p>
+          </motion.div>
         </div>
 
-        <motion.div
+        {/* Filters and Search */}
+        <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-800 rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8"
+          transition={{ delay: 0.1 }}
+          className="bg-gradient-to-r from-slate-800 to-slate-800/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 mb-6 border border-slate-700/50 shadow-lg"
         >
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Your Deposits
-          </h1>
-          <p className="text-gray-400">
-            Track all your deposit activities here
-          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label htmlFor="filter" className="block text-sm font-medium text-gray-400 mb-1">Filter by Status</label>
+              <div className="relative">
+                <select
+                  id="filter"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Deposits</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <FaFilter className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-1">
+              <label htmlFor="sort" className="block text-sm font-medium text-gray-400 mb-1">Sort by Date</label>
+              <div className="relative">
+                <select
+                  id="sort"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <FaCalendarAlt className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-1">
+              <label htmlFor="search" className="block text-sm font-medium text-gray-400 mb-1">Search</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="search"
+                  placeholder="Search deposits..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <FaSearch className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {isLoading ? (
-          <div className="text-center text-gray-400">Loading...</div>
-        ) : deposits?.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {deposits.map((deposit) => (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-12"
+          >
+            <FaSpinner className="animate-spin h-10 w-10 text-blue-500 mb-4" />
+            <p className="text-slate-400">Loading your deposits...</p>
+          </motion.div>
+        ) : sortedDeposits.length > 0 ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.05
+                }
+              }
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
+            {sortedDeposits.map((deposit) => (
               <DepositCard key={deposit.id} deposit={deposit} />
             ))}
-          </div>
+          </motion.div>
         ) : (
-          <div className="text-center text-gray-400 py-8">
-            No deposits found. Make a deposit now!
-          </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-8 text-center"
+          >
+            {searchTerm || filter !== 'all' ? (
+              <>
+                <div className="w-16 h-16 mx-auto bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
+                  <FaSearch className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">No Matching Deposits</h3>
+                <p className="text-slate-400 mb-6">No deposits match your current filters. Try adjusting your search criteria.</p>
+                <button 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilter('all');
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 mx-auto bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
+                  <FaHistory className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">No Deposits Yet</h3>
+                <p className="text-slate-400 mb-6">You haven&apos;t made any deposits yet. Start by making your first deposit.</p>
+                <Link 
+                  to="/deposit"
+                  className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+                >
+                  <FaPlus className="mr-2" />
+                  Make Your First Deposit
+                </Link>
+              </>
+            )}
+          </motion.div>
         )}
       </div>
       <Footer />

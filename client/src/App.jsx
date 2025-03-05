@@ -5,7 +5,7 @@ import Home from './pages/home'
 import Login from './pages/login'
 import ResetPassword from './pages/resetPassword'
 import EmailVerify from './pages/emailVerify'
-import { ToastContainer } from 'react-toastify'
+import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import About from './pages/about'
 import Contact from './pages/contact'
@@ -25,17 +25,33 @@ import Investments from './pages/Investments'
 import Deposits from './pages/Deposits'
 import Withdraw from './pages/withdraw'
 import Withdrawals from './pages/withdrawals'
+import Transactions from './pages/transactions'
+import Terms from './pages/terms'
 import ApiDebug from './components/ApiDebug'
 
 function App() {
-  const { initialize } = useStore();
+  const { initialize, checkSessionExpiration, error } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Initialize the store
-    initialize();
-  }, [initialize]);
+    // Check for session expiration first
+    const isExpired = checkSessionExpiration();
+    if (isExpired) {
+      toast.info('Your session has expired. Please log in again.');
+      navigate('/login');
+    } else {
+      // Initialize the store
+      initialize();
+    }
+  }, [initialize, checkSessionExpiration, navigate]);
+
+  // Show error toast if there's an error in the store
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   return (
     <div className="app-container bg-slate-900 text-white min-h-screen">
@@ -49,6 +65,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faqs" element={<FAQs />} />
+        <Route path="/terms" element={<Terms />} />
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
@@ -59,6 +76,7 @@ function App() {
         <Route path="/deposits" element={<PrivateRoute><Deposits /></PrivateRoute>} />
         <Route path="/withdraw" element={<PrivateRoute><Withdraw /></PrivateRoute>} />
         <Route path="/withdrawals" element={<PrivateRoute><Withdrawals /></PrivateRoute>} />
+        <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
         
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

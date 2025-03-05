@@ -49,6 +49,45 @@ const updateApiUrl = (newUrl) => {
   return false;
 };
 
+// Custom storage with expiration
+const createExpiringStorage = (storage, expiryTime = 8 * 60 * 60 * 1000) => { // 8 hours default
+  return {
+    getItem: (name) => {
+      const itemStr = storage.getItem(name);
+      if (!itemStr) {
+        return null;
+      }
+      
+      try {
+        const item = JSON.parse(itemStr);
+        const now = new Date();
+        
+        // Check if the item has expired
+        if (item.expiry && now.getTime() > item.expiry) {
+          storage.removeItem(name);
+          return null;
+        }
+        
+        return item.value;
+      } catch (error) {
+        console.error('Error parsing stored item:', error);
+        return null;
+      }
+    },
+    setItem: (name, value) => {
+      const now = new Date();
+      const item = {
+        value: value,
+        expiry: now.getTime() + expiryTime,
+      };
+      storage.setItem(name, JSON.stringify(item));
+    },
+    removeItem: (name) => {
+      storage.removeItem(name);
+    }
+  };
+};
+
 const useStore = create(
   persist(
     (set, get) => ({
@@ -105,6 +144,29 @@ const useStore = create(
         console.log('Checking authentication...');
         set({ isLoading: true });
         try {
+          // Check if the session has expired
+          const authStorage = sessionStorage.getItem('auth-storage');
+          if (authStorage) {
+            try {
+              const authData = JSON.parse(authStorage);
+              if (authData.expiry && new Date().getTime() > authData.expiry) {
+                console.log('Session expired, logging out...');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('is_admin');
+                sessionStorage.removeItem('auth-storage');
+                set({ 
+                  isAuthenticated: false, 
+                  isAdmin: false, 
+                  userData: null,
+                  isLoading: false 
+                });
+                return;
+              }
+            } catch (error) {
+              console.error('Error checking session expiration:', error);
+            }
+          }
+          
           // Use the createRequestConfig utility
           const config = createRequestConfig();
           
@@ -124,7 +186,7 @@ const useStore = create(
               isAuthenticated: true,
               userData: userData,
               isVerified: userData.isAccountVerified,
-              isAdmin: isAdmin,
+              isAdmin: isAdmin === true, // Ensure boolean value
               isLoading: false
             });
           } else {
@@ -141,6 +203,33 @@ const useStore = create(
             localStorage.removeItem('is_admin');
             set({ isAuthenticated: false, isAdmin: false, isLoading: false, error: errorMsg });
           }, 'Auth check error');
+        }
+      },
+
+      // Add a function to check if the session has expired
+      checkSessionExpiration: () => {
+        try {
+          const authStorage = sessionStorage.getItem('auth-storage');
+          if (authStorage) {
+            const parsedStorage = JSON.parse(authStorage);
+            if (parsedStorage.expiry && new Date().getTime() > parsedStorage.expiry) {
+              // Session has expired, log the user out
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('is_admin');
+              sessionStorage.removeItem('auth-storage');
+              set({ 
+                isAuthenticated: false, 
+                isAdmin: false, 
+                userData: null,
+                error: 'Your session has expired. Please log in again.' 
+              });
+              return true; // Session expired
+            }
+          }
+          return false; // Session still valid
+        } catch (error) {
+          console.error('Error checking session expiration:', error);
+          return false;
         }
       },
 
@@ -161,7 +250,7 @@ const useStore = create(
 
       // Auth Actions
       register: async (userData) => {
-        set({ isLoading: true });
+        set({ isLoading: true, error: null });
         try {
           let endpoint = '/api/auth/register';
           
@@ -176,8 +265,26 @@ const useStore = create(
             delete userData.referredBy;
           }
           
-          const { data } = await axios.post(endpoint, userData);
+          console.log('Sending registration request:', endpoint, userData.email);
+          const response = await axios.post(endpoint, userData);
+          const { data } = response;
+          console.log('Registration response:', data);
+          
+          if (!data.success) {
+            console.log('Registration failed:', data.message, 'Error type:', data.errorType);
+            set({ 
+              error: data.message, 
+              isLoading: false 
+            });
+            return { 
+              success: false, 
+              message: data.message, 
+              errorType: data.errorType 
+            };
+          }
+          
           if (data.success) {
+            console.log('Registration successful');
             // Store user data with token if registration is successful
             if (data.userData && data.token) {
               const userDataWithToken = {
@@ -188,38 +295,84 @@ const useStore = create(
               set({ 
                 userData: userDataWithToken,
                 isAuthenticated: true,
-                isLoading: false 
+                isLoading: false,
+                error: null
               });
             } else {
-              set({ isLoading: false });
+              set({ isLoading: false, error: null });
             }
-            return true;
+            return { success: true, message: data.message };
           }
-          throw new Error(data.message);
+          
+          throw new Error(data.message || 'Unknown registration error');
         } catch (error) {
-          set({ error: error.message, isLoading: false });
-          return false;
+          console.error('Registration error:', error);
+          
+          // Handle server errors
+          let errorMessage = 'Registration failed. Please try again.';
+          let errorType = 'SERVER_ERROR';
+          
+          if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.log('Server error response:', error.response.data);
+            errorMessage = error.response.data.message || errorMessage;
+            errorType = error.response.data.errorType || errorType;
+          } else if (error.request) {
+            // The request was made but no response was received
+            console.log('No response received:', error.request);
+            errorMessage = 'No response from server. Please check your internet connection.';
+            errorType = 'NETWORK_ERROR';
+          } else {
+            // Something happened in setting up the request that triggered an Error
+            console.log('Error setting up request:', error.message);
+          }
+          
+          set({ 
+            error: errorMessage, 
+            isLoading: false 
+          });
+          
+          return { 
+            success: false, 
+            message: errorMessage, 
+            errorType: errorType 
+          };
         }
       },
 
       verifyEmail: async (otp) => {
         set({ isLoading: true, error: null });
         try {
+          console.log('Verifying email with OTP:', otp);
           const { data } = await axios.post('/api/auth/verify-account', { otp });
+          console.log('Verification response:', data);
+          
           if (data.success) {
             set(state => ({ 
               userData: { 
                 ...state.userData, 
                 isAccountVerified: true
               },
-              isVerified: true
+              isVerified: true,
+              error: null
             }));
-            return true;
+          } else {
+            set({ error: data.message || 'Verification failed' });
           }
-          throw new Error(data.message);
+          
+          // Return the full response object
+          return data;
         } catch (error) {
-          set({ error: error.response?.data?.message || error.message });
-          return false;
+          console.error('Email verification error:', error);
+          const errorMessage = error.response?.data?.message || error.message || 'Verification failed';
+          set({ error: errorMessage });
+          
+          // Return an error response object
+          return {
+            success: false,
+            message: errorMessage
+          };
         } finally {
           set({ isLoading: false });
         }
@@ -471,6 +624,18 @@ const useStore = create(
         try {
           console.log('Fetching dashboard data...');
           
+          // Check if we already have dashboard data and it's recent (less than 30 seconds old)
+          const currentState = get();
+          const lastFetchTime = currentState.lastDashboardFetch || 0;
+          const now = Date.now();
+          const timeSinceLastFetch = now - lastFetchTime;
+          
+          // If we have recent data (less than 30 seconds old), use it instead of fetching again
+          if (currentState.userData && currentState.stats && timeSinceLastFetch < 30000) {
+            console.log('Using cached dashboard data');
+            return;
+          }
+          
           // Use the createRequestConfig utility
           const config = createRequestConfig();
           
@@ -485,7 +650,8 @@ const useStore = create(
                 totalWithdrawals: data.stats.totalWithdrawals || 0,
                 pendingWithdrawals: data.stats.pendingWithdrawals || 0,
                 completedWithdrawals: data.stats.completedWithdrawals || 0
-              }
+              },
+              lastDashboardFetch: now
             });
           } else {
             console.error('Dashboard data fetch failed:', data.message);
@@ -558,7 +724,7 @@ const useStore = create(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => createExpiringStorage(sessionStorage)),
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         isVerified: state.isVerified,

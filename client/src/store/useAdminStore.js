@@ -222,6 +222,16 @@ const useAdminStore = create((set) => ({
             if (data.success) {
                 return data.user;
             } else {
+                if (data.message && (
+                    data.message.includes('Email address does not exist') || 
+                    data.message.includes('Invalid email format') ||
+                    data.message.includes('Email domain') ||
+                    data.message.toLowerCase().includes('email')
+                )) {
+                    const errorMsg = data.message || 'Please enter a valid email address that actually exists';
+                    set({ error: errorMsg });
+                    throw new Error(errorMsg);
+                }
                 throw new Error(data.message || 'Failed to create user');
             }
         } catch (error) {
@@ -256,6 +266,16 @@ const useAdminStore = create((set) => ({
             if (data.success) {
                 return data.user;
             } else {
+                if (data.message && (
+                    data.message.includes('Email address does not exist') || 
+                    data.message.includes('Invalid email format') ||
+                    data.message.includes('Email domain') ||
+                    data.message.toLowerCase().includes('email')
+                )) {
+                    const errorMsg = data.message || 'Please enter a valid email address that actually exists';
+                    set({ error: errorMsg });
+                    throw new Error(errorMsg);
+                }
                 throw new Error(data.message || 'Failed to update user');
             }
         } catch (error) {

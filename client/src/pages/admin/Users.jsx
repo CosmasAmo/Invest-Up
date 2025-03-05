@@ -19,6 +19,7 @@ function Users() {
         balance: 0
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         fetchAllUsers();
@@ -27,6 +28,7 @@ function Users() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        setError(''); // Clear previous errors
         try {
             if (editingUser) {
                 await updateUser(editingUser.id, formData);
@@ -47,6 +49,7 @@ function Users() {
             });
             fetchAllUsers();
         } catch (error) {
+            setError(error.message); // Set the error message
             toast.error(error.message);
         } finally {
             setIsLoading(false);
@@ -97,14 +100,14 @@ function Users() {
                         <p className="text-gray-400 mt-1">Manage all users and their permissions</p>
                     </div>
                     <div className="flex items-center gap-4 self-end sm:self-auto">
-                        <div className="relative">
+                        <div className="relative w-full sm:w-64 mx-auto">
                             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search users..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-64 pl-10 pr-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+                                className="w-full pl-10 pr-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
                             />
                         </div>
                         <button
@@ -120,7 +123,7 @@ function Users() {
                                 });
                                 setShowModal(true);
                             }}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                            className="px-2 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 flex items-center gap-1 shadow-lg shadow-blue-500/20"
                         >
                             <UserPlusIcon className="w-5 h-5" />
                             <span>Add User</span>
@@ -256,6 +259,14 @@ function Users() {
                                             className="w-full bg-slate-700 text-white p-3 rounded-lg mt-1 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             required
                                         />
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            Enter a valid email address that actually exists. The system will verify if the domain is valid.
+                                        </p>
+                                        {error && error.toLowerCase().includes('email') && (
+                                            <p className="mt-1 text-xs text-red-500">
+                                                {error}
+                                            </p>
+                                        )}
                                     </div>
                                     {!editingUser && (
                                         <div>

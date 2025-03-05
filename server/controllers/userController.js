@@ -83,8 +83,16 @@ export const updateProfile = async (req, res) => {
             return res.json({ success: false, message: 'User not found' });
         }
 
-        // Check if email is already taken by another user
+        // If email is being changed, validate it
         if (email !== user.email) {
+            // Validate email format and existence
+            const validateEmail = (await import('../utils/emailValidator.js')).default;
+            const emailValidation = await validateEmail(email);
+            if (!emailValidation.isValid) {
+                return res.json({ success: false, message: emailValidation.message });
+            }
+            
+            // Check if email is already taken by another user
             const existingUser = await User.findOne({ where: { email } });
             if (existingUser) {
                 return res.json({ success: false, message: 'Email already in use' });
@@ -248,24 +256,99 @@ export const getUserDeposits = async (req, res) => {
     try {
         const userId = req.userId;
         
+        // Fetch user's deposits
         const deposits = await Deposit.findAll({
             where: { userId },
             order: [['createdAt', 'DESC']]
         });
 
-        res.json({ 
-            success: true, 
-            deposits: deposits.map(deposit => ({
-                id: deposit.id,
-                amount: deposit.amount,
-                paymentMethod: deposit.paymentMethod,
-                proofImage: deposit.proofImage,
-                status: deposit.status,
-                createdAt: deposit.createdAt
-            }))
+        res.json({
+            success: true,
+            deposits
         });
     } catch (error) {
-        console.error('Error fetching user deposits:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getUserTransactions = async (req, res) => {
+    try {
+        const userId = req.userId;
+        
+        // Get deposits data
+        const deposits = await Deposit.findAll({
+            where: { userId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        // Get investments data
+        const investments = await Investment.findAll({
+            where: { userId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        // Get withdrawals data
+        const withdrawals = await Withdrawal.findAll({
+            where: { userId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        // Combine all transactions
+        const allTransactions = [
+            ...deposits.map(dep => ({
+                id: dep.id,
+                type: 'deposit',
+                amount: dep.amount,
+                status: dep.status,
+                paymentMethod: dep.paymentMethod,
+                proofImage: dep.proofImage,
+                createdAt: dep.createdAt
+            })),
+            ...investments.map(inv => ({
+                id: inv.id,
+                type: 'investment',
+                amount: inv.amount,
+                status: inv.status,
+                paymentMethod: 'Balance',
+                proofImage: null,
+                createdAt: inv.createdAt,
+                dailyProfitRate: inv.dailyProfitRate,
+                totalProfit: inv.totalProfit || 0
+            })),
+            ...withdrawals.map(withdrawal => ({
+                id: withdrawal.id,
+                type: 'withdrawal',
+                amount: withdrawal.amount,
+                status: withdrawal.status,
+                paymentMethod: withdrawal.paymentMethod,
+                walletAddress: withdrawal.walletAddress,
+                createdAt: withdrawal.createdAt
+            }))
+        ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // Calculate totals
+        const totalDeposits = deposits
+            .filter(dep => dep.status === 'approved')
+            .reduce((sum, dep) => sum + parseFloat(dep.amount), 0);
+            
+        const totalWithdrawals = withdrawals
+            .filter(w => w.status === 'approved')
+            .reduce((sum, w) => sum + parseFloat(w.amount), 0);
+            
+        const totalInvestments = investments
+            .filter(inv => inv.status === 'approved')
+            .reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
+
+        res.json({
+            success: true,
+            transactions: allTransactions,
+            stats: {
+                totalDeposits,
+                totalWithdrawals,
+                totalInvestments
+            }
+        });
+    } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };

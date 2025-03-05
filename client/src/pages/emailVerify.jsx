@@ -1,17 +1,27 @@
 import { useNavigate, Link } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaArrowLeft, FaEnvelope, FaCheckCircle } from 'react-icons/fa';
 
 function EmailVerify() {
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { verifyEmail, userData } = useStore();
   const navigate = useNavigate();
-  const { verifyEmail, userData, isLoading } = useStore();
   const inputRefs = useRef([]);
 
-  const handleInput = (e, index) => {
-    if (e.target.value.length > 0 && index < inputRefs.current.length-1) {
-      inputRefs.current[index+1].focus();
+  const handleInputChange = (index, value) => {
+    // Update the OTP state when input changes
+    const otpArray = inputRefs.current.map((input, i) => 
+      i === index ? value : (input ? input.value : '')
+    );
+    setOtp(otpArray.join(''));
+    
+    if (value && index < 5) {
+      inputRefs.current[index + 1].focus();
     }
   };
 
@@ -35,14 +45,50 @@ function EmailVerify() {
     });
   };
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const otpArray = inputRefs.current.map(input => input.value);
-    const otp = otpArray.join('');
+    setError('');
+    setSuccess('');
+    
+    // Collect OTP from input fields if not already set
+    if (!otp) {
+      const otpArray = inputRefs.current.map(input => input.value);
+      const collectedOtp = otpArray.join('');
+      setOtp(collectedOtp);
+      
+      if (!collectedOtp || collectedOtp.length !== 6) {
+        setError('Please enter the complete 6-digit verification code');
+        return;
+      }
+    }
+    
+    // Use the collected OTP or the one already in state
+    const otpToSubmit = otp || inputRefs.current.map(input => input.value).join('');
+    
+    if (!otpToSubmit || otpToSubmit.length !== 6) {
+      setError('Please enter the complete 6-digit verification code');
+      return;
+    }
 
-    const success = await verifyEmail(otp);
-    if (success) {
-      navigate('/dashboard');
+    try {
+      setLoading(true);
+      console.log('Submitting verification code:', otpToSubmit);
+      const response = await verifyEmail(otpToSubmit);
+      console.log('Verification response:', response);
+      
+      if (response.success) {
+        setSuccess(response.message || 'Email verified successfully!');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(response.message || 'Verification failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Verification error:', err);
+      setError(err.message || 'An error occurred during verification. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,6 +120,16 @@ function EmailVerify() {
           </div>
 
           <div className="px-8 py-8">
+            {error && (
+              <div className="mb-4 text-sm text-red-600 bg-red-100 p-3 rounded-md">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 text-sm text-green-600 bg-green-100 p-3 rounded-md flex items-center">
+                <FaCheckCircle className="mr-2" /> {success}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">
@@ -90,7 +146,7 @@ function EmailVerify() {
                       type="text"
                       maxLength="1"
                       className="w-full h-12 text-center bg-slate-700 border border-slate-600 rounded-lg text-white text-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      onInput={(e) => handleInput(e, index)}
+                      onInput={(e) => handleInputChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, index)}
                     />
                   ))}
@@ -100,10 +156,10 @@ function EmailVerify() {
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={loading}
                   className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <div className="flex items-center">
                       <div className="animate-spin mr-2 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
                       Verifying...

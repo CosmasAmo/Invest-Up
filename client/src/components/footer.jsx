@@ -80,9 +80,6 @@ function Footer() {
               © {new Date().getFullYear()} Invest Up Trading Company. All rights reserved.
             </p>
             <div className="flex gap-6 text-gray-400">
-              <Link to="/privacy" className="hover:text-blue-400 transition-colors">
-                Privacy Policy
-              </Link>
               <Link to="/terms" className="hover:text-blue-400 transition-colors">
                 Terms of Service
               </Link>

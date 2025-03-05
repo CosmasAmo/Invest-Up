@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useStore from '../store/useStore'
 import { Link } from 'react-router-dom'
-import { FaUser, FaSignOutAlt, FaShieldAlt, FaUserShield } from 'react-icons/fa'
+import { FaUser, FaSignOutAlt, FaShieldAlt, FaUserShield, FaChartLine, FaWallet, FaExchangeAlt, FaChevronDown } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function Navbar() {
@@ -61,26 +61,66 @@ function Navbar() {
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-slate-900/95 backdrop-blur-sm shadow-lg' : 'bg-transparent'
+      isScrolled 
+        ? 'bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-lg border-b border-slate-700/50' 
+        : 'bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <img src="/invest-up.png" alt="Invest Up Logo" className="h-10 w-auto" />
+            <Link to="/" className="flex items-center group">
+              <img 
+                src="/invest-up.png" 
+                alt="Invest Up Logo" 
+                className="h-10 w-auto transition-transform duration-300 group-hover:scale-105" 
+              />
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Home</Link>
+          <div className="hidden md:flex items-center space-x-1">
+            <Link 
+              to="/" 
+              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
+            >
+              Home
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            
             {userData?.isAccountVerified && (
-              <Link to="/dashboard" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Dashboard</Link>
+              <Link 
+                to="/dashboard" 
+                className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
+              >
+                Dashboard
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
+              </Link>
             )}
-            <Link to="/about" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">About</Link>
-            <Link to="/contact" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">Contact</Link>
-            <Link to="/faqs" className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md">FAQs</Link>
+            
+            <Link 
+              to="/about" 
+              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
+            >
+              About
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            
+            <Link 
+              to="/contact" 
+              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
+            >
+              Contact
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            
+            <Link 
+              to="/faqs" 
+              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
+            >
+              FAQs
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
+            </Link>
           </div>
 
           {/* Auth Buttons */}
@@ -89,8 +129,10 @@ function Navbar() {
               <div className="relative" ref={dropdownRef}>
                 <div 
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className={`flex items-center space-x-2 cursor-pointer p-1.5 rounded-full transition-all duration-300 ${
-                    isDropdownOpen ? 'bg-blue-700' : 'hover:bg-slate-800'
+                  className={`flex items-center space-x-2 cursor-pointer p-1.5 rounded-lg transition-all duration-300 ${
+                    isDropdownOpen 
+                      ? 'bg-gradient-to-r from-blue-700 to-indigo-700 shadow-md shadow-blue-900/30' 
+                      : 'hover:bg-slate-800/70'
                   }`}
                 >
                   <div className="relative">
@@ -98,7 +140,7 @@ function Navbar() {
                       <img 
                         src={`http://localhost:5000${userData.profileImage}`}
                         alt="Profile" 
-                        className="w-9 h-9 rounded-full object-cover border-2 border-blue-500"
+                        className="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-md"
                       />
                     ) : (
                       <div className="w-9 h-9 flex justify-center items-center
@@ -106,19 +148,14 @@ function Navbar() {
                         {getInitial()}
                       </div>
                     )}
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-900 shadow-sm"></div>
                   </div>
                   <div className="hidden lg:block text-white text-sm font-medium">
                     {userData.name?.split(' ')[0]}
                   </div>
-                  <svg 
-                    className={`w-4 h-4 text-white transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <FaChevronDown 
+                    className={`w-3.5 h-3.5 text-white transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                  />
                 </div>
                 
                 <AnimatePresence>
@@ -128,25 +165,25 @@ function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-64 origin-top-right bg-white dark:bg-slate-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 divide-y divide-gray-200 dark:divide-slate-700 z-50"
+                      className="absolute right-0 mt-3 w-72 origin-top-right bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl shadow-xl ring-1 ring-black/5 ring-opacity-5 divide-y divide-slate-700/50 z-50 overflow-hidden border border-slate-700/50"
                     >
-                      <div className="p-4">
-                        <div className="flex items-center space-x-3">
+                      <div className="p-5 bg-gradient-to-r from-blue-900/20 to-indigo-900/20">
+                        <div className="flex items-center space-x-4">
                           {userData.profileImage ? (
                             <img 
                               src={`http://localhost:5000${userData.profileImage}`}
                               alt="Profile" 
-                              className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                              className="w-14 h-14 rounded-full object-cover border-2 border-blue-500 shadow-lg"
                             />
                           ) : (
-                            <div className="w-12 h-12 flex justify-center items-center
-                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-semibold">
+                            <div className="w-14 h-14 flex justify-center items-center
+                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-semibold shadow-lg">
                               {getInitial()}
                             </div>
                           )}
                           <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{userData.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userData.email}</p>
+                            <p className="text-base font-medium text-white">{userData.name}</p>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{userData.email}</p>
                           </div>
                         </div>
                       </div>
@@ -155,29 +192,60 @@ function Navbar() {
                         <Link 
                           to="/profile" 
                           onClick={() => setIsDropdownOpen(false)}
-                          className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                          className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
                         >
-                          <FaUser className="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                          <FaUser className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
                           <span>Your Profile</span>
                         </Link>
                         
                         <button 
                           onClick={navigateToSecurity}
-                          className="group flex w-full items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 text-left"
+                          className="group flex w-full items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200 text-left"
                         >
-                          <FaShieldAlt className="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                          <FaShieldAlt className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
                           <span>Security</span>
                         </button>
                       </div>
+                      
+                      {userData?.isAccountVerified && (
+                        <div className="py-1">
+                          <Link 
+                            to="/dashboard" 
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
+                          >
+                            <FaChartLine className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
+                            <span>Dashboard</span>
+                          </Link>
+                          
+                          <Link 
+                            to="/deposit" 
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
+                          >
+                            <FaWallet className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
+                            <span>Deposit Funds</span>
+                          </Link>
+                          
+                          <Link 
+                            to="/withdraw" 
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
+                          >
+                            <FaExchangeAlt className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
+                            <span>Withdraw Funds</span>
+                          </Link>
+                        </div>
+                      )}
                       
                       {userData.isAdmin && (
                         <div className="py-1">
                           <Link 
                             to="/admin/dashboard" 
                             onClick={() => setIsDropdownOpen(false)}
-                            className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
                           >
-                            <FaUserShield className="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                            <FaUserShield className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
                             <span>Admin Dashboard</span>
                           </Link>
                         </div>
@@ -186,9 +254,9 @@ function Navbar() {
                       <div className="py-1">
                         <button
                           onClick={handleLogout}
-                          className="group flex w-full items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                          className="group flex w-full items-center px-5 py-3 text-sm text-red-400 hover:bg-red-900/20 transition-colors duration-200"
                         >
-                          <FaSignOutAlt className="mr-3 h-5 w-5 text-red-500" />
+                          <FaSignOutAlt className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-300" />
                           <span>Sign out</span>
                         </button>
                       </div>
@@ -200,14 +268,14 @@ function Navbar() {
               <div className="flex space-x-4">
                 <button 
                   onClick={() => navigate('/login')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 
-                  rounded-full transition-all duration-300">
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 
+                  rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium">
                   Login
                 </button>
                 <button 
                   onClick={() => navigate('/register')}
-                  className="bg-transparent border-2 border-blue-600 hover:bg-blue-700 
-                  hover:border-blue-700 text-white px-6 py-2 rounded-full transition-all duration-300">
+                  className="bg-transparent border border-blue-600 hover:border-blue-500 hover:bg-blue-900/20 
+                  text-white px-6 py-2.5 rounded-lg transition-all duration-300 font-medium">
                   Register
                 </button>
               </div>
@@ -216,8 +284,11 @@ function Navbar() {
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-white p-2">
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-white p-2 rounded-lg hover:bg-slate-800/70 transition-colors duration-200"
+              aria-label="Toggle menu"
+            >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {isMobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -238,109 +309,147 @@ function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-slate-900/95 backdrop-blur-sm"
+            className="md:hidden bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 shadow-lg"
           >
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link 
-                to="/" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
-              >
-                Home
-              </Link>
-              {userData?.isAccountVerified && (
+            {/* Make the mobile menu scrollable when it gets too tall */}
+            <div className="max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
+              <div className="px-4 pt-3 pb-4 space-y-1.5">
                 <Link 
-                  to="/dashboard" 
+                  to="/" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
+                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
                 >
-                  Dashboard
+                  Home
                 </Link>
-              )}
-              <Link 
-                to="/about" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
-              >
-                About
-              </Link>
-              <Link 
-                to="/contact" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
-              >
-                Contact
-              </Link>
-              <Link 
-                to="/faqs" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md"
-              >
-                FAQs
-              </Link>
-            </div>
-            
-            <div className="pt-4 pb-3 border-t border-slate-700">
-              {userData ? (
-                <div className="px-5 py-3">
-                  <div className="flex items-center mb-3">
-                    {userData.profileImage ? (
-                      <img 
-                        src={`http://localhost:5000${userData.profileImage}`}
-                        alt="Profile" 
-                        className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 flex justify-center items-center
-                        rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
-                        {getInitial()}
+                {userData?.isAccountVerified && (
+                  <Link 
+                    to="/dashboard" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                <Link 
+                  to="/about" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                >
+                  About
+                </Link>
+                <Link 
+                  to="/contact" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                >
+                  Contact
+                </Link>
+                <Link 
+                  to="/faqs" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                >
+                  FAQs
+                </Link>
+              </div>
+              
+              <div className="pt-4 pb-5 border-t border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50">
+                {userData ? (
+                  <div className="px-5 py-3">
+                    <div className="flex items-center mb-4">
+                      {userData.profileImage ? (
+                        <img 
+                          src={`http://localhost:5000${userData.profileImage}`}
+                          alt="Profile" 
+                          className="w-12 h-12 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 flex justify-center items-center
+                          rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md">
+                          {getInitial()}
+                        </div>
+                      )}
+                      <div className="ml-3">
+                        <div className="text-base font-medium text-white">{userData.name}</div>
+                        <div className="text-sm font-medium text-gray-400">{userData.email}</div>
                       </div>
-                    )}
-                    <div className="ml-3">
-                      <div className="text-base font-medium text-white">{userData.name}</div>
-                      <div className="text-sm font-medium text-gray-400">{userData.email}</div>
+                    </div>
+                    
+                    <div className="mt-4 space-y-2">
+                      <Link 
+                        to="/profile" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center px-4 py-2.5 text-base font-medium text-white hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                      >
+                        <FaUser className="mr-3 h-5 w-5 text-blue-400" />
+                        Your Profile
+                      </Link>
+                      
+                      {userData?.isAccountVerified && (
+                        <>
+                          <Link 
+                            to="/deposit" 
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center px-4 py-2.5 text-base font-medium text-white hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                          >
+                            <FaWallet className="mr-3 h-5 w-5 text-blue-400" />
+                            Deposit Funds
+                          </Link>
+                          
+                          <Link 
+                            to="/withdraw" 
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center px-4 py-2.5 text-base font-medium text-white hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                          >
+                            <FaExchangeAlt className="mr-3 h-5 w-5 text-blue-400" />
+                            Withdraw Funds
+                          </Link>
+                        </>
+                      )}
+                      
+                      {userData.isAdmin && (
+                        <Link 
+                          to="/admin/dashboard" 
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center px-4 py-2.5 text-base font-medium text-white hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                        >
+                          <FaUserShield className="mr-3 h-5 w-5 text-blue-400" />
+                          Admin Dashboard
+                        </Link>
+                      )}
+                      
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center px-4 py-2.5 text-base font-medium text-red-400 hover:bg-red-900/20 rounded-lg transition-colors duration-200"
+                      >
+                        <FaSignOutAlt className="mr-3 h-5 w-5 text-red-400" />
+                        Sign out
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="mt-3 space-y-1">
-                    <Link 
-                      to="/profile" 
-                      className="block px-3 py-2 text-base font-medium text-white hover:bg-blue-600 rounded-md"
-                    >
-                      Your Profile
-                    </Link>
-                    {userData.isAdmin && (
-                      <Link 
-                        to="/admin/dashboard" 
-                        className="block px-3 py-2 text-base font-medium text-white hover:bg-blue-600 rounded-md"
-                      >
-                        Admin Dashboard
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-3 py-2 text-base font-medium text-white hover:bg-red-600 rounded-md"
-                    >
-                      Sign out
+                ) : (
+                  <div className="px-5 py-4 flex flex-col space-y-3">
+                    <button 
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/login');
+                      }}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 
+                      rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium text-center">
+                      Login
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/register');
+                      }}
+                      className="bg-transparent border border-blue-600 hover:border-blue-500 hover:bg-blue-900/20 
+                      text-white px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-center">
+                      Register
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div className="px-5 py-3 flex flex-col space-y-3">
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 
-                    rounded-full transition-all duration-300 text-center">
-                    Login
-                  </button>
-                  <button 
-                    onClick={() => navigate('/register')}
-                    className="bg-transparent border-2 border-blue-600 hover:bg-blue-700 
-                    hover:border-blue-700 text-white px-6 py-2 rounded-full transition-all duration-300 text-center">
-                    Register
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </motion.div>
         )}

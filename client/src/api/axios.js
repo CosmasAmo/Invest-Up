@@ -55,4 +55,27 @@ instance.interceptors.request.use(
   }
 );
 
+// Add a response interceptor to handle token expiration
+instance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Check if the error is due to an expired token (401 Unauthorized)
+    if (error.response && error.response.status === 401) {
+      console.log('Token expired or invalid. Logging out...');
+      
+      // Clear auth data from storage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('is_admin');
+      sessionStorage.removeItem('auth-storage');
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export default instance; 

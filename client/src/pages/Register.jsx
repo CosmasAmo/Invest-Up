@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useStore from '../store/useStore';
@@ -15,6 +15,8 @@ function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const submitTimeoutRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,11 +38,94 @@ function Register() {
     }
   }, [isLoading, isSubmitting]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const validateForm = () => {
+    const errors = {};
+    
+    // Validate name
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email) {
+      errors.email = 'Email is required';
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    } else {
+      // Additional client-side validation for common email providers
+      const [username, domain] = formData.email.split('@');
+      const lowerDomain = domain.toLowerCase();
+      
+      // Gmail-specific validation
+      if (lowerDomain === 'gmail.com' || lowerDomain === 'googlemail.com') {
+        if (username.length < 6) {
+          errors.email = 'Gmail addresses must be at least 6 characters long';
+        } else if (/[^a-zA-Z0-9.+_-]/.test(username)) {
+          errors.email = 'Gmail addresses can only contain letters, numbers, periods, plus signs, underscores, and hyphens';
+        } else if (username.replace(/\./g, '').length === 0) {
+          errors.email = 'This Gmail address format is invalid';
+        }
+        
+        // Check for common patterns of fake Gmail addresses
+        const suspiciousGmailPatterns = [
+          /^test\d*$/i,
+          /^user\d*$/i,
+          /^admin\d*$/i,
+          /^[a-z]{1,3}\d{1,3}$/i,
+          /^temp\d*$/i,
+          /^fake\d*$/i,
+          /^dummy\d*$/i,
+          /^sample\d*$/i,
+          /^random\d*$/i,
+          /^anonymous\d*$/i
+        ];
+        
+        if (suspiciousGmailPatterns.some(pattern => pattern.test(username))) {
+          errors.email = 'This Gmail address appears to be invalid or suspicious. Please use your real Gmail address';
+        }
+      }
+    }
+    
+    // Validate password
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+    
+    // Validate password confirmation
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Clear validation error when field is edited
+    if (validationErrors[name]) {
+      setValidationErrors({
+        ...validationErrors,
+        [name]: ''
+      });
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -54,34 +139,79 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+    // Prevent multiple submissions
+    if (isSubmitting || isLoading) {
       return;
     }
     
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    // Client-side validation
+    if (!validateForm()) {
+      // Show the first validation error
+      const firstError = Object.values(validationErrors).find(error => error);
+      if (firstError) {
+        toast.error(firstError);
+      }
       return;
     }
-
+    
+    // Set submitting state
     setIsSubmitting(true);
     
-    try {
-      console.log('Registering user...');
-      const success = await register(formData);
-      
-      if (success) {
-        toast.success('Registration successful! Please verify your email.');
-        navigate('/email-verify');
-      } else {
-        toast.error(error || 'Registration failed. Please try again.');
+    // Clear any existing timeout
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current);
+    }
+    
+    // Use a timeout to debounce the submission
+    submitTimeoutRef.current = setTimeout(async () => {
+      try {
+        console.log('Registering user with email:', formData.email);
+        const response = await register(formData);
+        console.log('Registration response:', response);
+        
+        if (response.success) {
+          toast.success(response.message || 'Registration successful! Please verify your email.');
+          navigate('/email-verify');
+        } else {
+          if (response.errorType === 'EMAIL_EXISTS') {
+            toast.error('This email is already registered. Please use a different email address or try to log in.');
+            setValidationErrors({
+              ...validationErrors,
+              email: 'This email is already registered'
+            });
+          } else if (response.errorType === 'INVALID_EMAIL') {
+            toast.error(response.message || 'The email address you entered is invalid. Please use a valid email address.');
+            setValidationErrors({
+              ...validationErrors,
+              email: response.message || 'Invalid email address'
+            });
+          } else if (response.errorType === 'INVALID_REFERRAL') {
+            toast.error('The referral code you entered is invalid. Please check and try again.');
+            setValidationErrors({
+              ...validationErrors,
+              referredBy: 'Invalid referral code'
+            });
+          } else if (response.message && (
+            response.message.includes('email') || 
+            response.message.includes('Email') ||
+            response.message.includes('domain')
+          )) {
+            toast.error(response.message);
+            setValidationErrors({
+              ...validationErrors,
+              email: response.message
+            });
+          } else {
+            toast.error(response.message || 'Registration failed. Please try again.');
+          }
+          setIsSubmitting(false);
+        }
+      } catch (err) {
+        console.error('Registration error:', err);
+        toast.error(err.message || 'Registration failed. Please try again.');
         setIsSubmitting(false);
       }
-    } catch (err) {
-      console.error('Registration error:', err);
-      toast.error(err.message || 'Registration failed. Please try again.');
-      setIsSubmitting(false);
-    }
+    }, 300); // 300ms debounce
   };
 
   const buttonDisabled = isSubmitting || isLoading;
@@ -133,11 +263,14 @@ function Register() {
                       required
                       value={formData.name}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`bg-slate-700 block w-full pl-10 pr-3 py-3 border ${validationErrors.name ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="John Doe"
                       disabled={buttonDisabled}
                     />
                   </div>
+                  {validationErrors.name && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -156,11 +289,22 @@ function Register() {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`bg-slate-700 block w-full pl-10 pr-3 py-3 border ${validationErrors.email ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="you@example.com"
                       disabled={buttonDisabled}
                     />
                   </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Please enter a valid email address that you have access to. We&apos;ll verify if this email exists and send a verification code to it.
+                  </p>
+                  {validationErrors.email && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>
+                  )}
+                  {error && error.toLowerCase().includes('email') && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {error}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -179,7 +323,7 @@ function Register() {
                       required
                       value={formData.password}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-10 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`bg-slate-700 block w-full pl-10 pr-10 py-3 border ${validationErrors.password ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="••••••••"
                       disabled={buttonDisabled}
                     />
@@ -195,6 +339,9 @@ function Register() {
                       </button>
                     </div>
                   </div>
+                  {validationErrors.password && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>
+                  )}
                 </div>
 
                 <div>
@@ -213,7 +360,7 @@ function Register() {
                       required
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-10 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`bg-slate-700 block w-full pl-10 pr-10 py-3 border ${validationErrors.confirmPassword ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="••••••••"
                       disabled={buttonDisabled}
                     />
@@ -229,6 +376,9 @@ function Register() {
                       </button>
                     </div>
                   </div>
+                  {validationErrors.confirmPassword && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.confirmPassword}</p>
+                  )}
                 </div>
 
                 <div>
@@ -245,7 +395,7 @@ function Register() {
                       type="text"
                       value={formData.referredBy}
                       onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`bg-slate-700 block w-full pl-10 pr-3 py-3 border ${validationErrors.referredBy ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="Enter referral code"
                       disabled={buttonDisabled}
                     />
@@ -253,13 +403,16 @@ function Register() {
                   <p className="mt-1 text-sm text-gray-400">
                     Enter a friend&apos;s referral code to join their network
                   </p>
+                  {validationErrors.referredBy && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.referredBy}</p>
+                  )}
                 </div>
 
                 <div>
                   <button
                     type="submit"
                     disabled={buttonDisabled}
-                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {isSubmitting || isLoading ? (
                       <div className="flex items-center">

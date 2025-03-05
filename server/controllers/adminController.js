@@ -490,6 +490,13 @@ export const createUser = async (req, res) => {
   try {
     const { name, email, password, isAdmin, isAccountVerified } = req.body;
     
+    // Validate email format and existence
+    const validateEmail = (await import('../utils/emailValidator.js')).default;
+    const emailValidation = await validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.json({ success: false, message: emailValidation.message });
+    }
+    
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -543,8 +550,16 @@ export const updateUser = async (req, res) => {
       return res.json({ success: false, message: 'User not found' });
     }
 
-    // Check if email is taken by another user
+    // If email is being changed, validate it
     if (email !== user.email) {
+      // Validate email format and existence
+      const validateEmail = (await import('../utils/emailValidator.js')).default;
+      const emailValidation = await validateEmail(email);
+      if (!emailValidation.isValid) {
+        return res.json({ success: false, message: emailValidation.message });
+      }
+      
+      // Check if email is taken by another user
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
         return res.json({ success: false, message: 'Email already exists' });

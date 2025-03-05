@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { getUserdata, updateProfile, getDashboardData, getUserDeposits } from '../controllers/userController.js';
+import { getUserdata, updateProfile, getDashboardData, getUserDeposits, getUserTransactions } from '../controllers/userController.js';
 import { submitMessage, getUserMessages } from '../controllers/contactController.js';
 import userAuth from '../middleware/userAuth.js';
 import { markMessageAsRead } from '../controllers/contactController.js';
@@ -37,6 +37,7 @@ userRouter.get('/data', userAuth, getUserdata);
 userRouter.put('/update-profile', userAuth, upload.single('profileImage'), updateProfile);
 userRouter.get('/dashboard', userAuth, getDashboardData);
 userRouter.get('/deposits', userAuth, getUserDeposits);
+userRouter.get('/transactions', userAuth, getUserTransactions);
 userRouter.post('/contact', submitMessage);
 userRouter.get('/messages', userAuth, getUserMessages);
 userRouter.post('/mark-message-read', userAuth, markMessageAsRead);

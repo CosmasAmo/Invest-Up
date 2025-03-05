@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Navbar from '../components/navbar'
+import Footer from '../components/footer'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { useNavigate, useLocation } from 'react-router-dom'
 import useStore from '../store/useStore'
-import { FaUser, FaEnvelope, FaShieldAlt, FaKey, FaCamera, FaCheck, FaExclamationTriangle } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaShieldAlt, FaKey, FaCamera, FaCheck, FaExclamationTriangle, FaCalendarAlt, FaEdit, FaSave, FaTimes, FaUserCircle } from 'react-icons/fa'
 
 function Profile() {
   axios.defaults.withCredentials = true;
@@ -112,27 +113,27 @@ function Profile() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-800 rounded-2xl shadow-xl overflow-hidden"
+          className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-700/50"
         >
           <div className="md:flex">
             {/* Sidebar */}
-            <div className="md:w-1/4 bg-slate-900 p-6">
+            <div className="md:w-1/4 bg-slate-900/80 p-6 backdrop-blur-sm">
               <div className="flex flex-col items-center mb-8">
-                <div className="relative w-32 h-32 mb-4">
+                <div className="relative w-32 h-32 mb-4 group">
                   {imagePreview || userData?.profileImage ? (
                     <img 
                       src={imagePreview || (userData?.profileImage ? `http://localhost:5000${userData.profileImage}` : null)} 
                       alt="Profile" 
-                      className="w-full h-full rounded-full object-cover border-4 border-blue-600"
+                      className="w-full h-full rounded-full object-cover border-4 border-blue-600/80 shadow-lg shadow-blue-900/30 transition-all duration-300 group-hover:border-blue-500"
                     />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold">
+                    <div className="w-full h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg shadow-blue-900/30">
                       {userData?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   )}
                   
                   {isEditing && (
-                    <label htmlFor="profile-image" className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-2 cursor-pointer">
+                    <label htmlFor="profile-image" className="absolute bottom-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full p-2.5 cursor-pointer shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300">
                       <FaCamera className="text-white" />
                       <input 
                         type="file" 
@@ -144,52 +145,52 @@ function Profile() {
                     </label>
                   )}
                 </div>
-                <h3 className="text-xl font-bold text-white">{userData?.name}</h3>
-                <p className="text-gray-400 text-sm">{userData?.email}</p>
+                <h3 className="text-xl font-bold text-white mb-1">{userData?.name}</h3>
+                <p className="text-slate-400 text-sm mb-3">{userData?.email}</p>
                 
-                <div className="mt-3 flex items-center">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                <div className="flex items-center">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                     userData?.isAccountVerified 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-green-900/30 text-green-400 border border-green-500/30' 
+                      : 'bg-amber-900/30 text-amber-400 border border-amber-500/30'
                   }`}>
                     {userData?.isAccountVerified ? (
                       <>
-                        <FaCheck className="mr-1" />
-                        Verified
+                        <FaCheck className="mr-1.5" />
+                        Verified Account
                       </>
                     ) : (
                       <>
-                        <FaExclamationTriangle className="mr-1" />
-                        Unverified
+                        <FaExclamationTriangle className="mr-1.5" />
+                        Unverified Account
                       </>
                     )}
                   </span>
                 </div>
               </div>
               
-              <nav className="space-y-1">
+              <nav className="space-y-2">
                 <button
                   onClick={() => setActiveTab('profile')}
-                  className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
                     activeTab === 'profile' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-gray-300 hover:bg-slate-700'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-900/20' 
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  <FaUser className="mr-3" />
-                  Profile Information
+                  <FaUserCircle className={`mr-3 ${activeTab === 'profile' ? 'text-blue-300' : 'text-slate-400'}`} />
+                  <span className="font-medium">Profile Information</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('security')}
-                  className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
                     activeTab === 'security' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-gray-300 hover:bg-slate-700'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-900/20' 
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  <FaShieldAlt className="mr-3" />
-                  Security
+                  <FaShieldAlt className={`mr-3 ${activeTab === 'security' ? 'text-blue-300' : 'text-slate-400'}`} />
+                  <span className="font-medium">Security Settings</span>
                 </button>
               </nav>
             </div>
@@ -197,64 +198,106 @@ function Profile() {
             {/* Main Content */}
             <div className="md:w-3/4 p-8">
               {activeTab === 'profile' && (
-                <>
-                  <div className="flex justify-between items-center mb-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl font-bold text-white">Profile Information</h1>
                     <button
                       onClick={() => setIsEditing(!isEditing)}
                       disabled={isSubmitting}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
+                      className={`px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center font-medium ${
                         isEditing
-                          ? 'bg-gray-600 hover:bg-gray-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? 'bg-slate-700 hover:bg-slate-600 text-white'
+                          : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-blue-900/30'
                       }`}
                     >
-                      {isEditing ? 'Cancel' : 'Edit Profile'}
+                      {isEditing ? (
+                        <>
+                          <FaTimes className="mr-2" />
+                          Cancel
+                        </>
+                      ) : (
+                        <>
+                          <FaEdit className="mr-2" />
+                          Edit Profile
+                        </>
+                      )}
                     </button>
                   </div>
                   
                   {!isEditing ? (
                     <div className="space-y-6">
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaUser className="text-gray-400 mr-2" />
-                          <label className="text-gray-400">Full Name</label>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                        className="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50 shadow-md"
+                      >
+                        <div className="flex items-center mb-2">
+                          <div className="w-10 h-10 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400 mr-3">
+                            <FaUser />
+                          </div>
+                          <label className="text-slate-400 font-medium">Full Name</label>
                         </div>
-                        <p className="text-white text-lg pl-6">{userData?.name}</p>
-                      </div>
+                        <p className="text-white text-lg pl-13 ml-13">{userData?.name}</p>
+                      </motion.div>
                       
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaEnvelope className="text-gray-400 mr-2" />
-                          <label className="text-gray-400">Email Address</label>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                        className="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50 shadow-md"
+                      >
+                        <div className="flex items-center mb-2">
+                          <div className="w-10 h-10 rounded-full bg-indigo-900/30 flex items-center justify-center text-indigo-400 mr-3">
+                            <FaEnvelope />
+                          </div>
+                          <label className="text-slate-400 font-medium">Email Address</label>
                         </div>
-                        <p className="text-white text-lg pl-6">{userData?.email}</p>
-                      </div>
+                        <p className="text-white text-lg pl-13 ml-13">{userData?.email}</p>
+                      </motion.div>
                       
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaShieldAlt className="text-gray-400 mr-2" />
-                          <label className="text-gray-400">Account Status</label>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.3 }}
+                        className="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50 shadow-md"
+                      >
+                        <div className="flex items-center mb-2">
+                          <div className="w-10 h-10 rounded-full bg-green-900/30 flex items-center justify-center text-green-400 mr-3">
+                            <FaShieldAlt />
+                          </div>
+                          <label className="text-slate-400 font-medium">Account Status</label>
                         </div>
-                        <p className="text-white text-lg pl-6 flex items-center">
+                        <p className="text-white text-lg pl-13 ml-13 flex items-center">
                           {userData?.isAccountVerified ? (
                             <>
                               <span className="text-green-500 mr-2">●</span> Verified
                             </>
                           ) : (
                             <>
-                              <span className="text-yellow-500 mr-2">●</span> Not Verified
+                              <span className="text-amber-500 mr-2">●</span> Not Verified
                             </>
                           )}
                         </p>
-                      </div>
+                      </motion.div>
                       
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaUser className="text-gray-400 mr-2" />
-                          <label className="text-gray-400">Member Since</label>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.4 }}
+                        className="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50 shadow-md"
+                      >
+                        <div className="flex items-center mb-2">
+                          <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center text-purple-400 mr-3">
+                            <FaCalendarAlt />
+                          </div>
+                          <label className="text-slate-400 font-medium">Member Since</label>
                         </div>
-                        <p className="text-white text-lg pl-6">
+                        <p className="text-white text-lg pl-13 ml-13">
                           {userData?.createdAt 
                             ? new Date(userData.createdAt).toLocaleDateString('en-US', {
                                 year: 'numeric',
@@ -263,13 +306,17 @@ function Profile() {
                               })
                             : 'N/A'}
                         </p>
-                      </div>
+                      </motion.div>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      <div>
-                        <label className="text-gray-400 mb-2 flex items-center">
-                          <FaUser className="mr-2" />
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                      >
+                        <label className="text-slate-400 mb-2 flex items-center font-medium">
+                          <FaUser className="mr-2 text-blue-400" />
                           Full Name
                         </label>
                         <input
@@ -277,14 +324,18 @@ function Profile() {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-inner"
                           disabled={isSubmitting}
                         />
-                      </div>
+                      </motion.div>
                       
-                      <div>
-                        <label className="text-gray-400 mb-2 flex items-center">
-                          <FaEnvelope className="mr-2" />
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                      >
+                        <label className="text-slate-400 mb-2 flex items-center font-medium">
+                          <FaEnvelope className="mr-2 text-indigo-400" />
                           Email Address
                         </label>
                         <input
@@ -292,15 +343,18 @@ function Profile() {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-inner"
                           disabled={isSubmitting}
                         />
-                      </div>
+                      </motion.div>
                       
-                      <button
+                      <motion.button
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.3 }}
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors flex items-center justify-center"
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-lg transition-all duration-300 flex items-center justify-center font-medium shadow-md hover:shadow-blue-900/30"
                       >
                         {isSubmitting ? (
                           <>
@@ -308,70 +362,111 @@ function Profile() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Updating...
+                            Updating Profile...
                           </>
-                        ) : 'Update Profile'}
-                      </button>
+                        ) : (
+                          <>
+                            <FaSave className="mr-2" />
+                            Update Profile
+                          </>
+                        )}
+                      </motion.button>
                     </form>
                   )}
-                </>
+                </motion.div>
               )}
               
               {activeTab === 'security' && (
-                <>
-                  <div className="flex justify-between items-center mb-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl font-bold text-white">Security Settings</h1>
                     <button
                       onClick={() => navigate('/reset-password')}
                       disabled={isSubmitting}
-                      className="px-4 py-2 rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                      className="px-5 py-2.5 rounded-lg transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-blue-900/30 font-medium flex items-center"
                     >
+                      <FaKey className="mr-2" />
                       Reset Password
                     </button>
                   </div>
                   
                   <div className="space-y-6">
-                    <div className="bg-slate-700/50 p-6 rounded-lg">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                      className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-6 rounded-xl border border-slate-700/50 shadow-md"
+                    >
                       <div className="flex items-center mb-4">
-                        <FaKey className="text-gray-400 mr-2 text-xl" />
-                        <h3 className="text-white text-lg font-medium">Password</h3>
+                        <div className="w-12 h-12 rounded-full bg-amber-900/30 flex items-center justify-center text-amber-400 mr-4">
+                          <FaKey className="text-xl" />
+                        </div>
+                        <h3 className="text-white text-lg font-medium">Password Security</h3>
                       </div>
-                      <p className="text-gray-400 mb-4">
-                        It&apos;s a good idea to use a strong password that you&apos;re not using elsewhere
+                      <p className="text-slate-400 mb-5 ml-16">
+                        It&apos;s a good idea to use a strong password that you&apos;re not using elsewhere. 
+                        Your password should be at least 8 characters long and include a mix of letters, numbers, and symbols.
                       </p>
-                      <button
-                        onClick={() => navigate('/reset-password')}
-                        className="text-blue-400 hover:text-blue-300 font-medium"
-                      >
-                        Reset password
-                      </button>
-                    </div>
+                      <div className="ml-16">
+                        <button
+                          onClick={() => navigate('/reset-password')}
+                          className="inline-flex items-center px-4 py-2 bg-amber-900/30 text-amber-400 rounded-lg hover:bg-amber-900/50 transition-all duration-300 border border-amber-700/30"
+                        >
+                          <FaKey className="mr-2" />
+                          Change Password
+                        </button>
+                      </div>
+                    </motion.div>
                     
-                    <div className="bg-slate-700/50 p-6 rounded-lg">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.2 }}
+                      className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-6 rounded-xl border border-slate-700/50 shadow-md"
+                    >
                       <div className="flex items-center mb-4">
-                        <FaShieldAlt className="text-gray-400 mr-2 text-xl" />
+                        <div className="w-12 h-12 rounded-full bg-green-900/30 flex items-center justify-center text-green-400 mr-4">
+                          <FaShieldAlt className="text-xl" />
+                        </div>
                         <h3 className="text-white text-lg font-medium">Account Verification</h3>
                       </div>
-                      <p className="text-gray-400 mb-4">
-                        Your account verification status determines what features you can access
+                      <p className="text-slate-400 mb-5 ml-16">
+                        Your account verification status determines what features you can access.
+                        Verified accounts have full access to all platform features including deposits and withdrawals.
                       </p>
-                      <div className="flex items-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      <div className="ml-16">
+                        <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium ${
                           userData?.isAccountVerified 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-green-900/30 text-green-400 border border-green-700/30' 
+                            : 'bg-amber-900/30 text-amber-400 border border-amber-700/30'
                         }`}>
-                          {userData?.isAccountVerified ? 'Verified' : 'Not Verified'}
+                          {userData?.isAccountVerified ? (
+                            <>
+                              <FaCheck className="mr-2" />
+                              Account Verified
+                            </>
+                          ) : (
+                            <>
+                              <FaExclamationTriangle className="mr-2" />
+                              Verification Required
+                            </>
+                          )}
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
-                </>
+                </motion.div>
               )}
             </div>
           </div>
         </motion.div>
       </div>
+      
+      <Footer />
     </div>
   );
 }
