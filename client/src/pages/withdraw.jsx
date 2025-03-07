@@ -5,7 +5,8 @@ import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
 import axios from 'axios';
 import Footer from '../components/footer';
-import { FaWallet, FaInfoCircle, FaExclamationTriangle, FaMoneyBillWave, FaArrowLeft, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaWallet, FaInfoCircle, FaExclamationTriangle, FaMoneyBillWave, FaArrowLeft, FaCheckCircle, FaSpinner, FaChartLine, FaPercentage, FaMoneyBillAlt } from 'react-icons/fa';
 
 const WITHDRAWAL_METHODS = {
   BINANCE: {
@@ -36,16 +37,24 @@ const WITHDRAWAL_METHODS = {
 };
 
 function Withdraw() {
-  const { requestWithdrawal, isLoading, userData } = useStore();
+  const { requestWithdrawal, isLoading, userData, investments, fetchInvestments } = useStore();
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [walletAddress, setWalletAddress] = useState('');
   const [settings, setSettings] = useState({
     minWithdrawal: 3,
-    withdrawalFee: 2
+    withdrawalFee: 2,
+    minInvestment: 100
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [step, setStep] = useState(1);
+  const [hasInvestments, setHasInvestments] = useState(false);
+  const [hasProfit, setHasProfit] = useState(false);
+  const [isCheckingInvestments, setIsCheckingInvestments] = useState(true);
+  const [firstDepositAmount, setFirstDepositAmount] = useState(0);
+  const [firstInvestmentAmount, setFirstInvestmentAmount] = useState(0);
+  const [totalProfit, setTotalProfit] = useState(0);
+  const [investmentMeetsRequirements, setInvestmentMeetsRequirements] = useState(false);
 
   useEffect(() => {
     // Fetch settings from the server
@@ -56,7 +65,8 @@ function Withdraw() {
         if (response.data.success) {
           setSettings({
             minWithdrawal: response.data.settings.minWithdrawal,
-            withdrawalFee: response.data.settings.withdrawalFee
+            withdrawalFee: response.data.settings.withdrawalFee,
+            minInvestment: response.data.settings.minInvestment
           });
         }
       } catch (error) {
@@ -69,6 +79,81 @@ function Withdraw() {
 
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    // Check if user has investments
+    const checkInvestments = async () => {
+      setIsCheckingInvestments(true);
+      try {
+        await fetchInvestments();
+        
+        // Fetch first deposit
+        const depositResponse = await axios.get('/api/user/deposits', { withCredentials: true });
+        if (depositResponse.data.success && depositResponse.data.deposits.length > 0) {
+          // Sort deposits by date (oldest first)
+          const sortedDeposits = [...depositResponse.data.deposits].sort(
+            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+          );
+          
+          // Find first approved deposit
+          const firstApprovedDeposit = sortedDeposits.find(d => d.status === 'approved');
+          if (firstApprovedDeposit) {
+            setFirstDepositAmount(parseFloat(firstApprovedDeposit.amount));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsCheckingInvestments(false);
+      }
+    };
+
+    checkInvestments();
+  }, [fetchInvestments]);
+
+  useEffect(() => {
+    // Check if user has any approved investments and calculate profit
+    if (investments && investments.length > 0) {
+      const approvedInvestments = investments.filter(inv => inv.status === 'approved');
+      setHasInvestments(approvedInvestments.length > 0);
+      
+      if (approvedInvestments.length > 0) {
+        // Sort investments by date (oldest first)
+        const sortedInvestments = [...approvedInvestments].sort(
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+        );
+        
+        // Get first investment amount
+        const firstInv = sortedInvestments[0];
+        setFirstInvestmentAmount(parseFloat(firstInv.amount));
+        
+        // Calculate total profit
+        const profit = approvedInvestments.reduce((sum, inv) => {
+          return sum + parseFloat(inv.totalProfit || 0);
+        }, 0);
+        
+        setTotalProfit(profit);
+        setHasProfit(profit > 0);
+      } else {
+        setHasProfit(false);
+        setTotalProfit(0);
+      }
+    } else {
+      setHasInvestments(false);
+      setHasProfit(false);
+      setTotalProfit(0);
+    }
+  }, [investments]);
+
+  useEffect(() => {
+    // Check if investment meets requirements (50% of first deposit and not less than minInvestment)
+    if (firstDepositAmount > 0 && firstInvestmentAmount > 0) {
+      const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, settings.minInvestment);
+      setInvestmentMeetsRequirements(firstInvestmentAmount >= minRequiredInvestment);
+    } else {
+      setInvestmentMeetsRequirements(false);
+    }
+  }, [firstDepositAmount, firstInvestmentAmount, settings.minInvestment]);
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
@@ -151,6 +236,40 @@ function Withdraw() {
     return Math.max(0, amountNum - settings.withdrawalFee).toFixed(2);
   };
 
+  const renderWithdrawalBlockMessage = () => {
+    if (!hasInvestments) {
+      return {
+        title: "Investment Required",
+        message: "You need to make at least one investment before you can withdraw funds. This is to ensure the security and integrity of our platform.",
+        icon: <FaChartLine className="h-10 w-10 text-red-500" />,
+        buttonText: "Make Your First Investment",
+        buttonLink: "/invest",
+        buttonIcon: <FaChartLine className="mr-2" />
+      };
+    } else if (!investmentMeetsRequirements) {
+      const minRequired = Math.max(firstDepositAmount * 0.5, settings.minInvestment).toFixed(2);
+      return {
+        title: "Investment Amount Too Low",
+        message: `Your first investment (${firstInvestmentAmount.toFixed(2)}) must be at least 50% of your first deposit (${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount (${settings.minInvestment}). Required: $${minRequired}`,
+        icon: <FaMoneyBillAlt className="h-10 w-10 text-yellow-500" />,
+        buttonText: "Make a Larger Investment",
+        buttonLink: "/invest",
+        buttonIcon: <FaMoneyBillAlt className="mr-2" />
+      };
+    } else if (!hasProfit) {
+      return {
+        title: "No Profit Generated Yet",
+        message: "You need to earn some profit from your investments before making a withdrawal. Please wait for your investments to generate profit.",
+        icon: <FaPercentage className="h-10 w-10 text-blue-500" />,
+        buttonText: "View Your Investments",
+        buttonLink: "/investments",
+        buttonIcon: <FaChartLine className="mr-2" />
+      };
+    }
+    
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-slate-900">
       <Navbar />
@@ -168,27 +287,41 @@ function Withdraw() {
           </div>
           
           <div className="p-6 sm:p-8">
-            {isLoadingSettings ? (
+            {isLoadingSettings || isCheckingInvestments ? (
               <div className="flex flex-col justify-center items-center py-16">
                 <FaSpinner className="animate-spin h-12 w-12 text-blue-500 mb-4" />
                 <p className="text-slate-400">Loading withdrawal settings...</p>
               </div>
-            ) : (
-              <div className="max-w-3xl mx-auto">
-                {/* Steps indicator */}
-                <div className="mb-8 flex justify-center">
-                  <div className="flex items-center w-full max-w-xs">
-                    <div className={`flex-1 h-1 ${step >= 1 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-slate-700'}`}></div>
-                    <div className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium shadow-lg ${
-                      step >= 1 ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-slate-700 text-slate-300'
-                    }`}>1</div>
-                    <div className={`flex-1 h-1 ${step >= 2 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-slate-700'}`}></div>
-                    <div className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium shadow-lg ${
-                      step >= 2 ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-slate-700 text-slate-300'
-                    }`}>2</div>
-                    <div className={`flex-1 h-1 ${step >= 2 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-slate-700'}`}></div>
-                  </div>
+            ) : renderWithdrawalBlockMessage() ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
+                  {renderWithdrawalBlockMessage().icon}
                 </div>
+                <h2 className="text-2xl font-bold text-white mb-4">{renderWithdrawalBlockMessage().title}</h2>
+                <p className="text-slate-300 mb-6 max-w-lg">
+                  {renderWithdrawalBlockMessage().message}
+                </p>
+                <Link 
+                  to={renderWithdrawalBlockMessage().buttonLink}
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+                >
+                  {renderWithdrawalBlockMessage().buttonIcon}
+                  {renderWithdrawalBlockMessage().buttonText}
+                </Link>
+              </div>
+            ) : (
+              <div>
+                {hasProfit && (
+                  <div className="mb-6 bg-green-900/20 border border-green-700/30 rounded-lg p-4 flex items-start">
+                    <FaInfoCircle className="text-green-500 mt-1 mr-3 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-green-400 font-medium">Profit Available for Withdrawal</h3>
+                      <p className="text-green-300 mt-1">
+                        You have earned ${totalProfit.toFixed(2)} in profit from your investments. You can now withdraw funds.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 
                 <AnimatePresence mode="wait">
                   {step === 1 && (
@@ -216,13 +349,11 @@ function Withdraw() {
                           </div>
                         </div>
                         
-                        <div className="flex items-start space-x-3 mb-6 text-amber-400 bg-amber-900/20 p-4 rounded-lg border border-amber-900/30">
-                          <FaInfoCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h3 className="font-medium text-amber-300">Important Information</h3>
-                            <p className="text-sm text-amber-200/80 mt-1">
-                              The minimum withdrawal amount is ${settings.minWithdrawal}. The withdrawal process can take up to 4 hours to complete.
-                              Please ensure your wallet address is correct before confirming.
+                        <div className="mb-6">
+                          <div className="flex items-center mb-4 text-blue-400 bg-blue-900/20 p-4 rounded-lg">
+                            <FaInfoCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+                            <p className="text-sm">
+                              Withdrawals are processed within 24 hours. A fee of ${settings.withdrawalFee} will be deducted from your withdrawal amount.
                             </p>
                           </div>
                         </div>
@@ -294,12 +425,12 @@ function Withdraw() {
                               }`}
                             >
                               <div className="flex items-center">
-                                <div className="w-10 h-10 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400 font-bold mr-3">
+                                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-blue-400 font-bold mr-3">
                                   {method.icon}
                                 </div>
                                 <div>
                                   <h4 className="font-medium text-white">{method.name}</h4>
-                                  <p className="text-sm text-slate-400">USDT via {method.name}</p>
+                                  <p className="text-xs text-slate-400">USDT</p>
                                 </div>
                               </div>
                             </div>
@@ -320,64 +451,51 @@ function Withdraw() {
                       <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 shadow-lg mb-6">
                         <button 
                           onClick={() => setStep(1)}
-                          className="flex items-center text-blue-400 hover:text-blue-300 mb-6 transition-colors duration-200 hover:bg-blue-900/20 px-3 py-1.5 rounded-lg"
+                          className="flex items-center text-slate-300 hover:text-white mb-6 transition-colors"
                         >
-                          <FaArrowLeft className="w-4 h-4 mr-2" />
-                          <span>Back to withdrawal options</span>
+                          <FaArrowLeft className="mr-2" />
+                          <span>Back to Amount</span>
                         </button>
                         
-                        <div className="mb-6">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400 font-bold">
-                              <FaMoneyBillWave className="h-6 w-6" />
+                        <div className="mb-6 bg-gradient-to-r from-blue-900/30 to-indigo-900/30 p-5 rounded-xl">
+                          <h3 className="font-medium text-white mb-2">Withdrawal Summary</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-slate-400">Amount</p>
+                              <p className="text-lg font-semibold text-white">${parseFloat(amount).toFixed(2)}</p>
                             </div>
                             <div>
-                              <h3 className="text-lg font-medium text-white">Withdrawal Summary</h3>
-                              <p className="text-sm text-slate-400">
-                                {WITHDRAWAL_METHODS[selectedMethod].name} • ${parseFloat(amount).toFixed(2)} • Fee: ${settings.withdrawalFee}
-                              </p>
+                              <p className="text-sm text-slate-400">Method</p>
+                              <p className="text-lg font-semibold text-white">{WITHDRAWAL_METHODS[selectedMethod].name}</p>
                             </div>
-                          </div>
-                          
-                          <div className="p-5 bg-slate-900/50 rounded-lg border border-slate-700/50 mb-6">
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="text-slate-300">Amount:</span>
-                              <span className="text-white font-medium">${parseFloat(amount || 0).toFixed(2)}</span>
+                            <div>
+                              <p className="text-sm text-slate-400">Fee</p>
+                              <p className="text-lg font-semibold text-red-400">-${settings.withdrawalFee}</p>
                             </div>
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="text-slate-300">Fee:</span>
-                              <span className="text-red-400 font-medium">-${settings.withdrawalFee}</span>
-                            </div>
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="text-slate-300">Method:</span>
-                              <span className="text-white font-medium">{WITHDRAWAL_METHODS[selectedMethod].name}</span>
-                            </div>
-                            <div className="border-t border-slate-700 my-3"></div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-300">You will receive:</span>
-                              <span className="text-green-400 font-bold">${calculateAmountAfterFee()}</span>
+                            <div>
+                              <p className="text-sm text-slate-400">You Will Receive</p>
+                              <p className="text-lg font-semibold text-green-400">${calculateAmountAfterFee()}</p>
                             </div>
                           </div>
                         </div>
                         
                         <div className="mb-6">
-                          <label className="block text-sm font-medium text-slate-300 mb-2">
-                            {selectedMethod === 'BINANCE' ? 'Binance ID' : 'Wallet Address'}
+                          <label htmlFor="walletAddress" className="block text-sm font-medium text-slate-300 mb-2">
+                            {WITHDRAWAL_METHODS[selectedMethod].name} Address
                           </label>
-                          <input
-                            type="text"
-                            value={walletAddress}
-                            onChange={(e) => setWalletAddress(e.target.value)}
-                            placeholder={WITHDRAWAL_METHODS[selectedMethod].placeholder}
-                            className="block w-full py-3 px-4 bg-slate-900/70 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-slate-500 transition-all duration-200"
-                          />
-                          <p className="mt-3 text-sm text-amber-400 flex items-start p-3 bg-amber-900/20 rounded-lg border border-amber-900/30">
-                            <FaExclamationTriangle className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span>
-                              Make sure to enter the correct {selectedMethod === 'BINANCE' ? 'Binance ID' : 'wallet address'} for USDT. 
-                              Incorrect information may result in permanent loss of funds.
-                            </span>
-                          </p>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <FaMoneyBillWave className="text-slate-400" />
+                            </div>
+                            <input
+                              type="text"
+                              id="walletAddress"
+                              value={walletAddress}
+                              onChange={(e) => setWalletAddress(e.target.value)}
+                              placeholder={WITHDRAWAL_METHODS[selectedMethod].placeholder}
+                              className="block w-full pl-10 py-3 bg-slate-900/70 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-slate-500 transition-all duration-200"
+                            />
+                          </div>
                         </div>
                         
                         <div className="flex justify-end">

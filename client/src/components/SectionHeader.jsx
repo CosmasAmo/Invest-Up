@@ -11,7 +11,7 @@ function SectionHeader({ title, subtitle, centered = true }) {
       <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
         {title}
       </h2>
-      <div className={`w-20 h-1 bg-blue-600 ${centered ? 'mx-auto' : ''} mb-8`}></div>
+      <div className={`w-20 h-1 bg-gradient-to-r from-blue-500 to-blue-600 ${centered ? 'mx-auto' : ''} mb-8`}></div>
       {subtitle && <p className="text-gray-300 max-w-2xl mx-auto">{subtitle}</p>}
     </motion.div>
   );
@@ -19,7 +19,7 @@ function SectionHeader({ title, subtitle, centered = true }) {
 
 SectionHeader.propTypes = {
   title: PropTypes.string.isRequired,
-  subtitle: PropTypes.string,
+  subtitle: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
   centered: PropTypes.bool
 };
 

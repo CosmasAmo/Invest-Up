@@ -7,14 +7,7 @@ const getApiUrl = () => {
     return 'https://yourdomain.com'; // Replace with your production URL
   }
   
-  // For development, use the IP address of your computer on the local network
-  // If accessing via IP already, use that
-  const hostname = window.location.hostname;
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    return `http://${hostname}:5000`;
-  }
-  
-  // Default fallback to localhost
+  // For development, always use localhost
   return 'http://localhost:5000';
 };
 

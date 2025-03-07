@@ -3,13 +3,11 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Footer from '../components/footer';
 import { FaChartLine, FaInfoCircle, FaExclamationTriangle, FaMoneyBillWave, FaPercentage, FaCalendarAlt, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 
 function Invest() {
-  const navigate = useNavigate();
   const { submitInvestment, isLoading, userData } = useStore();
   const [amount, setAmount] = useState('');
   const [settings, setSettings] = useState({
@@ -18,6 +16,9 @@ function Invest() {
     profitInterval: 5
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [firstDeposit, setFirstDeposit] = useState(null);
+  const [hasInvestments, setHasInvestments] = useState(false);
+  const [isLoadingDeposits, setIsLoadingDeposits] = useState(true);
 
   useEffect(() => {
     // Fetch settings from the server
@@ -43,6 +44,39 @@ function Invest() {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    // Check if user has any approved investments and get first deposit
+    const fetchUserData = async () => {
+      try {
+        setIsLoadingDeposits(true);
+        
+        // Get user's investments
+        const investmentsResponse = await axios.get('/api/investments', { withCredentials: true });
+        if (investmentsResponse.data.success) {
+          const approvedInvestments = investmentsResponse.data.investments.filter(inv => inv.status === 'approved');
+          setHasInvestments(approvedInvestments.length > 0);
+        }
+        
+        // Get user's first deposit
+        const depositsResponse = await axios.get('/api/deposits', { withCredentials: true });
+        if (depositsResponse.data.success) {
+          const approvedDeposits = depositsResponse.data.deposits.filter(dep => dep.status === 'approved');
+          if (approvedDeposits.length > 0) {
+            // Sort by creation date and get the first one
+            approvedDeposits.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            setFirstDeposit(approvedDeposits[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoadingDeposits(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   const handleAmountChange = (e) => {
     const value = e.target.value;
     if (/^\d*\.?\d*$/.test(value)) {
@@ -63,12 +97,23 @@ function Invest() {
       return;
     }
 
+    // Check if this is the first investment and if it meets the 50% requirement
+    if (!hasInvestments && firstDeposit) {
+      const firstDepositAmount = parseFloat(firstDeposit.amount);
+      const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, settings.minInvestment);
+      
+      if (parseFloat(amount) < minRequiredInvestment) {
+        toast.error(`Your first investment must be at least 50% of your first deposit ($${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount ($${settings.minInvestment}).`);
+        return;
+      }
+    }
+
     try {
       const success = await submitInvestment({ amount: parseFloat(amount) });
       if (success) {
         toast.success('Investment request submitted successfully. Awaiting admin approval.');
         setAmount('');
-        navigate('/investments');
+        // Redirect is now handled in the store
       }
     } catch (error) {
       toast.error(error.message || 'Failed to create investment');
@@ -91,6 +136,16 @@ function Invest() {
     return (parseFloat(amount) * settings.profitPercentage / 100 * 365).toFixed(2);
   };
 
+  // Calculate minimum required investment for first-time investors
+  const getMinimumInvestmentAmount = () => {
+    if (hasInvestments || !firstDeposit) {
+      return settings.minInvestment;
+    }
+    
+    const firstDepositAmount = parseFloat(firstDeposit.amount);
+    return Math.max(firstDepositAmount * 0.5, settings.minInvestment);
+  };
+
   return (
     <div className="min-h-screen bg-slate-900">
       <Navbar />
@@ -108,7 +163,7 @@ function Invest() {
           </div>
           
           <div className="p-6 sm:p-8">
-            {isLoadingSettings ? (
+            {isLoadingSettings || isLoadingDeposits ? (
               <div className="flex flex-col justify-center items-center py-16">
                 <FaSpinner className="animate-spin h-12 w-12 text-blue-500 mb-4" />
                 <p className="text-slate-400">Loading investment options...</p>
@@ -143,7 +198,7 @@ function Invest() {
                       </div>
                       <h3 className="text-sm font-medium text-slate-300">Min Investment</h3>
                     </div>
-                    <p className="text-2xl font-bold text-white">${settings.minInvestment} <span className="text-sm font-normal text-slate-400">USD</span></p>
+                    <p className="text-2xl font-bold text-white">${getMinimumInvestmentAmount()} <span className="text-sm font-normal text-slate-400">USD</span></p>
                   </motion.div>
                   
                   <motion.div 
@@ -170,6 +225,11 @@ function Invest() {
                       <p className="text-sm text-amber-200/80 mt-1">
                         Investments earn {settings.profitPercentage}% profit daily. Profits are automatically added to your balance every 24 hours.
                         You can withdraw your investment at any time after 7 days.
+                        {!hasInvestments && firstDeposit && (
+                          <span className="block mt-2">
+                            <strong>Note:</strong> Your first investment must be at least 50% of your first deposit (${(parseFloat(firstDeposit.amount) * 0.5).toFixed(2)}).
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -196,10 +256,13 @@ function Invest() {
                         </div>
                       </div>
                       
-                      {amount && parseFloat(amount) < settings.minInvestment && (
+                      {amount && parseFloat(amount) < getMinimumInvestmentAmount() && (
                         <p className="mt-2 text-sm text-red-400 flex items-center">
                           <FaExclamationTriangle className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
-                          Minimum investment amount is ${settings.minInvestment}
+                          {!hasInvestments && firstDeposit 
+                            ? `Your first investment must be at least 50% of your first deposit ($${(parseFloat(firstDeposit.amount) * 0.5).toFixed(2)})`
+                            : `Minimum investment amount is $${settings.minInvestment}`
+                          }
                         </p>
                       )}
                       
@@ -211,7 +274,7 @@ function Invest() {
                       )}
                     </div>
 
-                    {amount && parseFloat(amount) >= settings.minInvestment && (
+                    {amount && parseFloat(amount) >= getMinimumInvestmentAmount() && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -252,9 +315,9 @@ function Invest() {
                     <div className="flex justify-end">
                       <button
                         type="submit"
-                        disabled={isLoading || !amount || parseFloat(amount) < settings.minInvestment || parseFloat(amount) > parseFloat(userData?.balance || 0)}
+                        disabled={isLoading || !amount || parseFloat(amount) < getMinimumInvestmentAmount() || parseFloat(amount) > parseFloat(userData?.balance || 0)}
                         className={`px-6 py-3 rounded-lg font-medium flex items-center justify-center min-w-[180px] ${
-                          isLoading || !amount || parseFloat(amount) < settings.minInvestment || parseFloat(amount) > parseFloat(userData?.balance || 0)
+                          isLoading || !amount || parseFloat(amount) < getMinimumInvestmentAmount() || parseFloat(amount) > parseFloat(userData?.balance || 0)
                             ? 'bg-slate-700 text-slate-300 cursor-not-allowed'
                             : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-900/30'
                         } transition-all duration-300`}

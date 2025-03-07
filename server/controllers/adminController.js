@@ -68,43 +68,72 @@ export const getDashboardStats = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
     try {
+        console.log('Getting all users...');
         const users = await User.findAll({
             attributes: [
                 'id', 'name', 'email', 'isAccountVerified', 
                 'referralCount', 'referralEarnings', 'balance',
-                'createdAt'
+                'createdAt', 'isAdmin', 'profileImage'
             ],
             order: [['createdAt', 'DESC']]
         });
 
+        console.log('Users found:', users.length);
+        
         // Get all approved investments
         const investments = await Investment.findAll({
+            where: { status: 'approved' },
+            attributes: ['userId', 'amount', 'totalProfit']
+        });
+
+        // Get all approved withdrawals
+        const withdrawals = await Withdrawal.findAll({
             where: { status: 'approved' },
             attributes: ['userId', 'amount']
         });
 
-        // Calculate total investments for each user
+        // Calculate total investments and profits for each user
         const userInvestments = {};
+        const userProfits = {};
         investments.forEach(investment => {
             const userId = investment.userId;
             const amount = parseFloat(investment.amount || 0);
+            const profit = parseFloat(investment.totalProfit || 0);
             
             if (!userInvestments[userId]) {
                 userInvestments[userId] = 0;
+                userProfits[userId] = 0;
             }
             
             userInvestments[userId] += amount;
+            userProfits[userId] += profit;
         });
 
-        // Add total investments to each user
-        const usersWithInvestments = users.map(user => {
+        // Calculate total withdrawals for each user
+        const userWithdrawals = {};
+        withdrawals.forEach(withdrawal => {
+            const userId = withdrawal.userId;
+            const amount = parseFloat(withdrawal.amount || 0);
+            
+            if (!userWithdrawals[userId]) {
+                userWithdrawals[userId] = 0;
+            }
+            
+            userWithdrawals[userId] += amount;
+        });
+
+        // Add total investments, profits, and withdrawals to each user
+        const usersWithData = users.map(user => {
             const userData = user.toJSON();
             userData.totalInvestments = parseFloat(userInvestments[user.id] || 0).toFixed(2);
+            userData.totalProfits = parseFloat(userProfits[user.id] || 0).toFixed(2);
+            userData.totalWithdrawals = parseFloat(userWithdrawals[user.id] || 0).toFixed(2);
             return userData;
         });
 
-        res.json({ success: true, users: usersWithInvestments });
+        res.json({ success: true, users: usersWithData });
     } catch (error) {
+        console.error('Error getting all users:', error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -509,13 +538,17 @@ export const createUser = async (req, res) => {
     // Generate referral code
     const referralCode = crypto.randomBytes(4).toString('hex');
 
+    // Handle profile image if uploaded
+    const profileImage = req.file ? req.file.filename : null;
+
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       isAdmin: isAdmin || false,
       isAccountVerified: isAccountVerified || false,
-      referralCode
+      referralCode,
+      profileImage
     });
 
     res.json({ success: true, user });
@@ -543,7 +576,11 @@ export const deleteUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, email, isAdmin, isAccountVerified, balance } = req.body;
+    const { name, email, password, isAdmin, isAccountVerified, balance, totalInvestments, totalProfits, totalWithdrawals } = req.body;
+    
+    console.log('Updating user:', userId);
+    console.log('Request body:', req.body);
+    console.log('isAdmin value:', isAdmin);
     
     const user = await User.findByPk(userId);
     if (!user) {
@@ -566,103 +603,177 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    await user.update({
+    // Convert isAdmin to boolean if it's a string
+    const isAdminBoolean = typeof isAdmin === 'string' 
+      ? isAdmin === 'true' 
+      : Boolean(isAdmin);
+    
+    console.log('isAdmin after conversion:', isAdminBoolean);
+
+    // Handle profile image if uploaded
+    let profileImage = user.profileImage;
+    if (req.file) {
+      profileImage = req.file.filename;
+    }
+
+    // Prepare update data
+    const updateData = {
       name,
       email,
-      isAdmin,
+      isAdmin: isAdminBoolean,
       isAccountVerified,
-      balance
-    });
+      balance,
+      profileImage
+    };
 
-    res.json({ success: true, user });
+    // If password is provided, hash it and add to update data
+    if (password && password.trim() !== '') {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+      console.log('Password updated for user');
+    }
+
+    // Update user with prepared data
+    await user.update(updateData);
+
+    // If totalInvestments, totalProfits, or totalWithdrawals were provided, update related records
+    if (totalInvestments !== undefined || totalProfits !== undefined || totalWithdrawals !== undefined) {
+      // This is a simplified approach - in a real application, you might want to
+      // update the actual investment and withdrawal records instead of just the totals
+      console.log('Updating user financial data:', {
+        totalInvestments,
+        totalProfits,
+        totalWithdrawals
+      });
+      
+      // You could implement logic here to update investments and withdrawals
+      // For example, you could create adjustment records or update existing records
+    }
+
+    // Reload the user to get the updated data
+    await user.reload();
+
+    console.log('User updated successfully:', user.isAdmin);
+    res.json({ 
+      success: true, 
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        isAccountVerified: user.isAccountVerified,
+        balance: user.balance,
+        referralCount: user.referralCount,
+        referralEarnings: user.referralEarnings,
+        createdAt: user.createdAt,
+        profileImage: user.profileImage,
+        totalInvestments: totalInvestments,
+        totalProfits: totalProfits,
+        totalWithdrawals: totalWithdrawals
+      } 
+    });
   } catch (error) {
+    console.error('Error updating user:', error);
     res.json({ success: false, message: error.message });
   }
 };
 
 export const getRecentTransactions = async (req, res) => {
     try {
-        // Combine deposits, investments, and withdrawals into one list
+        // Recent deposits
         const deposits = await Deposit.findAll({
-            include: [{
-                model: User,
-                attributes: ['id', 'name', 'email']
-            }],
-            order: [['createdAt', 'DESC']],
-            limit: 20
+            where: { status: 'approved' },
+            order: [['updatedAt', 'DESC']],
+            limit: 5,
+            include: [{ model: User, attributes: ['name', 'email'] }]
         });
-        
+
+        // Recent investments
         const investments = await Investment.findAll({
-            include: [{
-                model: User,
-                attributes: ['id', 'name', 'email']
-            }],
-            order: [['createdAt', 'DESC']],
-            limit: 20
+            where: { status: 'approved' },
+            order: [['updatedAt', 'DESC']],
+            limit: 5,
+            include: [{ model: User, attributes: ['name', 'email'] }]
         });
-        
+
+        // Recent withdrawals
         const withdrawals = await Withdrawal.findAll({
-            include: [{
-                model: User,
-                attributes: ['id', 'name', 'email']
-            }],
-            order: [['createdAt', 'DESC']],
-            limit: 20
+            where: { status: 'approved' },
+            order: [['updatedAt', 'DESC']],
+            limit: 5,
+            include: [{ model: User, attributes: ['name', 'email'] }]
         });
 
-        // Combine and format all transactions
+        // Combine and sort all transactions
         const allTransactions = [
-            ...deposits.map(dep => ({
-                id: dep.id,
-                type: 'deposit',
-                amount: dep.amount,
-                status: dep.status,
-                paymentMethod: dep.paymentMethod,
-                createdAt: dep.createdAt,
-                user: {
-                    id: dep.User.id,
-                    name: dep.User.name,
-                    email: dep.User.email
-                }
-            })),
-            ...investments.map(inv => ({
-                id: inv.id,
-                type: 'investment',
-                amount: inv.amount,
-                status: inv.status,
-                paymentMethod: 'Balance',
-                createdAt: inv.createdAt,
-                user: {
-                    id: inv.User.id,
-                    name: inv.User.name,
-                    email: inv.User.email
-                }
-            })),
-            ...withdrawals.map(wth => ({
-                id: wth.id,
-                type: 'withdrawal',
-                amount: wth.amount,
-                status: wth.status,
-                paymentMethod: wth.paymentMethod,
-                createdAt: wth.createdAt,
-                user: {
-                    id: wth.User.id,
-                    name: wth.User.name,
-                    email: wth.User.email
-                }
-            }))
-        ]
-        // Sort by date (newest first)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        // Limit to most recent 30 transactions
-        .slice(0, 30);
+            ...deposits.map(d => {
+                const json = d.toJSON();
+                return {
+                    ...json,
+                    type: 'deposit',
+                    user: json.User ? {
+                        name: json.User.name,
+                        email: json.User.email
+                    } : null
+                };
+            }),
+            ...investments.map(i => {
+                const json = i.toJSON();
+                return {
+                    ...json,
+                    type: 'investment',
+                    user: json.User ? {
+                        name: json.User.name,
+                        email: json.User.email
+                    } : null
+                };
+            }),
+            ...withdrawals.map(w => {
+                const json = w.toJSON();
+                return {
+                    ...json,
+                    type: 'withdrawal',
+                    user: json.User ? {
+                        name: json.User.name,
+                        email: json.User.email
+                    } : null
+                };
+            })
+        ];
 
-        res.json({ 
-            success: true, 
-            transactions: allTransactions
+        // Sort by updatedAt (most recent first)
+        allTransactions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+        // Return top 10 transactions
+        const transactions = allTransactions.slice(0, 10);
+
+        res.json({
+            success: true,
+            transactions
         });
     } catch (error) {
         console.error('Error fetching recent transactions:', error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export const getUserReferralCodes = async (req, res) => {
+    try {
+        const users = await User.findAll({
+            attributes: ['id', 'referralCode']
+        });
+
+        const referralCodes = {};
+        users.forEach(user => {
+            referralCodes[user.id] = user.referralCode || '';
+        });
+
+        res.json({
+            success: true,
+            referralCodes
+        });
+    } catch (error) {
+        console.error('Error fetching user referral codes:', error);
         res.json({ success: false, message: error.message });
     }
 }; 

@@ -45,7 +45,13 @@ const testDB = async () => {
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5000',
+    'http://localhost:8080',
     'https://accounts.google.com',
+    // Add your local network address
+    `http://localhost:5173`,
+    `http://localhost:8080`,
+    `http://192.168.100.60:5173`, // Your current IP address
+    `http://192.168.100.60:8080`, // Your current IP address with port 8080
     // Add your production domain if needed
     process.env.NODE_ENV === 'production' 
         ? 'https://yourdomain.com' 
@@ -54,26 +60,13 @@ const allowedOrigins = [
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Simple CORS configuration for development
 app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl requests)
-        if (!origin) return callback(null, true);
-        
-        // Check if origin matches any of our patterns
-        const isAllowed = allowedOrigins.some(allowed => {
-            return allowed === origin || allowed === '*';
-        });
-        
-        if (isAllowed) {
-            callback(null, origin);
-        } else {
-            console.log('CORS blocked origin:', origin);
-            callback(null, origin); // For development, still allow but log it
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  origin: ['http://localhost:5173', 'http://localhost:5000', 'http://localhost:8080'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Add session middleware before passport initialization

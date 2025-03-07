@@ -4,6 +4,7 @@ import useStore from '../store/useStore'
 import { Link } from 'react-router-dom'
 import { FaUser, FaSignOutAlt, FaShieldAlt, FaUserShield, FaChartLine, FaWallet, FaExchangeAlt, FaChevronDown } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
+import PropTypes from 'prop-types'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ function Navbar() {
   } = useStore()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const [activeLink, setActiveLink] = useState('')
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,6 +42,12 @@ function Navbar() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
+  }, [])
+
+  useEffect(() => {
+    // Set active link based on current path
+    const path = window.location.pathname
+    setActiveLink(path)
   }, [])
 
   const getInitial = () => {
@@ -79,48 +87,32 @@ function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            <Link 
-              to="/" 
-              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
-            >
+          <div className="hidden md:flex items-center space-x-2">
+            <NavLink to="/" isActive={activeLink === '/'}>
               Home
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
+            </NavLink>
+            
+            <NavLink to="/make-money-online" isActive={activeLink === '/make-money-online'}>
+              Make Money Online
+            </NavLink>
             
             {userData?.isAccountVerified && (
-              <Link 
-                to="/dashboard" 
-                className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
-              >
+              <NavLink to="/dashboard" isActive={activeLink === '/dashboard'}>
                 Dashboard
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
-              </Link>
+              </NavLink>
             )}
             
-            <Link 
-              to="/about" 
-              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
-            >
+            <NavLink to="/about" isActive={activeLink === '/about'}>
               About
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
+            </NavLink>
             
-            <Link 
-              to="/contact" 
-              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
-            >
+            <NavLink to="/contact" isActive={activeLink === '/contact'}>
               Contact
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
+            </NavLink>
             
-            <Link 
-              to="/faqs" 
-              className="block px-4 py-2 text-white font-medium hover:text-blue-400 rounded-md transition-all duration-300 relative group"
-            >
+            <NavLink to="/faqs" isActive={activeLink === '/faqs'}>
               FAQs
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
+            </NavLink>
           </div>
 
           {/* Auth Buttons */}
@@ -158,32 +150,33 @@ function Navbar() {
                   />
                 </div>
                 
+                {/* Dropdown Menu */}
                 <AnimatePresence>
                   {isDropdownOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-3 w-72 origin-top-right bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl shadow-xl ring-1 ring-black/5 ring-opacity-5 divide-y divide-slate-700/50 z-50 overflow-hidden border border-slate-700/50"
+                      className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl bg-slate-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none overflow-hidden"
                     >
-                      <div className="p-5 bg-gradient-to-r from-blue-900/20 to-indigo-900/20">
-                        <div className="flex items-center space-x-4">
+                      <div className="p-4 border-b border-slate-700">
+                        <div className="flex items-center">
                           {userData.profileImage ? (
                             <img 
                               src={`http://localhost:5000${userData.profileImage}`}
                               alt="Profile" 
-                              className="w-14 h-14 rounded-full object-cover border-2 border-blue-500 shadow-lg"
+                              className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
                             />
                           ) : (
-                            <div className="w-14 h-14 flex justify-center items-center
-                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-semibold shadow-lg">
+                            <div className="w-12 h-12 flex justify-center items-center
+                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-semibold">
                               {getInitial()}
                             </div>
                           )}
-                          <div>
-                            <p className="text-base font-medium text-white">{userData.name}</p>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{userData.email}</p>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-white">{userData.name}</p>
+                            <p className="text-xs text-gray-400 truncate">{userData.email}</p>
                           </div>
                         </div>
                       </div>
@@ -207,39 +200,8 @@ function Navbar() {
                         </button>
                       </div>
                       
-                      {userData?.isAccountVerified && (
-                        <div className="py-1">
-                          <Link 
-                            to="/dashboard" 
-                            onClick={() => setIsDropdownOpen(false)}
-                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
-                          >
-                            <FaChartLine className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
-                            <span>Dashboard</span>
-                          </Link>
-                          
-                          <Link 
-                            to="/deposit" 
-                            onClick={() => setIsDropdownOpen(false)}
-                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
-                          >
-                            <FaWallet className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
-                            <span>Deposit Funds</span>
-                          </Link>
-                          
-                          <Link 
-                            to="/withdraw" 
-                            onClick={() => setIsDropdownOpen(false)}
-                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
-                          >
-                            <FaExchangeAlt className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
-                            <span>Withdraw Funds</span>
-                          </Link>
-                        </div>
-                      )}
-                      
-                      {userData.isAdmin && (
-                        <div className="py-1">
+                      {userData?.isAdmin && (
+                        <div className="py-1 border-t border-slate-700">
                           <Link 
                             to="/admin/dashboard" 
                             onClick={() => setIsDropdownOpen(false)}
@@ -251,10 +213,23 @@ function Navbar() {
                         </div>
                       )}
                       
-                      <div className="py-1">
-                        <button
+                      {userData?.isAccountVerified && (
+                        <div className="py-1 border-t border-slate-700">
+                          <Link 
+                            to="/dashboard" 
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="group flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-blue-600/20 transition-colors duration-200"
+                          >
+                            <FaChartLine className="mr-3 h-5 w-5 text-blue-400 group-hover:text-blue-300" />
+                            <span>Dashboard</span>
+                          </Link>
+                        </div>
+                      )}
+                      
+                      <div className="py-1 border-t border-slate-700">
+                        <button 
                           onClick={handleLogout}
-                          className="group flex w-full items-center px-5 py-3 text-sm text-red-400 hover:bg-red-900/20 transition-colors duration-200"
+                          className="group flex w-full items-center px-5 py-3 text-sm text-red-300 hover:bg-red-500/10 transition-colors duration-200 text-left"
                         >
                           <FaSignOutAlt className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-300" />
                           <span>Sign out</span>
@@ -265,37 +240,50 @@ function Navbar() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="flex space-x-4">
-                <button 
-                  onClick={() => navigate('/login')}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 
-                  rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium">
+              <div className="flex items-center space-x-3">
+                <Link 
+                  to="/login" 
+                  className="text-white font-medium hover:text-blue-400 transition-colors duration-300 px-4 py-2"
+                >
                   Login
-                </button>
-                <button 
-                  onClick={() => navigate('/register')}
-                  className="bg-transparent border border-blue-600 hover:border-blue-500 hover:bg-blue-900/20 
-                  text-white px-6 py-2.5 rounded-lg transition-all duration-300 font-medium">
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2 
+                  rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+                >
                   Register
-                </button>
+                </Link>
               </div>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button 
+          <div className="md:hidden flex items-center">
+            <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-white p-2 rounded-lg hover:bg-slate-800/70 transition-colors duration-200"
-              aria-label="Toggle menu"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-800 focus:outline-none"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {isMobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+              <span className="sr-only">Open main menu</span>
+              <div className="relative w-6 h-5">
+                <span 
+                  className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-2' : 'rotate-0'
+                  }`}
+                />
+                <span 
+                  className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${
+                    isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
+                  }`} 
+                  style={{ top: '0.5rem' }}
+                />
+                <span 
+                  className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-2' : 'rotate-0'
+                  }`} 
+                  style={{ top: '1rem' }}
+                />
+              </div>
             </button>
           </div>
         </div>
@@ -317,15 +305,28 @@ function Navbar() {
                 <Link 
                   to="/" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                  className={`block px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                    activeLink === '/' ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-blue-600/20'
+                  }`}
                 >
                   Home
+                </Link>
+                <Link 
+                  to="/make-money-online" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`block px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                    activeLink === '/make-money-online' ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-blue-600/20'
+                  }`}
+                >
+                  Make Money Online
                 </Link>
                 {userData?.isAccountVerified && (
                   <Link 
                     to="/dashboard" 
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                    className={`block px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                      activeLink === '/dashboard' ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-blue-600/20'
+                    }`}
                   >
                     Dashboard
                   </Link>
@@ -333,47 +334,52 @@ function Navbar() {
                 <Link 
                   to="/about" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                  className={`block px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                    activeLink === '/about' ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-blue-600/20'
+                  }`}
                 >
                   About
                 </Link>
                 <Link 
                   to="/contact" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                  className={`block px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                    activeLink === '/contact' ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-blue-600/20'
+                  }`}
                 >
                   Contact
                 </Link>
                 <Link 
                   to="/faqs" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 text-white font-medium hover:bg-blue-600/20 rounded-lg transition-colors duration-200"
+                  className={`block px-4 py-2.5 text-white font-medium rounded-lg transition-colors duration-200 ${
+                    activeLink === '/faqs' ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-blue-600/20'
+                  }`}
                 >
                   FAQs
                 </Link>
-              </div>
-              
-              <div className="pt-4 pb-5 border-t border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50">
+                
                 {userData ? (
-                  <div className="px-5 py-3">
-                    <div className="flex items-center mb-4">
-                      {userData.profileImage ? (
-                        <img 
-                          src={`http://localhost:5000${userData.profileImage}`}
-                          alt="Profile" 
-                          className="w-12 h-12 rounded-full object-cover border-2 border-blue-500 shadow-md"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 flex justify-center items-center
-                          rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md">
-                          {getInitial()}
+                  <>
+                    <div className="pt-4 pb-2 border-t border-slate-700/50">
+                      <div className="flex items-center px-4">
+                        {userData.profileImage ? (
+                          <img 
+                            src={`http://localhost:5000${userData.profileImage}`}
+                            alt="Profile" 
+                            className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 flex justify-center items-center
+                            rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
+                            {getInitial()}
+                          </div>
+                        )}
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-white">{userData.name}</p>
+                          <p className="text-xs text-gray-400 truncate">{userData.email}</p>
                         </div>
-                      )}
-                      <div className="ml-3">
-                        <div className="text-base font-medium text-white">{userData.name}</div>
-                        <div className="text-sm font-medium text-gray-400">{userData.email}</div>
                       </div>
-                    </div>
                     
                     <div className="mt-4 space-y-2">
                       <Link 
@@ -407,7 +413,7 @@ function Navbar() {
                         </>
                       )}
                       
-                      {userData.isAdmin && (
+                      {userData?.isAdmin && (
                         <Link 
                           to="/admin/dashboard" 
                           onClick={() => setIsMobileMenuOpen(false)}
@@ -418,15 +424,19 @@ function Navbar() {
                         </Link>
                       )}
                       
-                      <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center px-4 py-2.5 text-base font-medium text-red-400 hover:bg-red-900/20 rounded-lg transition-colors duration-200"
+                      <button 
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center px-4 py-2.5 text-base font-medium text-red-300 hover:bg-red-500/10 rounded-lg transition-colors duration-200 w-full"
                       >
                         <FaSignOutAlt className="mr-3 h-5 w-5 text-red-400" />
                         Sign out
                       </button>
                     </div>
-                  </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="px-5 py-4 flex flex-col space-y-3">
                     <button 
@@ -456,6 +466,32 @@ function Navbar() {
       </AnimatePresence>
     </nav>
   )
+}
+
+// NavLink component for consistent styling
+function NavLink({ to, children, isActive = false }) {
+  return (
+    <Link 
+      to={to} 
+      className={`relative px-4 py-2 text-white font-medium rounded-md transition-all duration-300 
+        ${isActive 
+          ? 'text-blue-400 bg-blue-500/10' 
+          : 'hover:text-blue-400 hover:bg-blue-500/5'
+        }`}
+    >
+      <span className="relative z-10">{children}</span>
+      {isActive && (
+        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full"></span>
+      )}
+    </Link>
+  )
+}
+
+// Add prop validation
+NavLink.propTypes = {
+  to: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+  isActive: PropTypes.bool
 }
 
 export default Navbar

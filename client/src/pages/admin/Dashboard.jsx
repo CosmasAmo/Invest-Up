@@ -119,7 +119,16 @@ function Dashboard() {
 
         return pendingDeposits.map((deposit) => (
             <tr key={deposit.id} className="border-t border-gray-700">
-                <td className="px-2 sm:px-6 py-3">{deposit.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-6 py-3">
+                    {deposit.user ? (
+                        <div>
+                            <div className="font-medium">{deposit.user.name || 'Unknown User'}</div>
+                            <div className="text-xs text-gray-400">{deposit.user.email || ''}</div>
+                        </div>
+                    ) : (
+                        'Unknown User'
+                    )}
+                </td>
                 <td className="px-2 sm:px-6 py-3">${parseFloat(deposit.amount).toFixed(2)}</td>
                 <td className="px-2 sm:px-6 py-3 hidden sm:table-cell">{deposit.paymentMethod}</td>
                 <td className="px-2 sm:px-6 py-3 hidden md:table-cell">{new Date(deposit.createdAt).toLocaleDateString()}</td>
@@ -167,7 +176,16 @@ function Dashboard() {
 
         return pendingInvestments.map((investment) => (
             <tr key={investment.id} className="border-t border-gray-700">
-                <td className="px-2 sm:px-6 py-3">{investment.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-6 py-3">
+                    {investment.user ? (
+                        <div>
+                            <div className="font-medium">{investment.user.name || 'Unknown User'}</div>
+                            <div className="text-xs text-gray-400">{investment.user.email || ''}</div>
+                        </div>
+                    ) : (
+                        'Unknown User'
+                    )}
+                </td>
                 <td className="px-2 sm:px-6 py-3">${parseFloat(investment.amount).toFixed(2)}</td>
                 <td className="px-2 sm:px-6 py-3 hidden sm:table-cell">{investment.plan || 'Standard'}</td>
                 <td className="px-2 sm:px-6 py-3 hidden md:table-cell">{new Date(investment.createdAt).toLocaleDateString()}</td>
@@ -205,7 +223,16 @@ function Dashboard() {
 
         return pendingWithdrawals.map((withdrawal) => (
             <tr key={withdrawal.id} className="border-t border-gray-700">
-                <td className="px-2 sm:px-6 py-3">{withdrawal.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-6 py-3">
+                    {withdrawal.user ? (
+                        <div>
+                            <div className="font-medium">{withdrawal.user.name || 'Unknown User'}</div>
+                            <div className="text-xs text-gray-400">{withdrawal.user.email || ''}</div>
+                        </div>
+                    ) : (
+                        'Unknown User'
+                    )}
+                </td>
                 <td className="px-2 sm:px-6 py-3">${parseFloat(withdrawal.amount).toFixed(2)}</td>
                 <td className="px-2 sm:px-6 py-3 hidden sm:table-cell">{withdrawal.withdrawalMethod}</td>
                 <td className="px-2 sm:px-6 py-3 hidden md:table-cell">{new Date(withdrawal.createdAt).toLocaleDateString()}</td>
@@ -348,7 +375,16 @@ function Dashboard() {
 
         return recentTransactions.map((transaction) => (
             <tr key={transaction.id} className="border-t border-gray-700">
-                <td className="px-2 sm:px-4 py-3">{transaction.user?.name || 'Unknown User'}</td>
+                <td className="px-2 sm:px-4 py-3">
+                    {transaction.user ? (
+                        <div>
+                            <div className="font-medium">{transaction.user.name || 'Unknown User'}</div>
+                            <div className="text-xs text-gray-400">{transaction.user.email || ''}</div>
+                        </div>
+                    ) : (
+                        'Unknown User'
+                    )}
+                </td>
                 <td className="px-2 sm:px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs 
                         ${transaction.type === 'deposit' 

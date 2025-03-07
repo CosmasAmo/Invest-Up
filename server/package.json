@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "server": "nodemon server.js"
+    "server": "nodemon server.js",
+    "local-network": "node scripts/start-local-network.js",
+    "network-test": "node scripts/network-test.js"
   },
   "keywords": [],
   "author": "",

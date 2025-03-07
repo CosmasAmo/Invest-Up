@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import axios from 'axios';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { createRequestConfig, handleApiError } from '../utils/apiUtils';
+import { toast } from 'react-toastify';
 
 // Determine the API URL based on the environment
 const getApiUrl = () => {
@@ -10,7 +11,7 @@ const getApiUrl = () => {
     return 'https://yourdomain.com'; // Replace with your production URL
   }
   
-  // For development, use localhost
+  // For development, always use localhost
   return 'http://localhost:5000';
 };
 
@@ -457,6 +458,8 @@ const useStore = create(
             headers: { 'Content-Type': 'multipart/form-data' }
           });
           if (data.success) {
+            // Redirect to deposits page
+            window.location.href = '/deposits';
             return true;
           }
           throw new Error(data.message);
@@ -498,6 +501,8 @@ const useStore = create(
           const { data } = await axios.post('/api/investments/create', investmentData);
           if (data.success) {
             await useStore.getState().fetchDashboardData();
+            // Redirect to investments page
+            window.location.href = '/investments';
             return true;
           }
           throw new Error(data.message);
@@ -511,22 +516,22 @@ const useStore = create(
 
       // Withdrawal actions
       requestWithdrawal: async (withdrawalData) => {
-        set({ isLoading: true });
+        set({ isLoading: true, error: null });
         try {
           const { data } = await axios.post('/api/withdrawals/request', withdrawalData);
           if (data.success) {
-            set(state => ({
-              stats: {
-                ...state.stats,
-                totalWithdrawals: state.stats.totalWithdrawals + Number(withdrawalData.amount),
-                balance: state.stats.balance - Number(withdrawalData.amount)
-              }
-            }));
+            // Update user balance after withdrawal request
+            await useStore.getState().fetchDashboardData();
+            toast.success(data.message);
+            // Redirect to withdrawals page
+            window.location.href = '/withdrawals';
             return true;
           }
           throw new Error(data.message);
         } catch (error) {
-          set({ error: error.message });
+          const errorMessage = error.response?.data?.message || error.message;
+          toast.error(errorMessage);
+          set({ error: errorMessage });
           return false;
         } finally {
           set({ isLoading: false });

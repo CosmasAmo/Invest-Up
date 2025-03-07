@@ -55,8 +55,11 @@ const useAdminStore = create((set) => ({
     fetchAllUsers: async () => {
         set({ isLoading: true, error: null });
         try {
-            const { data } = await axios.get('/api/admin/users');
+            console.log('Fetching all users...');
+            // Add a cache-busting parameter to prevent caching
+            const { data } = await axios.get(`/api/admin/users?_=${new Date().getTime()}`);
             if (data.success) {
+                console.log('Users fetched successfully:', data.users);
                 set({ users: data.users });
             } else {
                 throw new Error(data.message || 'Failed to fetch users');
@@ -64,6 +67,34 @@ const useAdminStore = create((set) => ({
         } catch (error) {
             set({ error: error.message });
             console.error('Error fetching users:', error);
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    fetchReferralCodes: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const { data } = await axios.get('/api/admin/users/referral-codes');
+            if (data.success && data.referralCodes) {
+                return data.referralCodes;
+            } else {
+                // If the endpoint doesn't exist yet, we'll fetch each user's referral code individually
+                const users = useAdminStore.getState().users;
+                const codes = {};
+                
+                // Try to get referral codes from users if they're already included
+                users.forEach(user => {
+                    if (user.referralCode) {
+                        codes[user.id] = user.referralCode;
+                    }
+                });
+                
+                return codes;
+            }
+        } catch (error) {
+            console.error('Error fetching referral codes:', error);
+            return {};
         } finally {
             set({ isLoading: false });
         }
@@ -215,10 +246,16 @@ const useAdminStore = create((set) => ({
         }
     },
 
-    createUser: async (userData) => {
+    createUser: async (userData, isFormData = false) => {
         set({ isLoading: true, error: null });
         try {
-            const { data } = await axios.post('/api/admin/users', userData);
+            const config = isFormData ? {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            } : {};
+            
+            const { data } = await axios.post('/api/admin/users', userData, config);
             if (data.success) {
                 return data.user;
             } else {
@@ -259,11 +296,35 @@ const useAdminStore = create((set) => ({
         }
     },
 
-    updateUser: async (userId, userData) => {
+    updateUser: async (userId, userData, isFormData = false) => {
         set({ isLoading: true, error: null });
         try {
-            const { data } = await axios.put(`/api/admin/users/${userId}`, userData);
+            console.log('Updating user in store:', userId);
+            console.log('User data being sent:', userData);
+            
+            const config = isFormData ? {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                withCredentials: true
+            } : {
+                withCredentials: true
+            };
+            
+            const { data } = await axios.put(`/api/admin/users/${userId}`, userData, config);
             if (data.success) {
+                console.log('User updated successfully:', data.user);
+                
+                // Update the users array with the updated user data
+                set(state => ({
+                    users: state.users.map(user => 
+                        user.id === userId ? { ...user, ...userData } : user
+                    )
+                }));
+                
+                // Also fetch all users to ensure data is fresh
+                await useAdminStore.getState().fetchAllUsers();
+                
                 return data.user;
             } else {
                 if (data.message && (
@@ -279,6 +340,7 @@ const useAdminStore = create((set) => ({
                 throw new Error(data.message || 'Failed to update user');
             }
         } catch (error) {
+            console.error('Error in updateUser:', error);
             set({ error: error.message });
             throw error;
         } finally {

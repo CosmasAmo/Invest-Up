@@ -27,6 +27,7 @@ import Withdraw from './pages/withdraw'
 import Withdrawals from './pages/withdrawals'
 import Transactions from './pages/transactions'
 import Terms from './pages/terms'
+import MakeMoneyOnline from './pages/make-money-online'
 import ApiDebug from './components/ApiDebug'
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/faqs" element={<FAQs />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/make-money-online" element={<MakeMoneyOnline />} />
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />

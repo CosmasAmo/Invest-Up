@@ -1,5 +1,6 @@
 import Investment from '../models/Investment.js';
 import User from '../models/userModel.js';
+import Deposit from '../models/Deposit.js';
 import { getSetting } from './settingsController.js';
 
 export const createInvestment = async (req, res) => {
@@ -21,6 +22,31 @@ export const createInvestment = async (req, res) => {
 
         if (parseFloat(amount) > parseFloat(user.balance)) {
             return res.json({ success: false, message: 'Insufficient balance' });
+        }
+
+        // Check if this is the user's first investment
+        const existingInvestments = await Investment.findAll({
+            where: { userId, status: 'approved' }
+        });
+
+        if (existingInvestments.length === 0) {
+            // This is the first investment, check if it meets the 50% requirement
+            const firstDeposit = await Deposit.findOne({
+                where: { userId, status: 'approved' },
+                order: [['createdAt', 'ASC']]
+            });
+
+            if (firstDeposit) {
+                const firstDepositAmount = parseFloat(firstDeposit.amount);
+                const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, minInvestment);
+
+                if (parseFloat(amount) < minRequiredInvestment) {
+                    return res.json({ 
+                        success: false, 
+                        message: `Your first investment must be at least 50% of your first deposit (${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount (${minInvestment}).`
+                    });
+                }
+            }
         }
 
         const investment = await Investment.create({

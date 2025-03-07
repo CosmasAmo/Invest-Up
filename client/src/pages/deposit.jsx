@@ -122,11 +122,7 @@ function Deposit() {
       const success = await submitDeposit(formData);
       if (success) {
         toast.success('Deposit submitted successfully. Awaiting admin approval.');
-        // Reset form after successful submission
-        setAmount('');
-        setSelectedMethod(null);
-        setProofFile(null);
-        setStep(1);
+        // Redirect is now handled in the store
       }
     } catch (error) {
       console.error('Error submitting deposit:', error);
