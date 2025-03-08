@@ -52,7 +52,8 @@ export const getUserdata = async (req, res) => {
                 balance: parseFloat(user.balance || 0).toFixed(2),
                 profileImage: user.profileImage,
                 recentTransactions: deposits.slice(0, 5), // Get last 5 transactions
-                referredBy: referrerName
+                referredBy: referrerName,
+                createdAt: user.createdAt
             },
             stats: {
                 balance: parseFloat(user.balance || 0),
@@ -112,6 +113,9 @@ export const updateProfile = async (req, res) => {
         // Update the user's profile
         await user.update(updateData);
 
+        // Get the updated user data
+        const updatedUser = await User.findByPk(userId);
+
         // The Contact model no longer has a userId column as per the latest migration
         // Instead of trying to update by userId, we'll update by email
         if (user.email !== email) {
@@ -127,9 +131,11 @@ export const updateProfile = async (req, res) => {
             }
         }
 
-        return res.json({
-            success: true,
-            message: 'Profile updated successfully'
+        // Return success response with updated user data
+        return res.json({ 
+            success: true, 
+            message: 'Profile updated successfully',
+            userData: updatedUser
         });
 
     } catch (error) {

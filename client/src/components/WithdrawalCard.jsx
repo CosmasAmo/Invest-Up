@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import PropTypes from 'prop-types';
-import { FaChartLine, FaCalendarAlt, FaHistory, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaWallet, FaCalendarAlt, FaEdit, FaTrash, FaExchangeAlt } from 'react-icons/fa';
 
-function InvestmentCard({ investment, onEdit, onDelete }) {
+function WithdrawalCard({ withdrawal, onEdit, onDelete }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved':
@@ -36,15 +36,12 @@ function InvestmentCard({ investment, onEdit, onDelete }) {
     }
   };
 
-  const statusStyle = getStatusColor(investment.status);
-  const formattedDate = new Date(investment.createdAt).toLocaleDateString('en-US', {
+  const statusStyle = getStatusColor(withdrawal.status);
+  const formattedDate = new Date(withdrawal.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
   });
-
-  // Calculate daily profit
-  const dailyProfit = (parseFloat(investment.amount) * (parseFloat(investment.dailyProfitRate || 5) / 100)).toFixed(2);
 
   return (
     <motion.div
@@ -55,34 +52,34 @@ function InvestmentCard({ investment, onEdit, onDelete }) {
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center">
           <div className={`w-10 h-10 rounded-full ${statusStyle.icon} flex items-center justify-center mr-3`}>
-            <FaChartLine className={`h-5 w-5 ${statusStyle.text}`} />
+            <FaWallet className={`h-5 w-5 ${statusStyle.text}`} />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Investment</h3>
+            <h3 className="text-lg font-semibold text-white">Withdrawal</h3>
             <p className="text-gray-400 text-sm">
-              {investment.id ? `ID: ${investment.id.substring(0, 8)}...` : 'New Investment'}
+              {withdrawal.transactionId || `ID: ${withdrawal.id.substring(0, 8)}...`}
             </p>
           </div>
         </div>
         <div className="flex flex-col items-end space-y-2">
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
-            {investment.status.charAt(0).toUpperCase() + investment.status.slice(1)}
+            {withdrawal.status.charAt(0).toUpperCase() + withdrawal.status.slice(1)}
           </span>
           
-          {/* Edit and Delete buttons for pending investments */}
-          {investment.status === 'pending' && (
+          {/* Edit and Delete buttons for pending withdrawals */}
+          {withdrawal.status === 'pending' && (
             <div className="flex space-x-2">
               <button
-                onClick={() => onEdit(investment)}
+                onClick={() => onEdit(withdrawal)}
                 className="p-1.5 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
-                title="Edit Investment"
+                title="Edit Withdrawal"
               >
                 <FaEdit className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => onDelete(investment)}
+                onClick={() => onDelete(withdrawal)}
                 className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
-                title="Delete Investment"
+                title="Delete Withdrawal"
               >
                 <FaTrash className="w-3.5 h-3.5" />
               </button>
@@ -94,30 +91,18 @@ function InvestmentCard({ investment, onEdit, onDelete }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <p className="text-xs text-gray-400 mb-1">Amount</p>
-          <p className="text-xl font-semibold text-white">${parseFloat(investment.amount).toFixed(2)}</p>
+          <p className="text-xl font-semibold text-white">${parseFloat(withdrawal.amount).toFixed(2)}</p>
         </div>
         <div className="bg-slate-800/50 p-3 rounded-lg">
-          <p className="text-xs text-gray-400 mb-1">Daily Profit</p>
-          <p className="text-xl font-semibold text-green-400">+${dailyProfit}</p>
+          <p className="text-xs text-gray-400 mb-1">Payment Method</p>
+          <p className="text-white">{withdrawal.paymentMethod || 'N/A'}</p>
         </div>
       </div>
 
-      {investment.status === 'approved' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-slate-800/50 p-3 rounded-lg">
-            <p className="text-xs text-gray-400 mb-1">Total Profit</p>
-            <p className="text-xl font-semibold text-green-400">
-              ${parseFloat(investment.totalProfit || 0).toFixed(2)}
-            </p>
-          </div>
-          <div className="bg-slate-800/50 p-3 rounded-lg">
-            <p className="text-xs text-gray-400 mb-1">Daily Rate</p>
-            <p className="text-white">
-              {investment.dailyProfitRate || 5}% per day
-            </p>
-          </div>
-        </div>
-      )}
+      <div className="bg-slate-800/50 p-3 rounded-lg mb-4">
+        <p className="text-xs text-gray-400 mb-1">Wallet Address</p>
+        <p className="text-white break-all text-sm">{withdrawal.walletAddress}</p>
+      </div>
 
       <div className="flex items-center justify-between text-sm text-gray-400 mt-4">
         <div className="flex items-center">
@@ -125,21 +110,19 @@ function InvestmentCard({ investment, onEdit, onDelete }) {
           <span>{formattedDate}</span>
         </div>
         
-        {investment.status === 'approved' && investment.lastProfitUpdate && (
-          <div className="flex items-center">
-            <FaHistory className="mr-1 h-3 w-3" />
-            <span>Last update: {new Date(investment.lastProfitUpdate).toLocaleDateString()}</span>
-          </div>
-        )}
+        <div className="flex items-center">
+          <FaExchangeAlt className="mr-1 h-3 w-3" />
+          <span>Fee: ${withdrawal.fee || '2.00'}</span>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-InvestmentCard.propTypes = {
-  investment: PropTypes.object.isRequired,
+WithdrawalCard.propTypes = {
+  withdrawal: PropTypes.object.isRequired,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func
 };
 
-export default InvestmentCard; 
+export default WithdrawalCard; 

@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { fadeInUp } from '../utils/animations'
 import PropTypes from 'prop-types'
 import { TypeAnimation } from 'react-type-animation'
+import { CurrencyDollarIcon, ChartBarIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 function Hero({ 
-	title = "Make Money Online with Smart Investments",
+	title = "Make Money Online with Invest Up Trading Company",
 	subtitle = "Join thousands of users who earn daily profits through our secure investment platform. Start your journey to financial freedom today!",
 	showButtons = true,
 	backgroundClass = "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900",
@@ -27,11 +28,12 @@ function Hero({
 									"Earn Passive Income Daily",
 									2000,
 									"Achieve Financial Freedom",
-									2000
+									2000,
+									title,
 								]}
 								wrapper="span"
 								speed={50}
-								repeat={Infinity}
+								repeat={0}
 							/>
 						) : title}
 					</h1>
@@ -65,19 +67,28 @@ function Hero({
 				{/* SEO-friendly content section */}
 				<motion.div
 					{...fadeInUp(0.6)}
-					className="mt-16 text-center max-w-4xl mx-auto"
+					className="mt-16"
 				>
-					<div className="grid md:grid-cols-3 gap-8 text-left">
-						<div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-							<h3 className="text-xl font-bold text-blue-400 mb-3">Passive Income</h3>
+					<div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+						<div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-8 rounded-2xl shadow-lg hover:shadow-blue-500/10 transition-all duration-300 border border-slate-700/50 backdrop-blur-sm">
+							<div className="bg-blue-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
+								<CurrencyDollarIcon className="w-8 h-8 text-blue-500" />
+							</div>
+							<h3 className="text-2xl font-bold text-white mb-4">Passive Income</h3>
 							<p className="text-gray-300">Earn money online while you sleep. Our platform works 24/7 to generate profits for you.</p>
 						</div>
-						<div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-							<h3 className="text-xl font-bold text-blue-400 mb-3">Daily Profits</h3>
+						<div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-8 rounded-2xl shadow-lg hover:shadow-blue-500/10 transition-all duration-300 border border-slate-700/50 backdrop-blur-sm">
+							<div className="bg-blue-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
+								<ChartBarIcon className="w-8 h-8 text-blue-500" />
+							</div>
+							<h3 className="text-2xl font-bold text-white mb-4">Daily Profits</h3>
 							<p className="text-gray-300">Watch your money grow daily with our transparent investment strategies and profit sharing.</p>
 						</div>
-						<div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-							<h3 className="text-xl font-bold text-blue-400 mb-3">Financial Freedom</h3>
+						<div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-8 rounded-2xl shadow-lg hover:shadow-blue-500/10 transition-all duration-300 border border-slate-700/50 backdrop-blur-sm">
+							<div className="bg-blue-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
+								<ShieldCheckIcon className="w-8 h-8 text-blue-500" />
+							</div>
+							<h3 className="text-2xl font-bold text-white mb-4">Financial Freedom</h3>
 							<p className="text-gray-300">Join thousands who have achieved financial independence through our proven system.</p>
 						</div>
 					</div>

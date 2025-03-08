@@ -185,11 +185,12 @@ const useStore = create(
             
             set({
               isAuthenticated: true,
-              userData: userData,
               isVerified: userData.isAccountVerified,
               isAdmin: isAdmin === true, // Ensure boolean value
-              isLoading: false
             });
+            
+            // Fetch complete user data to ensure we have all details including profile image
+            await get().fetchUserData();
           } else {
             console.log('Authentication check failed: Not authenticated');
             localStorage.removeItem('auth_token');
@@ -197,13 +198,11 @@ const useStore = create(
             set({ isAuthenticated: false, isAdmin: false, isLoading: false });
           }
         } catch (error) {
-          // Use the handleApiError utility
-          handleApiError(error, (errorMsg) => {
-            console.error('Authentication check failed:', errorMsg);
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('is_admin');
-            set({ isAuthenticated: false, isAdmin: false, isLoading: false, error: errorMsg });
-          }, 'Auth check error');
+          // Handle error
+          console.error('Authentication check error:', error);
+          set({ isAuthenticated: false, isAdmin: false, isLoading: false });
+        } finally {
+          set({ isLoading: false });
         }
       },
 
@@ -255,8 +254,11 @@ const useStore = create(
         try {
           let endpoint = '/api/auth/register';
           
-          // If referredBy (referral code) is provided, use the referral registration endpoint
-          if (userData.referredBy) {
+          // Check if userData is FormData (for profile image upload)
+          const isFormData = userData instanceof FormData;
+          
+          // If referredBy (referral code) is provided and not FormData, use the referral registration endpoint
+          if (!isFormData && userData.referredBy) {
             endpoint = '/api/auth/register-with-referral';
             // Rename referredBy to referralCode for the API
             userData = {
@@ -266,8 +268,15 @@ const useStore = create(
             delete userData.referredBy;
           }
           
-          console.log('Sending registration request:', endpoint, userData.email);
-          const response = await axios.post(endpoint, userData);
+          // For FormData, we need to use different headers
+          const config = isFormData ? {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          } : {};
+          
+          console.log('Sending registration request:', endpoint, isFormData ? 'with FormData' : userData.email);
+          const response = await axios.post(endpoint, userData, config);
           const { data } = response;
           console.log('Registration response:', data);
           
@@ -403,9 +412,15 @@ const useStore = create(
             }
           });
           if (data.success) {
-            // Fetch updated user data to ensure we have the latest
-            await get().fetchUserData();
-            return true;
+            // If the server returns the updated user data, use it directly
+            if (data.userData) {
+              set({ userData: data.userData });
+              return true;
+            } else {
+              // Otherwise, fetch updated user data
+              await get().fetchUserData();
+              return true;
+            }
           }
           throw new Error(data.message || 'Failed to update profile');
         } catch (error) {
@@ -556,45 +571,55 @@ const useStore = create(
       login: async (credentials) => {
         set({ isLoading: true, error: null });
         try {
-          // Use the createRequestConfig utility
-          const config = createRequestConfig();
+          const { data } = await axios.post('/api/auth/login', credentials);
           
-          const { data } = await axios.post('/api/auth/login', credentials, config);
           if (data.success) {
-            // Store the token in userData
-            const userData = {
-              ...data.userData,
-              token: data.token // Save the token in userData
-            };
+            // Store the token in localStorage for mobile clients
+            if (data.token) {
+              localStorage.setItem('auth_token', data.token);
+            }
             
-            // Set the token in localStorage for mobile devices that might not handle cookies well
-            localStorage.setItem('auth_token', data.token);
-            
-            // Also store isAdmin flag in localStorage for persistence
-            localStorage.setItem('is_admin', userData.isAdmin ? 'true' : 'false');
-            
-            // Set the token in the Authorization header for future requests
-            axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-            
-            console.log('Login successful, user data:', userData);
-            console.log('Is admin:', userData.isAdmin);
+            // Store admin status in localStorage
+            localStorage.setItem('is_admin', data.user.isAdmin ? 'true' : 'false');
             
             set({ 
-              isAuthenticated: true,
-              userData: userData,
-              isVerified: userData.isAccountVerified,
-              isAdmin: userData.isAdmin === true, // Ensure boolean value
-              isLoading: false
+              isAuthenticated: true, 
+              userData: data.user,
+              isVerified: data.user.isAccountVerified,
+              isAdmin: data.user.isAdmin === true,
+              isLoading: false,
+              error: null
             });
-            return userData;
+            
+            return data.user;
+          } else {
+            throw new Error(data.message || 'Login failed');
           }
-          throw new Error(data.message || 'Login failed');
         } catch (error) {
-          // Use the handleApiError utility
-          handleApiError(error, (errorMsg) => {
-            set({ error: errorMsg, isLoading: false });
-          }, 'Login error');
-          return false;
+          console.error('Login error:', error);
+          
+          // Handle specific error types from the server
+          if (error.response && error.response.data) {
+            const { errorType, message } = error.response.data;
+            
+            switch (errorType) {
+              case 'EMAIL_NOT_FOUND':
+                set({ error: 'Email not registered. Please check your email or create an account.', isLoading: false });
+                break;
+              case 'INVALID_PASSWORD':
+                set({ error: 'Invalid password. Please try again.', isLoading: false });
+                break;
+              case 'EMAIL_NOT_VERIFIED':
+                set({ error: 'Please verify your email before logging in.', isLoading: false });
+                break;
+              default:
+                set({ error: message || 'Login failed. Please try again.', isLoading: false });
+            }
+          } else {
+            set({ error: error.message || 'Login failed. Please try again.', isLoading: false });
+          }
+          
+          throw error; // Re-throw to be caught by the component
         }
       },
 
@@ -725,6 +750,11 @@ const useStore = create(
           set({ isLoading: false, error: error.message });
           return false;
         }
+      },
+
+      // Utility functions
+      clearError: () => {
+        set({ error: null });
       },
     }),
     {

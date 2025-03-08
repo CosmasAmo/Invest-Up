@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { FaUser, FaSignOutAlt, FaShieldAlt, FaUserShield, FaChartLine, FaWallet, FaExchangeAlt, FaChevronDown } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import PropTypes from 'prop-types'
+import axios from 'axios'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -130,9 +131,23 @@ function Navbar() {
                   <div className="relative">
                     {userData.profileImage ? (
                       <img 
-                        src={`http://localhost:5000${userData.profileImage}`}
+                        src={userData.profileImage.startsWith('http') 
+                          ? userData.profileImage 
+                          : `${axios.defaults.baseURL}${userData.profileImage}`}
                         alt="Profile" 
                         className="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                        onError={(e) => {
+                          console.error('Profile image failed to load in navbar:', e);
+                          e.target.onerror = null; // Prevent infinite loop
+                          e.target.style.display = 'none'; // Hide the broken image
+                          // Replace with initials
+                          e.target.parentNode.innerHTML = `
+                            <div class="w-9 h-9 flex justify-center items-center
+                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md">
+                              ${getInitial()}
+                            </div>
+                          `;
+                        }}
                       />
                     ) : (
                       <div className="w-9 h-9 flex justify-center items-center
@@ -164,13 +179,15 @@ function Navbar() {
                         <div className="flex items-center">
                           {userData.profileImage ? (
                             <img 
-                              src={`http://localhost:5000${userData.profileImage}`}
+                              src={userData.profileImage.startsWith('http') 
+                                ? userData.profileImage 
+                                : `${axios.defaults.baseURL}${userData.profileImage}`}
                               alt="Profile" 
                               className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
                             />
                           ) : (
                             <div className="w-12 h-12 flex justify-center items-center
-                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-semibold">
+                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
                               {getInitial()}
                             </div>
                           )}
@@ -232,7 +249,7 @@ function Navbar() {
                           className="group flex w-full items-center px-5 py-3 text-sm text-red-300 hover:bg-red-500/10 transition-colors duration-200 text-left"
                         >
                           <FaSignOutAlt className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-300" />
-                          <span>Sign out</span>
+                          <span>Logout</span>
                         </button>
                       </div>
                     </motion.div>
@@ -365,9 +382,21 @@ function Navbar() {
                       <div className="flex items-center px-4">
                         {userData.profileImage ? (
                           <img 
-                            src={`http://localhost:5000${userData.profileImage}`}
+                            src={userData.profileImage.startsWith('http') 
+                              ? userData.profileImage 
+                              : `${axios.defaults.baseURL}${userData.profileImage}`}
                             alt="Profile" 
                             className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              e.target.parentNode.innerHTML = `
+                                <div class="w-10 h-10 flex justify-center items-center
+                                  rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
+                                  ${getInitial()}
+                                </div>
+                              `;
+                            }}
                           />
                         ) : (
                           <div className="w-10 h-10 flex justify-center items-center
@@ -432,7 +461,7 @@ function Navbar() {
                         className="flex items-center px-4 py-2.5 text-base font-medium text-red-300 hover:bg-red-500/10 rounded-lg transition-colors duration-200 w-full"
                       >
                         <FaSignOutAlt className="mr-3 h-5 w-5 text-red-400" />
-                        Sign out
+                        Logout
                       </button>
                     </div>
                     </div>

@@ -47,7 +47,18 @@ function Profile() {
         name: userData.name || '',
         email: userData.email || ''
       }));
-      setProfileImage(userData.profileImage || null);
+      
+      // Handle profile image
+      if (userData.profileImage) {
+        setProfileImage(userData.profileImage);
+        // Clear any preview since we're using the stored image
+        setImagePreview(null);
+      } else {
+        setProfileImage(null);
+        setImagePreview(null);
+      }
+      
+      console.log('User data loaded:', userData);
     }
   }, [userData]);
 
@@ -105,6 +116,26 @@ function Profile() {
     }
   };
 
+  // Format date helper function
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
@@ -122,13 +153,24 @@ function Profile() {
                 <div className="relative w-32 h-32 mb-4 group">
                   {imagePreview || userData?.profileImage ? (
                     <img 
-                      src={imagePreview || (userData?.profileImage ? `http://localhost:5000${userData.profileImage}` : null)} 
+                      src={imagePreview || (userData?.profileImage 
+                        ? userData.profileImage.startsWith('http') 
+                          ? userData.profileImage 
+                          : `${axios.defaults.baseURL}${userData.profileImage}`
+                        : null)} 
                       alt="Profile" 
-                      className="w-full h-full rounded-full object-cover border-4 border-blue-600/80 shadow-lg shadow-blue-900/30 transition-all duration-300 group-hover:border-blue-500"
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        console.error('Profile image failed to load:', e);
+                        e.target.onerror = null; // Prevent infinite loop
+                        e.target.style.display = 'none'; // Hide the broken image
+                        // Show fallback
+                        e.target.parentNode.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-700 rounded-full"><svg class="text-gray-400 w-20 h-20" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg></div>';
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg shadow-blue-900/30">
-                      {userData?.name?.charAt(0).toUpperCase() || 'U'}
+                    <div className="w-full h-full flex items-center justify-center bg-slate-700 rounded-full">
+                      <FaUserCircle className="text-gray-400 w-20 h-20" />
                     </div>
                   )}
                   
@@ -298,13 +340,7 @@ function Profile() {
                           <label className="text-slate-400 font-medium">Member Since</label>
                         </div>
                         <p className="text-white text-lg pl-13 ml-13">
-                          {userData?.createdAt 
-                            ? new Date(userData.createdAt).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })
-                            : 'N/A'}
+                          {formatDate(userData?.createdAt)}
                         </p>
                       </motion.div>
                     </div>

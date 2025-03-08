@@ -24,16 +24,19 @@ export const submitMessage = async (req, res) => {
         
         // Send confirmation email to user
         const userMailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: {
+                name: 'Invest Up',
+                address: process.env.SENDER_EMAIL
+            },
             to: email,
-            subject: 'Message Received - We\'ll Get Back to You Soon',
+            subject: 'Thank you for contacting us',
             html: `
                 <h2>Thank you for contacting us, ${name}!</h2>
                 <p>We have received your message regarding "${subject}".</p>
                 <p>Our team will review your inquiry and respond as soon as possible.</p>
                 <p>For reference, here's a copy of your message:</p>
                 <blockquote>${message}</blockquote>
-                <p>Best regards,<br>Support Team</p>
+                <p>Best regards,<br>Invest Up Support Team</p>
             `
         };
         
@@ -100,14 +103,17 @@ export const replyToMessage = async (req, res) => {
 
         // Send reply email
         const mailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: {
+                name: 'Invest Up',
+                address: process.env.SENDER_EMAIL
+            },
             to: message.email,
             subject: `Re: ${message.subject}`,
             html: `
                 <h2>Hello ${message.name},</h2>
                 <p>Thank you for your message. Here is our response:</p>
                 <blockquote>${reply}</blockquote>
-                <p>Best regards,<br>Support Team</p>
+                <p>Best regards,<br>Invest Up Support Team</p>
             `
         };
 

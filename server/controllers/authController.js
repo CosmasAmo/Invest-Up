@@ -63,6 +63,13 @@ export const register = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpiry = Date.now() + 10 * 60 * 1000;
 
+        // Handle profile image if uploaded
+        let profileImage = null;
+        if (req.file) {
+            // Get the relative path to the uploaded file
+            profileImage = `/uploads/profiles/${req.file.filename}`;
+        }
+
         console.log('Creating new user...');
         const user = await User.create({
             name,
@@ -71,14 +78,18 @@ export const register = async (req, res) => {
             referralCode: uniqueReferralCode,
             referredBy,
             verifyOtp: otp,
-            verifyOtpExpireAt: otpExpiry
+            verifyOtpExpireAt: otpExpiry,
+            profileImage
         });
         console.log(`User created with ID: ${user.id}`);
 
         // Send verification email
         try {
             const mailOptions = {
-                from: process.env.SENDER_EMAIL,
+                from: {
+                    name: 'Invest Up',
+                    address: process.env.SENDER_EMAIL
+                },
                 to: email,
                 subject: 'Email Verification',
                 html: EMAIL_VERIFY_TEMPLATE.replace("{{otp}}", otp).replace("{{email}}", email)
@@ -130,62 +141,84 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    const { email, password } = req.body;
+    const {email, password} = req.body;
 
-    if (!email || !password) {
-        return res.json({ success: false, message: 'Missing credentials' });
+    if(!email || !password) {
+        return res.status(400).json({
+            success: false, 
+            message: 'Please provide both email and password'
+        });
     }
 
     try {
+        // Find user by email
         const user = await User.findOne({ where: { email } });
         
-        if (!user) {
-            return res.json({ success: false, message: 'Invalid credentials' });
+        // If user doesn't exist, return specific error
+        if(!user) {
+            return res.status(401).json({
+                success: false, 
+                message: 'Email not registered',
+                errorType: 'EMAIL_NOT_FOUND'
+            });
         }
 
-        // Check if user has a password (not a Google OAuth user)
-        if (!user.password) {
-            return res.json({ success: false, message: 'Please login with Google' });
-        }
-
+        // Check password
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.json({ success: false, message: 'Invalid credentials' });
+        
+        // If password doesn't match, return specific error
+        if(!isMatch) {
+            return res.status(401).json({
+                success: false, 
+                message: 'Invalid password',
+                errorType: 'INVALID_PASSWORD'
+            });
         }
 
-        // Create JWT token
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-            expiresIn: '8h'
-        });
+        // If user is not verified, return specific error
+        if(!user.isAccountVerified) {
+            return res.status(401).json({
+                success: false, 
+                message: 'Please verify your email before logging in',
+                errorType: 'EMAIL_NOT_VERIFIED'
+            });
+        }
 
-        // Set cookie with more permissive settings for mobile
+        // Generate JWT token
+        const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7days'});
+
+        // Set cookie
         res.cookie('token', token, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: 8 * 60 * 60 * 1000, // 8 hours
-            path: '/'
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        // Send user data without sensitive information
-        res.json({
+        // Return success response
+        return res.json({
             success: true,
-            token: token, // Include token in response for mobile clients
-            userData: {
+            user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                isAdmin: user.isAdmin,
                 isAccountVerified: user.isAccountVerified,
-                balance: user.balance,
+                isAdmin: user.isAdmin,
+                balance: parseFloat(user.balance || 0).toFixed(2),
                 referralCode: user.referralCode,
                 referralCount: user.referralCount,
-                referralEarnings: user.referralEarnings
+                referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
+                successfulReferrals: user.successfulReferrals || 0,
+                profileImage: user.profileImage
             }
         });
-
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        console.error('Login error:', error);
+        return res.status(500).json({
+            success: false, 
+            message: 'Server error during login',
+            errorType: 'SERVER_ERROR'
+        });
     }
 };
 
@@ -278,10 +311,12 @@ export const sendResetOtp = async (req, res) => {
         });
 
         const mailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: {
+                name: 'Invest Up',
+                address: process.env.SENDER_EMAIL
+            },
             to: email,
-            subject: 'Password Reset OTP',
-            //text: `Your OTP for password reset is: ${otp}`
+            subject: 'Password Reset Code',
             html: PASSWORD_RESET_TEMPLATE.replace("{{otp}}", otp).replace("{{email}}", user.email)
         }
 
@@ -408,7 +443,10 @@ export const registerWithReferral = async (req, res) => {
         // Send verification email
         try {
             const mailOptions = {
-                from: process.env.SENDER_EMAIL,
+                from: {
+                    name: 'Invest Up',
+                    address: process.env.SENDER_EMAIL
+                },
                 to: email,
                 subject: 'Email Verification',
                 html: EMAIL_VERIFY_TEMPLATE.replace("{{otp}}", otp).replace("{{email}}", email)
@@ -486,7 +524,9 @@ export const checkAuth = async (req, res) => {
                 referralCode: user.referralCode,
                 referralCount: user.referralCount,
                 referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
-                successfulReferrals: user.successfulReferrals || 0
+                successfulReferrals: user.successfulReferrals || 0,
+                profileImage: user.profileImage,
+                createdAt: user.createdAt
             }
         });
     } catch (error) {

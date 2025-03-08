@@ -9,7 +9,9 @@ const Faqs = () => {
   const [settings, setSettings] = useState({
     minWithdrawal: 3,
     minDeposit: 3,
-    profitPercentage: 5
+    profitPercentage: 5,
+    referralBonus: 10,
+    referralsRequired: 3
   });
   const [faqs, setFaqs] = useState([]);
 
@@ -22,7 +24,9 @@ const Faqs = () => {
           setSettings({
             minWithdrawal: response.data.settings.minWithdrawal,
             minDeposit: response.data.settings.minDeposit,
-            profitPercentage: response.data.settings.profitPercentage
+            profitPercentage: response.data.settings.profitPercentage,
+            referralBonus: response.data.settings.referralBonus || 10,
+            referralsRequired: response.data.settings.referralsRequired || 3
           });
         }
       } catch (error) {
@@ -39,7 +43,7 @@ const Faqs = () => {
     setFaqs([
       {
         question: "How do I deposit funds into my account?",
-        answer: "To deposit funds, log in to your account, navigate to the 'Deposit' section, insert the amount you intend to deposit and copy the USDT wallet address. Go to an exchanger like Binance and Coinbase and send money to that address. Screenshot the transaction and send it for confirmation. Once your deposit is confirmed, your staking will begin, and you'll start earning daily profits."
+        answer: "To deposit funds, log in to your account, navigate to the 'Deposit' section, insert the amount you intend to deposit and copy the USDT wallet address. Go to an exchanger like Binance and Coinbase and send money to that address. Screenshot the transaction and send it for confirmation. Once your deposit is confirmed, you'll need to create an investment in the 'Investments' section to start earning daily profits."
       },
       {
         question: "How to send money from one account to another on Binance?",
@@ -55,7 +59,7 @@ const Faqs = () => {
       },
       {
         question: "What is the minimum deposit required to start earning?",
-        answer: `The minimum deposit required to start earning is $${settings.minDeposit}. This ensures that your investment can generate meaningful returns.`
+        answer: `The minimum deposit required to create an investment and start earning is $${settings.minDeposit}. This ensures that your investment can generate meaningful returns. After depositing, you must create an investment in the 'Investments' section to begin earning daily profits.`
       },
       {
         question: "Are there any fees for deposits?",
@@ -71,11 +75,11 @@ const Faqs = () => {
       },
       {
         question: "How are the 5% daily profits calculated?",
-        answer: `The ${settings.profitPercentage}% daily profit is calculated based on the amount you have staked. For example, if you stake $100, you will earn $${(100 * settings.profitPercentage / 100).toFixed(2)} daily.`
+        answer: `The ${settings.profitPercentage}% daily profit is calculated based on the amount you have invested. For example, if you create an investment of $100, you will earn $${(100 * settings.profitPercentage / 100).toFixed(2)} daily once your investment is approved.`
       },
       {
         question: "How do I create an account?",
-        answer: "To create an account, simply click on the \"Sign Up\" button, provide the required information, and verify your email address. Once your account is set up, you can deposit funds and start earning."
+        answer: "To create an account, simply click on the \"Register\" button on the nav bar, provide the required information, and verify your email address. Once your account is set up, you can deposit funds and start earning."
       },
       {
         question: "Is my investment safe?",
@@ -83,7 +87,7 @@ const Faqs = () => {
       },
       {
         question: "When will I start earning profits after depositing?",
-        answer: "Earnings begin as soon as your deposit is confirmed on the blockchain. Profits are credited to your account daily and can be withdrawn or reinvested."
+        answer: "Earnings begin only after you have made a deposit and created an approved investment. Once your investment is approved, profits are credited to your account daily and can be withdrawn or reinvested."
       },
       {
         question: "Can I reinvest my earnings to compound my profits?",
@@ -95,7 +99,7 @@ const Faqs = () => {
       },
       {
         question: "Do you have a referral program?",
-        answer: "Yes, we offer a referral program where you can earn 10$ for every 3 users you refer who makes a deposit. Check the \"Referral\" section in your account for more details."
+        answer: `Yes, we offer a referral program where you can earn $${settings.referralBonus} for every ${settings.referralsRequired} users you refer who make a deposit. Check the "Referral" section in your account for more details.`
       },
       {
         question: "Is this platform available in my country?",

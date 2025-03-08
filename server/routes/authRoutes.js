@@ -5,10 +5,11 @@ import {logout} from '../controllers/authController.js';
 import userAuth from '../middleware/userAuth.js';
 import passport from '../config/googleAuth.js';
 import jwt from 'jsonwebtoken';
+import upload from '../middleware/fileUpload.js';
 
 const authRouter = express.Router();
 
-authRouter.post('/register', register);
+authRouter.post('/register', upload.single('profileImage'), register);
 authRouter.post('/login', login);
 authRouter.post('/logout', logout);
 authRouter.post('/verify-account', userAuth, verifyEmail);

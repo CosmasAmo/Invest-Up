@@ -25,9 +25,12 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Import the controller (we'll create this next)
-import { createDeposit } from '../controllers/transactionController.js';
+// Import the controller
+import { createDeposit, editDeposit, deleteDeposit } from '../controllers/transactionController.js';
 
+// Deposit routes
 router.post('/deposit', userAuth, upload.single('proofImage'), createDeposit);
+router.put('/deposit/edit', userAuth, upload.single('proofImage'), editDeposit);
+router.delete('/deposit/:depositId', userAuth, deleteDeposit);
 
 export default router; 

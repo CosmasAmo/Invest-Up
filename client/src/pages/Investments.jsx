@@ -5,12 +5,24 @@ import InvestmentCard from '../components/InvestmentCard';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
-import { FaPlus, FaChartLine, FaSpinner, FaExclamationCircle, FaFilter, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaChartLine, FaSpinner, FaExclamationCircle, FaSearch, FaTimes } from 'react-icons/fa';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 function Investments() {
   const { investments, fetchInvestments, isLoading, error } = useStore();
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // State for edit/delete modals
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [investmentToDelete, setInvestmentToDelete] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [investmentToEdit, setInvestmentToEdit] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    amount: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchInvestments();
@@ -46,10 +58,85 @@ function Investments() {
 
   // Count investments by status
   const approvedCount = investments.filter(i => i.status === 'approved').length;
+  const pendingCount = investments.filter(i => i.status === 'pending').length;
+  
+  // Handle edit button click
+  const handleEditClick = (investment) => {
+    setInvestmentToEdit(investment);
+    setEditFormData({
+      amount: investment.amount
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle delete button click
+  const handleDeleteClick = (investment) => {
+    setInvestmentToDelete(investment);
+    setShowDeleteModal(true);
+  };
+
+  // Handle edit form change
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle edit form submit
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios.put('/api/investments/edit', {
+        investmentId: investmentToEdit.id,
+        amount: editFormData.amount
+      });
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setShowEditModal(false);
+        // Refresh investments
+        fetchInvestments();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error('An error occurred. Please try again.');
+      console.error('Error updating investment:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle delete confirm
+  const handleDeleteConfirm = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios.delete(`/api/investments/${investmentToDelete.id}`);
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setShowDeleteModal(false);
+        // Refresh investments
+        fetchInvestments();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error('An error occurred. Please try again.');
+      console.error('Error deleting investment:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
         <Navbar />
         <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-6 text-center">
@@ -64,179 +151,251 @@ function Investments() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
       
       <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sm:gap-0">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Investments History</h1>
-            <p className="text-slate-400 mt-1">Track and manage your investment portfolio</p>
+            <h1 className="text-3xl font-bold text-white mb-2">My Investments</h1>
+            <p className="text-gray-400">View and manage your investment portfolio</p>
           </div>
-          <Link 
-            to="/invest"
-            className="flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg shadow-md hover:shadow-green-900/30 transition-all duration-300 font-medium"
-          >
-            <FaPlus className="mr-2" />
-            New Investment
-          </Link>
+          
+          <div className="mt-4 md:mt-0">
+            <Link
+              to="/invest"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg shadow-lg transition-all duration-200"
+            >
+              <FaPlus className="mr-2" />
+              New Investment
+            </Link>
+          </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-          >
-            <div className="flex items-center mb-2">
-              <div className="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 mr-3">
-                <FaChartLine className="h-5 w-5" />
-              </div>
-              <h3 className="text-sm font-medium text-slate-300">Total Investments</h3>
-            </div>
-            <p className="text-2xl font-bold text-white">{investments.length}</p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-          >
-            <div className="flex items-center mb-2">
-              <div className="w-10 h-10 rounded-full bg-green-900/50 flex items-center justify-center text-green-400 mr-3">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-medium text-slate-300">Active Investments</h3>
-            </div>
-            <p className="text-2xl font-bold text-white">{approvedCount}</p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
-            className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-          >
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 shadow-lg">
             <div className="flex items-center mb-2">
               <div className="w-10 h-10 rounded-full bg-purple-900/50 flex items-center justify-center text-purple-400 mr-3">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <FaChartLine className="h-5 w-5" />
               </div>
-              <h3 className="text-sm font-medium text-slate-300">Total Invested</h3>
+              <h3 className="text-lg font-medium text-white">Total Invested</h3>
             </div>
             <p className="text-2xl font-bold text-white">${totalInvested}</p>
-          </motion.div>
+          </div>
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.4 }}
-            className="bg-gradient-to-br from-green-900/30 to-teal-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-          >
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 shadow-lg">
             <div className="flex items-center mb-2">
               <div className="w-10 h-10 rounded-full bg-green-900/50 flex items-center justify-center text-green-400 mr-3">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <FaChartLine className="h-5 w-5" />
               </div>
-              <h3 className="text-sm font-medium text-slate-300">Total Profit</h3>
+              <h3 className="text-lg font-medium text-white">Total Profit</h3>
             </div>
-            <p className="text-2xl font-bold text-white">${totalProfit}</p>
-          </motion.div>
+            <p className="text-2xl font-bold text-green-400">+${totalProfit}</p>
+          </div>
+          
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 shadow-lg">
+            <div className="flex items-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-yellow-900/50 flex items-center justify-center text-yellow-400 mr-3">
+                <FaChartLine className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-medium text-white">Pending Investments</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{pendingCount}</p>
+          </div>
         </div>
-
-        {/* Filters */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 rounded-xl p-4 mb-6 border border-slate-700/50 shadow-lg"
-        >
+        
+        <div className="bg-slate-800/50 rounded-xl p-4 mb-8 border border-slate-700/50">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label htmlFor="filter" className="block text-sm font-medium text-slate-400 mb-1">Filter by Status</label>
-              <div className="relative">
-                <select
-                  id="filter"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">All Investments</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Active</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <FaFilter className="text-slate-400" />
-                </div>
-              </div>
+              <label htmlFor="filter" className="block text-sm font-medium text-gray-400 mb-1">Filter by Status</label>
+              <select
+                id="filter"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+              >
+                <option value="all">All Investments</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
             </div>
             
             <div className="flex-1">
-              <label htmlFor="search" className="block text-sm font-medium text-slate-400 mb-1">Search</label>
+              <label htmlFor="search" className="block text-sm font-medium text-gray-400 mb-1">Search</label>
               <div className="relative">
                 <input
-                  id="search"
                   type="text"
-                  placeholder="Search by amount..."
+                  id="search"
+                  placeholder="Search investments..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
                 />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <FaSearch className="text-slate-400" />
-                </div>
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
             </div>
           </div>
-        </motion.div>
-
+        </div>
+        
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <FaSpinner className="animate-spin h-10 w-10 text-blue-500 mb-4" />
+            <FaSpinner className="animate-spin h-10 w-10 text-purple-500 mb-4" />
             <p className="text-slate-400">Loading your investments...</p>
           </div>
         ) : filteredInvestments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredInvestments.map((investment) => (
-              <InvestmentCard key={investment.id} investment={investment} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredInvestments.map(investment => (
+              <InvestmentCard 
+                key={investment.id} 
+                investment={investment} 
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+              />
             ))}
           </div>
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-8 text-center"
-          >
-            <div className="w-16 h-16 mx-auto bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
-              <FaChartLine className="h-8 w-8 text-slate-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No Investments Found</h3>
-            <p className="text-slate-400 mb-6">
+          <div className="text-center py-16 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <FaChartLine className="mx-auto h-12 w-12 text-slate-600 mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">No Investments Found</h2>
+            <p className="text-slate-400 max-w-md mx-auto mb-6">
               {filter !== 'all' 
-                ? `No ${filter} investments found. Try changing your filters.` 
+                ? `You don't have any ${filter} investments.` 
                 : searchTerm 
                   ? 'No investments match your search criteria.' 
-                  : "You haven't made any investments yet. Start by making your first investment."}
+                  : "You haven't made any investments yet."}
             </p>
-            {filter === 'all' && !searchTerm && (
-              <Link 
-                to="/invest"
-                className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg shadow-md hover:shadow-green-900/30 transition-all duration-300 font-medium"
-              >
-                <FaPlus className="mr-2" />
-                Make Your First Investment
-              </Link>
-            )}
-          </motion.div>
+            <Link
+              to="/invest"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg shadow-lg transition-all duration-200"
+            >
+              <FaPlus className="mr-2" />
+              Make Your First Investment
+            </Link>
+          </div>
         )}
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && investmentToDelete && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl p-6 max-w-md w-full"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-bold text-white">Confirm Delete</h3>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this investment? This action cannot be undone.
+              <span className="block mt-2 text-green-400">
+                Your funds will be returned to your balance.
+              </span>
+            </p>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <FaSpinner className="animate-spin mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>Delete</>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* Edit Investment Modal */}
+      {showEditModal && investmentToEdit && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl p-6 max-w-md w-full my-8"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-bold text-white">
+                Edit Investment
+              </h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={editFormData.amount}
+                    onChange={handleEditFormChange}
+                    className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>Save Changes</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+      
       <Footer />
     </div>
   );

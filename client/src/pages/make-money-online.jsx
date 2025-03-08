@@ -16,7 +16,6 @@ import {
   QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline'
 import axios from 'axios'
-import { TypeAnimation } from 'react-type-animation'
 
 function MakeMoneyOnline() {
   const [minDeposit, setMinDeposit] = useState(100);
@@ -63,20 +62,7 @@ function MakeMoneyOnline() {
             >
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
-                  <TypeAnimation
-                    sequence={[
-                      'Make Money Online',
-                      1000,
-                      'Earn Passive Income',
-                      1000,
-                      'Achieve Financial Freedom',
-                      1000,
-                      'Make Money Online',
-                    ]}
-                    wrapper="span"
-                    speed={50}
-                    repeat={0}
-                  />
+                  Make Money Online
                 </span> With Minimal Effort
               </h1>
               <p className="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
@@ -127,7 +113,7 @@ function MakeMoneyOnline() {
               </p>
             </motion.div>
             
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-4 gap-8">
               <motion.div
                 {...fadeInUp(0.2)}
                 className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-8 rounded-2xl shadow-lg hover:shadow-blue-500/10 
@@ -152,7 +138,7 @@ function MakeMoneyOnline() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-4">2. Make a Deposit</h3>
                 <p className="text-gray-300">
-                  Fund your account with as little as ${isLoading ? '...' : minDeposit}. We accept multiple payment methods including crypto and bank transfers.
+                  Fund your account with as little as ${isLoading ? '...' : minDeposit}. We accept multiple cryptocurrency payment methods including USDT, BTC, and ETH.
                 </p>
               </motion.div>
               
@@ -162,9 +148,23 @@ function MakeMoneyOnline() {
                   transition-all duration-300 border border-slate-700/50 backdrop-blur-sm"
               >
                 <div className="bg-blue-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
+                  <ShieldCheckIcon className="w-8 h-8 text-blue-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4">3. Create an Investment</h3>
+                <p className="text-gray-300">
+                  Choose how much to invest from your deposited funds. Our platform automatically allocates your investment to generate maximum returns.
+                </p>
+              </motion.div>
+              
+              <motion.div
+                {...fadeInUp(0.8)}
+                className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-8 rounded-2xl shadow-lg hover:shadow-blue-500/10 
+                  transition-all duration-300 border border-slate-700/50 backdrop-blur-sm"
+              >
+                <div className="bg-blue-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
                   <ClockIcon className="w-8 h-8 text-blue-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4">3. Watch Your Money Grow</h3>
+                <h3 className="text-2xl font-bold text-white mb-4">4. Watch Your Money Grow</h3>
                 <p className="text-gray-300">
                   Sit back and relax as our expert system generates daily profits for you. Monitor your earnings in real-time on your dashboard.
                 </p>
@@ -174,8 +174,11 @@ function MakeMoneyOnline() {
         </section>
         
         {/* Benefits Section */}
-        <section className="py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800 z-0"></div>
+          <div className="absolute inset-0 opacity-10 bg-grid-pattern z-0"></div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <motion.div
               {...fadeInUp()}
               className="text-center mb-16"
@@ -184,20 +187,7 @@ function MakeMoneyOnline() {
                 Why Choose InvestUp to <span className="text-blue-500">Make Money Online</span>
               </h2>
               <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                <TypeAnimation
-                  sequence={[
-                    'Our platform offers unique advantages that make earning passive income easier than ever',
-                    3000,
-                    'We provide secure, transparent, and profitable investment opportunities',
-                    3000,
-                    'Start small, earn big, and achieve your financial goals with InvestUp',
-                    3000,
-                    'Our platform offers unique advantages that make earning passive income easier than ever',
-                  ]}
-                  wrapper="span"
-                  speed={50}
-                  repeat={0}
-                />
+                Our platform offers unique advantages that make earning passive income easier than ever
               </p>
             </motion.div>
             
@@ -315,8 +305,11 @@ function MakeMoneyOnline() {
         </section>
         
         {/* CTA Section */}
-        <section className="py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/80 to-indigo-700/80 z-0"></div>
+          <div className="absolute inset-0 opacity-20 bg-grid-pattern z-0"></div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <motion.div
               {...fadeInUp()}
               className="text-center bg-gradient-to-r from-blue-600 to-blue-800 p-12 rounded-3xl shadow-xl"
@@ -325,17 +318,8 @@ function MakeMoneyOnline() {
                 Ready to Start Making Money Online?
               </h2>
               <p className="text-xl text-gray-100 max-w-3xl mx-auto mb-8">
-                <TypeAnimation
-                  sequence={[
-                    'Join thousands of satisfied users who are earning passive income every day.',
-                    2000,
-                    'It only takes 2 minutes to get started with just $' + minDeposit + '.',
-                    2000,
-                  ]}
-                  wrapper="span"
-                  speed={50}
-                  repeat={Infinity}
-                />
+                Join thousands of satisfied users who are earning passive income every day. 
+                It only takes 2 minutes to get started with just ${minDeposit}.
               </p>
               <Link
                 to="/register"
@@ -372,7 +356,7 @@ function MakeMoneyOnline() {
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-4">Frequently Asked Questions</h3>
                   <p className="text-gray-300 mb-6">
-                    Our FAQ section covers everything from how to get started, deposit methods, withdrawal processes, 
+                    Our FAQ section covers everything from how to get started, cryptocurrency deposit methods, withdrawal processes, 
                     security measures, and more. Find answers to common questions like:
                   </p>
                   <ul className="text-gray-300 space-y-2 mb-8">
@@ -386,11 +370,7 @@ function MakeMoneyOnline() {
                     </li>
                     <li className="flex items-center">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      How quickly can I withdraw my earnings?
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Is InvestUp a legitimate way to make money online?
+                      Which cryptocurrencies can I use to make deposits?
                     </li>
                   </ul>
                   <Link

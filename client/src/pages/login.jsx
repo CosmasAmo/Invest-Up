@@ -1,27 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useStore from '../store/useStore';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { motion } from 'framer-motion';
-import { FaEnvelope, FaLock, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
-
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import AuthLayout from '../components/AuthLayout';
 
 function Login() {
   const navigate = useNavigate();
-  const { login, isLoading, error } = useStore();
+  const { login, isLoading, error, clearError } = useStore();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,172 +25,146 @@ function Login() {
     }));
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    
+    // Clear any previous error messages
+    toast.dismiss(); // Dismiss any existing error toasts
+    
+    // Clear any previous errors in the store
+    if (clearError) clearError();
+    
     try {
       const userData = await login(formData);
       if (userData) {
-        console.log('Login successful, userData:', userData);
-        
         if (userData.isAdmin === true) {
-          console.log('Admin login detected, redirecting to admin dashboard');
-          // For admin users, redirect to admin dashboard
           navigate('/admin', { replace: true });
           toast.success('Admin login successful!');
         } else {
-          console.log('Regular user login, redirecting to dashboard');
-          // For regular users, redirect to user dashboard
           navigate('/dashboard', { replace: true });
           toast.success('Login successful!');
         }
-      } else {
-        console.error('Login failed, no user data returned');
-        toast.error('Login failed. Please check your credentials.');
       }
-    } catch (error) {
-      // Simple error handling
-      toast.error(error.message || 'An error occurred during login');
+    } catch (err) {
+      // Display the error message from the store
+      if (error) {
+        toast.error(error, {
+          toastId: 'login-error', // Use a consistent ID to prevent duplicates
+          position: 'top-center',
+          autoClose: 5000
+        });
+      }
+      console.error('Login failed:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-16 sm:pt-0'>
-      <Link 
-        to="/"
-        className="absolute left-5 top-5 sm:top-5 flex items-center text-white hover:text-blue-300 transition-colors"
-      >
-        <FaArrowLeft className="mr-2" />
-        <span>Back to Home</span>
-      </Link>
+  const buttonDisabled = isSubmitting || isLoading;
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-slate-800 shadow-2xl rounded-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 py-6">
-            <h2 className="text-center text-3xl font-extrabold text-white">Welcome Back</h2>
-            <p className="mt-2 text-center text-sm text-blue-200">
-              Sign in to access your account
-            </p>
+  return (
+    <AuthLayout 
+      title="Welcome Back" 
+      subtitle="Sign in to your account"
+      isRegister={false}
+    >
+      {buttonDisabled ? (
+        <div className="flex justify-center my-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <motion.form 
+          onSubmit={handleSubmit} 
+          className="space-y-5 w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <div className="w-full">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaEnvelope className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="bg-slate-700 block w-full pl-10 pr-3 py-2.5 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                placeholder="Email Address"
+              />
+            </div>
           </div>
 
-          <div className="px-8 py-8">
-            {isLoading && isSubmitting ? (
-              <div className="flex justify-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="w-full">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaLock className="h-4 w-4 text-gray-400" />
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-                    Email Address
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaEnvelope className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="you@example.com"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-                    Password
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaLock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      required
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="bg-slate-700 block w-full pl-10 pr-10 py-3 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="••••••••"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center z-10">
-                      <button
-                        type="button"
-                        onClick={togglePasswordVisibility}
-                        className="text-gray-400 hover:text-white focus:outline-none p-1"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <Link to="/reset-password" className="font-medium text-blue-400 hover:text-blue-300">
-                      Forgot your password?
-                    </Link>
-                  </div>
-                </div>
-
-                <div>
-                  <button
-                    type="submit"
-                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
-                  >
-                    Sign In
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-600"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-slate-800 text-gray-400">Or continue with</span>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <GoogleAuthButton type="login" />
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="bg-slate-700 block w-full pl-10 pr-10 py-2.5 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                placeholder="Password"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="text-gray-400 hover:text-white focus:outline-none"
+                >
+                  {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-400">
-                Don&apos;t have an account?{' '}
-                <Link to="/register" className="font-medium text-blue-400 hover:text-blue-300">
-                  Sign up now
-                </Link>
-              </p>
+          <div className="flex items-center justify-end">
+            <div className="text-xs">
+              <Link to="/reset-password" className="font-medium text-blue-400 hover:text-blue-300">
+                Forgot password?
+              </Link>
             </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              className="w-full py-2.5 px-4 border border-transparent rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 text-sm font-medium"
+            >
+              Sign In
+            </button>
+          </div>
+        </motion.form>
+      )}
+
+      <motion.div 
+        className="mt-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+      >
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-slate-800 text-gray-400">Or continue with</span>
           </div>
         </div>
+
+        <div className="mt-4">
+          <GoogleAuthButton type="login" />
+        </div>
       </motion.div>
-    </div>
+    </AuthLayout>
   );
 }
 

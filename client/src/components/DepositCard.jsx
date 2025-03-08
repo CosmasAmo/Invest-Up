@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import PropTypes from 'prop-types';
-import { FaMoneyBillWave, FaCalendarAlt, FaFileImage, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaMoneyBillWave, FaCalendarAlt, FaFileImage, FaExternalLinkAlt, FaEdit, FaTrash } from 'react-icons/fa';
+import axios from 'axios';
 
-function DepositCard({ deposit }) {
+function DepositCard({ deposit, onEdit, onDelete }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved':
@@ -49,42 +50,72 @@ function DepositCard({ deposit }) {
       animate={{ opacity: 1, y: 0 }}
       className={`${statusStyle.bg} border ${statusStyle.border} rounded-xl p-6 hover:shadow-lg transition-all duration-300`}
     >
-      <div className="flex justify-between items-start mb-5">
+      <div className="flex justify-between items-start mb-4">
         <div className="flex items-center">
-          <div className={`w-10 h-10 rounded-full ${statusStyle.icon} flex items-center justify-center ${statusStyle.text} mr-3`}>
-            <FaMoneyBillWave className="h-5 w-5" />
+          <div className={`w-10 h-10 rounded-full ${statusStyle.icon} flex items-center justify-center mr-3`}>
+            <FaMoneyBillWave className={`h-5 w-5 ${statusStyle.text}`} />
           </div>
           <div>
-            <h3 className="text-white font-semibold text-lg">
-              ${parseFloat(deposit.amount).toFixed(2)}
-            </h3>
-            <div className="flex items-center text-slate-400 text-sm mt-1">
-              <FaCalendarAlt className="h-3 w-3 mr-1" />
-              <span>{formattedDate}</span>
-            </div>
+            <h3 className="text-lg font-semibold text-white">Deposit</h3>
+            <p className="text-gray-400 text-sm">
+              {deposit.transactionId || `ID: ${deposit.id.substring(0, 8)}...`}
+            </p>
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
-          {deposit.status.charAt(0).toUpperCase() + deposit.status.slice(1)}
-        </span>
+        <div className="flex flex-col items-end space-y-2">
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
+            {deposit.status.charAt(0).toUpperCase() + deposit.status.slice(1)}
+          </span>
+          
+          {/* Edit and Delete buttons for pending deposits */}
+          {deposit.status === 'pending' && (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => onEdit(deposit)}
+                className="p-1.5 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
+                title="Edit Deposit"
+              >
+                <FaEdit className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => onDelete(deposit)}
+                className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                title="Delete Deposit"
+              >
+                <FaTrash className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      
-      <div className="space-y-3 pt-3 border-t border-slate-700/50">
-        <div className="flex items-center text-slate-300">
-          <span className="text-slate-400 mr-2">Method:</span>
-          <span className="font-medium">{deposit.paymentMethod}</span>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="bg-slate-800/50 p-3 rounded-lg">
+          <p className="text-xs text-gray-400 mb-1">Amount</p>
+          <p className="text-xl font-semibold text-white">${parseFloat(deposit.amount).toFixed(2)}</p>
+        </div>
+        <div className="bg-slate-800/50 p-3 rounded-lg">
+          <p className="text-xs text-gray-400 mb-1">Payment Method</p>
+          <p className="text-white">{deposit.paymentMethod || 'N/A'}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-gray-400 mt-4">
+        <div className="flex items-center">
+          <FaCalendarAlt className="mr-1 h-3 w-3" />
+          <span>{formattedDate}</span>
         </div>
         
         {deposit.proofImage && (
-          <a
-            href={`http://localhost:5000/uploads/${deposit.proofImage}`}
+          <a 
+            href={`${axios.defaults.baseURL}/uploads/${deposit.proofImage}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 mt-2"
+            className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
           >
-            <FaFileImage className="mr-2" />
+            <FaFileImage className="mr-1 h-3 w-3" />
             <span>View Proof</span>
-            <FaExternalLinkAlt className="ml-1 h-3 w-3" />
+            <FaExternalLinkAlt className="ml-1 h-2 w-2" />
           </a>
         )}
       </div>
@@ -92,15 +123,10 @@ function DepositCard({ deposit }) {
   );
 }
 
-// Add PropTypes validation
 DepositCard.propTypes = {
-  deposit: PropTypes.shape({
-    amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    createdAt: PropTypes.string.isRequired,
-    status: PropTypes.string.isRequired,
-    paymentMethod: PropTypes.string.isRequired,
-    proofImage: PropTypes.string
-  }).isRequired
+  deposit: PropTypes.object.isRequired,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func
 };
 
 export default DepositCard;

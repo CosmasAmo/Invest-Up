@@ -197,4 +197,135 @@ export const getWithdrawalHistory = async (req, res) => {
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
+};
+
+export const editWithdrawal = async (req, res) => {
+    try {
+        const { withdrawalId, amount, paymentMethod, walletAddress } = req.body;
+        const userId = req.userId;
+        
+        // Find the withdrawal
+        const withdrawal = await Withdrawal.findOne({
+            where: {
+                id: withdrawalId,
+                userId
+            }
+        });
+        
+        if (!withdrawal) {
+            return res.json({ 
+                success: false, 
+                message: 'Withdrawal not found' 
+            });
+        }
+        
+        // Check if withdrawal is pending
+        if (withdrawal.status !== 'pending') {
+            return res.json({ 
+                success: false, 
+                message: 'Only pending withdrawals can be edited' 
+            });
+        }
+        
+        // Validate payment method
+        if (paymentMethod && !VALID_WITHDRAWAL_METHODS.includes(paymentMethod)) {
+            return res.json({ 
+                success: false, 
+                message: 'Invalid withdrawal method. Only USDT withdrawals are accepted.' 
+            });
+        }
+        
+        // Get withdrawal fee and minimum withdrawal amount from settings
+        const withdrawalFee = await getSetting('withdrawalFee');
+        const minWithdrawal = await getSetting('minWithdrawal');
+        
+        // Validate amount if provided
+        if (amount) {
+            if (parseFloat(amount) < minWithdrawal) {
+                return res.json({ success: false, message: `Minimum withdrawal amount is $${minWithdrawal}` });
+            }
+            
+            const user = await User.findByPk(userId);
+            if (!user) {
+                return res.json({ success: false, message: 'User not found' });
+            }
+            
+            const totalAmount = parseFloat(amount) + withdrawalFee;
+            
+            // Check if user has enough balance for the new amount
+            if (totalAmount > parseFloat(user.balance) + parseFloat(withdrawal.amount)) {
+                return res.json({ success: false, message: `Insufficient balance (includes $${withdrawalFee} withdrawal fee)` });
+            }
+        }
+        
+        // Update fields
+        const updateData = {};
+        if (amount) updateData.amount = amount;
+        if (paymentMethod) updateData.paymentMethod = paymentMethod;
+        if (walletAddress) updateData.walletAddress = walletAddress;
+        
+        // Update the withdrawal
+        await withdrawal.update(updateData);
+        
+        res.json({ 
+            success: true, 
+            message: 'Withdrawal request updated successfully',
+            withdrawal: {
+                ...withdrawal.toJSON(),
+                transactionId: withdrawal.transactionId,
+                fee: withdrawalFee
+            }
+        });
+        
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export const deleteWithdrawal = async (req, res) => {
+    try {
+        const { withdrawalId } = req.params;
+        const userId = req.userId;
+        
+        // Find the withdrawal
+        const withdrawal = await Withdrawal.findOne({
+            where: {
+                id: withdrawalId,
+                userId
+            }
+        });
+        
+        if (!withdrawal) {
+            return res.json({ 
+                success: false, 
+                message: 'Withdrawal not found' 
+            });
+        }
+        
+        // Check if withdrawal is pending
+        if (withdrawal.status !== 'pending') {
+            return res.json({ 
+                success: false, 
+                message: 'Only pending withdrawals can be deleted' 
+            });
+        }
+        
+        // Get the user to refund the amount
+        const user = await User.findByPk(userId);
+        if (user) {
+            // Refund the withdrawal amount to the user's balance
+            await user.increment('balance', { by: parseFloat(withdrawal.amount) });
+        }
+        
+        // Delete the withdrawal
+        await withdrawal.destroy();
+        
+        res.json({ 
+            success: true, 
+            message: 'Withdrawal request deleted successfully and amount refunded to your balance'
+        });
+        
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
 }; 

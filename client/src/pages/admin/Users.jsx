@@ -7,8 +7,7 @@ import {
     MagnifyingGlassIcon, UserPlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, 
     UserIcon, EnvelopeIcon, CreditCardIcon, CheckBadgeIcon, ShieldCheckIcon, 
     ArrowPathIcon, ChevronDownIcon, ChevronUpIcon, IdentificationIcon,
-    ClockIcon, CurrencyDollarIcon, ArrowTrendingUpIcon, BanknotesIcon, UserCircleIcon,
-    PhotoIcon
+    ClockIcon, CurrencyDollarIcon, ArrowTrendingUpIcon, BanknotesIcon, UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -35,6 +34,8 @@ function Users() {
     const [error, setError] = useState('');
     const [expandedUser, setExpandedUser] = useState(null);
     const [referralCodes, setReferralCodes] = useState({});
+    const [viewingUser, setViewingUser] = useState(null);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     useEffect(() => {
         const loadData = async () => {
@@ -185,9 +186,70 @@ function Users() {
         return referralCodes[userId] || 'Loading...';
     };
 
-    const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const handleViewDetails = (user) => {
+        setViewingUser(user);
+        setShowDetailsModal(true);
+    };
+
+    const closeDetailsModal = () => {
+        setViewingUser(null);
+        setShowDetailsModal(false);
+    };
+
+    // Filter users based on search term
+    const filteredUsers = users.filter(user => 
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Render user card header with View More button instead of eye icon
+    const renderUserCardHeader = (user) => (
+        <div className={`p-6 pr-8 border-b ${
+            user.isAdmin 
+            ? 'bg-gradient-to-r from-purple-900/40 to-slate-800/40 border-purple-700/50' 
+            : 'bg-gradient-to-r from-slate-700/30 to-slate-800/30 border-slate-700/50'
+        }`}>
+            <div className="flex justify-between items-start">
+                <div className="flex items-center space-x-3 max-w-[65%]">
+                    <div className={`min-w-[48px] h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg overflow-hidden ${
+                        user.isAdmin 
+                        ? 'bg-gradient-to-br from-purple-600 to-indigo-700 shadow-purple-900/20' 
+                        : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/20'
+                    }`}>
+                        {user.profileImage ? (
+                            <img 
+                                src={user.profileImage.startsWith('http') 
+                                    ? user.profileImage 
+                                    : user.profileImage.startsWith('/uploads/') 
+                                        ? `${axios.defaults.baseURL}${user.profileImage}`
+                                        : `${axios.defaults.baseURL}/uploads/${user.profileImage}`
+                                }
+                                alt={user.name}
+                                className="h-10 w-10 rounded-full object-cover"
+                            />
+                        ) : (
+                            <UserCircleIcon className="h-10 w-10 text-gray-400" />
+                        )}
+                    </div>
+                    <div className="overflow-hidden">
+                        <h3 className="text-lg font-semibold text-white mr-2 break-words">{user.name}</h3>
+                        <div className="flex items-center text-slate-400 text-sm mt-1">
+                            <EnvelopeIcon className="w-4 h-4 mr-1 flex-shrink-0" />
+                            <span className="truncate max-w-[180px]">{user.email}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-shrink-0 ml-2">
+                    <button
+                        onClick={() => handleViewDetails(user)}
+                        className="px-3 py-1.5 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors text-sm font-medium whitespace-nowrap"
+                        title="View User Details"
+                    >
+                        View More
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 
     return (
@@ -203,8 +265,8 @@ function Users() {
                         <h1 className="text-2xl font-bold text-white">User Management</h1>
                         <p className="text-gray-400 mt-1">Manage all users and their permissions</p>
                     </div>
-                    <div className="flex items-center gap-4 self-end sm:self-auto">
-                        <div className="relative w-full sm:w-64 mx-auto">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
                             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
@@ -231,7 +293,7 @@ function Users() {
                                 });
                                 setShowModal(true);
                             }}
-                            className="px-2 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 flex items-center gap-1 shadow-lg shadow-blue-500/20"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 flex items-center gap-2 shadow-lg shadow-blue-500/20 w-full sm:w-auto justify-center"
                         >
                             <UserPlusIcon className="w-5 h-5" />
                             <span>Add User</span>
@@ -268,78 +330,7 @@ function Users() {
                                     : 'bg-gradient-to-b from-slate-800 to-slate-900 border-slate-700 hover:border-slate-600 hover:shadow-blue-900/10'
                                 }`}
                             >
-                                {/* User Card Header */}
-                                <div className={`p-6 border-b ${
-                                    user.isAdmin 
-                                    ? 'bg-gradient-to-r from-purple-900/40 to-slate-800/40 border-purple-700/50' 
-                                    : 'bg-gradient-to-r from-slate-700/30 to-slate-800/30 border-slate-700/50'
-                                }`}>
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center space-x-3 max-w-[70%]">
-                                            <div className={`min-w-[48px] h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg overflow-hidden ${
-                                                user.isAdmin 
-                                                ? 'bg-gradient-to-br from-purple-600 to-indigo-700 shadow-purple-900/20' 
-                                                : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/20'
-                                            }`}>
-                                                {user.profileImage ? (
-                                                    <img 
-                                                        src={`${axios.defaults.baseURL}/uploads/${user.profileImage}`} 
-                                                        alt={user.name} 
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            try {
-                                                                // Store a reference to the parent node
-                                                                const parentNode = e.target.parentNode;
-                                                                
-                                                                // Check if parent node exists
-                                                                if (parentNode) {
-                                                                    // Create a text node with the first letter
-                                                                    const firstLetter = document.createTextNode(user.name.charAt(0).toUpperCase());
-                                                                    
-                                                                    // Clear the parent node
-                                                                    parentNode.innerHTML = '';
-                                                                    
-                                                                    // Append the text node to the parent
-                                                                    parentNode.appendChild(firstLetter);
-                                                                }
-                                                            } catch (err) {
-                                                                console.error("Error handling image load failure:", err);
-                                                            }
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    user.name.charAt(0).toUpperCase()
-                                                )}
-                                            </div>
-                                            <div className="overflow-hidden">
-                                                <h3 className="text-lg font-semibold text-white mr-2 break-words">{user.name}</h3>
-                                                <div className="flex items-center text-slate-400 text-sm mt-1">
-                                                    <EnvelopeIcon className="w-4 h-4 mr-1 flex-shrink-0" />
-                                                    <span className="truncate max-w-[180px]">{user.email}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                            <div className="flex gap-2 ml-2 flex-shrink-0">
-                                                <button
-                                                    onClick={() => handleEdit(user)}
-                                                    className="p-1.5 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
-                                                    title="Edit User"
-                                                >
-                                                    <PencilSquareIcon className="w-4 h-4" />
-                                                </button>
-                                            {!user.isAdmin && (
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
-                                                    title="Delete User"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            </div>
-                                    </div>
-                                </div>
+                                {renderUserCardHeader(user)}
                                 
                                 {/* User Card Body - Different for Admin and Regular Users */}
                                 {user.isAdmin ? (
@@ -568,33 +559,17 @@ function Users() {
                                     <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-600 profile-preview">
                                         {editingUser && editingUser.profileImage ? (
                                             <img 
-                                                src={`${axios.defaults.baseURL}/uploads/${editingUser.profileImage}`} 
-                                                alt="Profile" 
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.target.onerror = null;
-                                                    try {
-                                                        // Store a reference to the parent node
-                                                        const parentNode = e.target.parentNode;
-                                                        
-                                                        // Check if parent node exists
-                                                        if (parentNode) {
-                                                            // Create a text node with the first letter
-                                                            const firstLetter = document.createTextNode(editingUser.name.charAt(0).toUpperCase());
-                                                            
-                                                            // Clear the parent node
-                                                            parentNode.innerHTML = '';
-                                                            
-                                                            // Append the text node to the parent
-                                                            parentNode.appendChild(firstLetter);
-                                                        }
-                                                    } catch (err) {
-                                                        console.error("Error handling image load failure:", err);
-                                                    }
-                                                }}
+                                                src={editingUser.profileImage.startsWith('http') 
+                                                    ? editingUser.profileImage 
+                                                    : editingUser.profileImage.startsWith('/uploads/') 
+                                                        ? `${axios.defaults.baseURL}${editingUser.profileImage}`
+                                                        : `${axios.defaults.baseURL}/uploads/${editingUser.profileImage}`
+                                                }
+                                                alt={editingUser.name}
+                                                className="h-20 w-20 rounded-full object-cover"
                                             />
                                         ) : (
-                                            <PhotoIcon className="w-8 h-8 text-slate-500" />
+                                            <UserCircleIcon className="h-20 w-20 text-gray-400" />
                                         )}
                                     </div>
                                     <div className="flex-1">
@@ -759,6 +734,168 @@ function Users() {
                             </div>
                         </form>
                     </motion.div>
+                </div>
+            )}
+
+            {/* User Details Modal */}
+            {showDetailsModal && viewingUser && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-slate-900 rounded-xl border border-slate-700 shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center z-10">
+                            <h2 className="text-xl font-bold text-white">User Details</h2>
+                            <button 
+                                onClick={closeDetailsModal}
+                                className="p-1.5 rounded-md bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                            >
+                                <XMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6">
+                            {/* User Header with Actions */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className={`h-20 w-20 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg overflow-hidden ${
+                                        viewingUser.isAdmin 
+                                        ? 'bg-gradient-to-br from-purple-600 to-indigo-700 shadow-purple-900/20' 
+                                        : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/20'
+                                    }`}>
+                                        {viewingUser.profileImage ? (
+                                            <img 
+                                                src={viewingUser.profileImage.startsWith('http') 
+                                                    ? viewingUser.profileImage 
+                                                    : viewingUser.profileImage.startsWith('/uploads/') 
+                                                        ? `${axios.defaults.baseURL}${viewingUser.profileImage}`
+                                                        : `${axios.defaults.baseURL}/uploads/${viewingUser.profileImage}`
+                                                }
+                                                alt={viewingUser.name}
+                                                className="h-20 w-20 object-cover"
+                                            />
+                                        ) : (
+                                            <UserCircleIcon className="h-16 w-16 text-gray-400" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-white">{viewingUser.name}</h3>
+                                        <div className="flex items-center text-slate-400 mt-1">
+                                            <EnvelopeIcon className="w-4 h-4 mr-1 flex-shrink-0" />
+                                            <span>{viewingUser.email}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className={`
+                                                inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                                                ${viewingUser.isAdmin 
+                                                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                                                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                }
+                                            `}>
+                                                {viewingUser.isAdmin 
+                                                    ? <><ShieldCheckIcon className="w-3.5 h-3.5 mr-1" />Administrator</>
+                                                    : <><UserCircleIcon className="w-3.5 h-3.5 mr-1" />Regular User</>
+                                                }
+                                            </span>
+                                            <span className={`
+                                                inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                                                ${viewingUser.isAccountVerified 
+                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                                                    : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                                }
+                                            `}>
+                                                {viewingUser.isAccountVerified 
+                                                    ? <><CheckBadgeIcon className="w-3.5 h-3.5 mr-1" />Verified</>
+                                                    : <><ClockIcon className="w-3.5 h-3.5 mr-1" />Pending Verification</>
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            handleEdit(viewingUser);
+                                            closeDetailsModal();
+                                        }}
+                                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                    >
+                                        <PencilSquareIcon className="w-4 h-4" />
+                                        Edit User
+                                    </button>
+                                    {!viewingUser.isAdmin && (
+                                        <button
+                                            onClick={() => {
+                                                handleDelete(viewingUser.id);
+                                                closeDetailsModal();
+                                            }}
+                                            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* User Information */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Basic Information */}
+                                <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+                                    <h4 className="text-lg font-semibold text-white mb-4">Basic Information</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">User ID:</span>
+                                            <span className="text-slate-300">{viewingUser.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Created:</span>
+                                            <span className="text-slate-300">
+                                                {new Date(viewingUser.createdAt).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Referral Code:</span>
+                                            <span className="text-slate-300">{getUserReferralCode(viewingUser.id)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Referral Count:</span>
+                                            <span className="text-slate-300">{viewingUser.referralCount || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Financial Information */}
+                                <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+                                    <h4 className="text-lg font-semibold text-white mb-4">Financial Information</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Balance:</span>
+                                            <span className="text-green-400 font-medium">${(viewingUser.balance ? parseFloat(viewingUser.balance) : 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Total Investments:</span>
+                                            <span className="text-blue-400 font-medium">${viewingUser.totalInvestments || '0.00'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Total Profits:</span>
+                                            <span className="text-emerald-400 font-medium">${viewingUser.totalProfits || '0.00'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Total Withdrawals:</span>
+                                            <span className="text-amber-400 font-medium">${viewingUser.totalWithdrawals || '0.00'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Referral Earnings:</span>
+                                            <span className="text-purple-400 font-medium">${viewingUser.referralEarnings || '0.00'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </AdminLayout>

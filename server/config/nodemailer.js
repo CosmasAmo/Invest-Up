@@ -9,6 +9,13 @@ const transporter = nodemailer.createTransport({
     },
     tls: {
         rejectUnauthorized: false
+    },
+    // Set default sender information
+    defaults: {
+        from: {
+            name: 'Invest Up',
+            address: process.env.SENDER_EMAIL
+        }
     }
 });
 

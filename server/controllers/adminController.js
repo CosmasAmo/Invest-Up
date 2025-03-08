@@ -548,7 +548,7 @@ export const createUser = async (req, res) => {
       isAdmin: isAdmin || false,
       isAccountVerified: isAccountVerified || false,
       referralCode,
-      profileImage
+      profileImage: profileImage ? '/uploads/' + profileImage : null
     });
 
     res.json({ success: true, user });
@@ -613,7 +613,7 @@ export const updateUser = async (req, res) => {
     // Handle profile image if uploaded
     let profileImage = user.profileImage;
     if (req.file) {
-      profileImage = req.file.filename;
+      profileImage = '/uploads/' + req.file.filename;
     }
 
     // Prepare update data
@@ -636,6 +636,9 @@ export const updateUser = async (req, res) => {
     // Update user with prepared data
     await user.update(updateData);
 
+    // Get the updated user data
+    const updatedUser = await User.findByPk(userId);
+
     // If totalInvestments, totalProfits, or totalWithdrawals were provided, update related records
     if (totalInvestments !== undefined || totalProfits !== undefined || totalWithdrawals !== undefined) {
       // This is a simplified approach - in a real application, you might want to
@@ -650,27 +653,10 @@ export const updateUser = async (req, res) => {
       // For example, you could create adjustment records or update existing records
     }
 
-    // Reload the user to get the updated data
-    await user.reload();
-
-    console.log('User updated successfully:', user.isAdmin);
     res.json({ 
       success: true, 
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        isAccountVerified: user.isAccountVerified,
-        balance: user.balance,
-        referralCount: user.referralCount,
-        referralEarnings: user.referralEarnings,
-        createdAt: user.createdAt,
-        profileImage: user.profileImage,
-        totalInvestments: totalInvestments,
-        totalProfits: totalProfits,
-        totalWithdrawals: totalWithdrawals
-      } 
+      message: 'User updated successfully',
+      user: updatedUser
     });
   } catch (error) {
     console.error('Error updating user:', error);

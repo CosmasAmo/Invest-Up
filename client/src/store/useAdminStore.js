@@ -315,15 +315,18 @@ const useAdminStore = create((set) => ({
             if (data.success) {
                 console.log('User updated successfully:', data.user);
                 
-                // Update the users array with the updated user data
-                set(state => ({
-                    users: state.users.map(user => 
-                        user.id === userId ? { ...user, ...userData } : user
-                    )
-                }));
-                
-                // Also fetch all users to ensure data is fresh
-                await useAdminStore.getState().fetchAllUsers();
+                // Don't update the users array directly with userData
+                // Instead, use the returned user data from the server
+                if (data.user) {
+                    set(state => ({
+                        users: state.users.map(user => 
+                            user.id === userId ? data.user : user
+                        )
+                    }));
+                } else {
+                    // If no user data is returned, fetch all users to ensure data is fresh
+                    await useAdminStore.getState().fetchAllUsers();
+                }
                 
                 return data.user;
             } else {
