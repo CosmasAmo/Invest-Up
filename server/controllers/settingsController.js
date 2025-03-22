@@ -13,7 +13,14 @@ export const initializeSettings = async () => {
         profitPercentage: 5,
         profitInterval: 5,
         withdrawalFee: 2,
-        referralsRequired: 2
+        referralsRequired: 2,
+        depositAddresses: {
+          BINANCE: '374592285',
+          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+        }
       });
       console.log('Settings initialized successfully');
     }
@@ -63,7 +70,8 @@ export const updateSettings = async (req, res) => {
       profitPercentage,
       profitInterval,
       withdrawalFee,
-      referralsRequired
+      referralsRequired,
+      depositAddresses
     } = req.body;
 
     // Validate inputs
@@ -94,7 +102,14 @@ export const updateSettings = async (req, res) => {
         profitPercentage: 5,
         profitInterval: 5,
         withdrawalFee: 2,
-        referralsRequired: 2
+        referralsRequired: 2,
+        depositAddresses: {
+          BINANCE: '374592285',
+          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+        }
       }
     });
 
@@ -107,7 +122,8 @@ export const updateSettings = async (req, res) => {
       profitPercentage,
       profitInterval,
       withdrawalFee,
-      referralsRequired
+      referralsRequired,
+      depositAddresses
     });
 
     res.json({

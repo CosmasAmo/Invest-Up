@@ -88,6 +88,19 @@ function InvestmentCard({ investment, onEdit, onDelete }) {
               </button>
             </div>
           )}
+          
+          {/* Delete button for approved investments */}
+          {investment.status === 'approved' && (
+            <div className="mt-2">
+              <button
+                onClick={() => onDelete(investment)}
+                className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                title="Delete Investment"
+              >
+                <FaTrash className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

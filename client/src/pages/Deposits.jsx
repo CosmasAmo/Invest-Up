@@ -5,7 +5,7 @@ import DepositCard from '../components/DepositCard';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
-import { FaPlus, FaHistory, FaExclamationCircle, FaSpinner, FaFilter, FaSearch, FaCalendarAlt, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaHistory, FaExclamationCircle, FaSpinner, FaFilter, FaSearch, FaCalendarAlt, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -26,13 +26,35 @@ function Deposits() {
   });
   const [editFile, setEditFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [settings, setSettings] = useState({
+    depositAddresses: {}
+  });
 
   useEffect(() => {
     fetchDeposits();
   }, [fetchDeposits]);
 
+  useEffect(() => {
+    // Fetch settings
+    const fetchSettings = async () => {
+      try {
+        const response = await axios.get('/api/settings', { withCredentials: true });
+        if (response.data.success) {
+          setSettings(response.data.settings);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
   // Filter deposits
   const filteredDeposits = deposits.filter(deposit => {
+    // Exclude deposits with status "deleted"
+    if (deposit.status === 'deleted') return false;
+    
     // Apply status filter
     if (filter !== 'all' && deposit.status !== filter) return false;
     
@@ -143,40 +165,28 @@ function Deposits() {
     }
   };
 
-  // Helper function to get payment address for selected method
-  const getPaymentAddress = (method) => {
-    switch (method) {
-      case 'BINANCE':
-        return '374592285';
-      case 'TRC20':
-        return 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX';
-      case 'BEP20':
-        return '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3';
-      case 'ERC20':
-        return '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3';
-      case 'OPTIMISM':
-        return '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3';
-      default:
-        return '';
-    }
+  // Helper function to get payment method name
+  const getPaymentMethodName = (method) => {
+    return method === 'BINANCE' ? 'Binance ID' : 
+           method === 'TRC20' ? 'Tron (TRC20)' :
+           method === 'BEP20' ? 'BNB Smart Chain (BEP20)' :
+           method === 'ERC20' ? 'Ethereum (ERC20)' :
+           method === 'OPTIMISM' ? 'Optimism' : method;
   };
 
   // Helper function to get payment method description
   const getPaymentMethodDescription = (method) => {
-    switch (method) {
-      case 'BINANCE':
-        return 'Deposit USDT to this Binance ID';
-      case 'TRC20':
-        return 'Send USDT via Tron network';
-      case 'BEP20':
-        return 'Send USDT via BNB Smart Chain';
-      case 'ERC20':
-        return 'Send USDT via Ethereum network';
-      case 'OPTIMISM':
-        return 'Send USDT via Optimism network';
-      default:
-        return '';
-    }
+    return method === 'BINANCE' ? 'Deposit USDT to this Binance ID' :
+           method === 'TRC20' ? 'Send USDT via Tron network' :
+           method === 'BEP20' ? 'Send USDT via BNB Smart Chain' :
+           method === 'ERC20' ? 'Send USDT via Ethereum network' :
+           method === 'OPTIMISM' ? 'Send USDT via Optimism network' :
+           `Send USDT via ${method} network`;
+  };
+
+  // Helper function to get payment address for selected method
+  const getPaymentAddress = (method) => {
+    return settings.depositAddresses?.[method] || '';
   };
 
   if (error) {
@@ -209,23 +219,36 @@ function Deposits() {
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
       
-      <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row md:items-center md:justify-between mb-8"
         >
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Deposits History</h1>
-            <p className="text-slate-400">Track and manage your deposit activities</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">My Deposits</h1>
+            <p className="text-slate-400">View and manage your deposit history</p>
           </div>
-          <Link 
-            to="/deposit"
-            className="mt-4 md:mt-0 inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
-          >
-            <FaPlus className="mr-2" />
-            New Deposit
-          </Link>
+          
+          <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+              onClick={() => window.history.back()}
+            >
+              <FaArrowLeft className="mr-2" />
+              Back
+            </motion.button>
+            
+            <Link 
+              to="/deposit" 
+              className="inline-flex items-center px-4 py-2.5 sm:px-5 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium text-sm sm:text-base"
+            >
+              <FaPlus className="mr-2" />
+              New Deposit
+            </Link>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -530,11 +553,11 @@ function Deposits() {
                     required
                   >
                     <option value="">Select Payment Method</option>
-                    <option value="BINANCE">Binance ID</option>
-                    <option value="TRC20">Tron (TRC20)</option>
-                    <option value="BEP20">BNB Smart Chain (BEP20)</option>
-                    <option value="ERC20">Ethereum (ERC20)</option>
-                    <option value="OPTIMISM">Optimism</option>
+                    {Object.keys(settings.depositAddresses || {}).map(method => (
+                      <option key={method} value={method}>
+                        {getPaymentMethodName(method)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 

@@ -168,7 +168,7 @@ export const EMAIL_VERIFY_TEMPLATE = `
               </tr>
               <tr>
                 <td class="footer">
-                  <p style="margin: 0 0 10px;">© 2023 Invest Up. All rights reserved.</p>
+                  <p style="margin: 0 0 10px;">© ${new Date().getFullYear()} Invest Up. All rights reserved.</p>
                   <p style="margin: 0;">This is an automated message, please do not reply to this email.</p>
                 </td>
               </tr>
@@ -353,7 +353,7 @@ export const PASSWORD_RESET_TEMPLATE = `
               </tr>
               <tr>
                 <td class="footer">
-                  <p style="margin: 0 0 10px;">© 2023 Invest Up. All rights reserved.</p>
+                  <p style="margin: 0 0 10px;">© ${new Date().getFullYear()} Invest Up. All rights reserved.</p>
                   <p style="margin: 0;">This is an automated message, please do not reply to this email.</p>
                 </td>
               </tr>
@@ -366,4 +366,3 @@ export const PASSWORD_RESET_TEMPLATE = `
 </body>
 </html>
 `
-

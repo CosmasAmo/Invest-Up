@@ -16,7 +16,7 @@ function Footer() {
   ];
 
   const contactInfo = [
-    { icon: <FaPhoneAlt />, text: '+6 (140) 689-0377' },
+    { icon: <FaPhoneAlt />, text: '+61 (40) 689-0377' },
     { icon: <FaEnvelope />, text: 'support@investup.com' },
     { icon: <FaMapMarkerAlt />, text: 'Melbourne, Australia' }
   ];

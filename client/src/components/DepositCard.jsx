@@ -86,6 +86,19 @@ function DepositCard({ deposit, onEdit, onDelete }) {
               </button>
             </div>
           )}
+          
+          {/* Delete button for approved deposits */}
+          {deposit.status === 'approved' && (
+            <div className="mt-2">
+              <button
+                onClick={() => onDelete(deposit)}
+                className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                title="Delete Deposit"
+              >
+                <FaTrash className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,9 +1,12 @@
-import User from "../models/userModel.js";
-import Deposit from "../models/Deposit.js";
-import Investment from "../models/Investment.js";
-import Withdrawal from "../models/Withdrawal.js";
+import User from '../models/userModel.js';
+import Deposit from '../models/Deposit.js';
+import Investment from '../models/Investment.js';
+import Withdrawal from '../models/Withdrawal.js';
+import Contact from "../models/Contact.js"; // Used for messages and contacts
+import DeletedDeposit from '../models/deletedDepositModel.js';
 import { Op } from "sequelize";
-import Contact from "../models/Contact.js";
+import sequelize from '../config/database.js';
+import { DataTypes } from 'sequelize';
 
 export const getUserdata = async (req, res) => {
     try {
@@ -177,12 +180,25 @@ export const getDashboardData = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        const totalDeposits = deposits.reduce((acc, dep) => {
+        // Calculate total from approved deposits
+        const totalApprovedDeposits = deposits.reduce((acc, dep) => {
             if (dep.status === 'approved') {
                 return acc + parseFloat(dep.amount);
             }
             return acc;
         }, 0);
+        
+        // Add deleted deposits from DeletedDeposit table
+        const deletedDeposits = await DeletedDeposit.findAll({
+            where: { userId }
+        });
+        
+        const totalDeletedDeposits = deletedDeposits.reduce((acc, dep) => {
+            return acc + parseFloat(dep.amount);
+        }, 0);
+        
+        // Total deposits is the sum of approved and deleted deposits
+        const totalDeposits = totalApprovedDeposits + totalDeletedDeposits;
 
         // Get total withdrawals
         const withdrawals = await Withdrawal.findAll({

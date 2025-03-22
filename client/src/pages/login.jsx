@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useStore from '../store/useStore';
 import GoogleAuthButton from '../components/GoogleAuthButton';
@@ -9,6 +9,7 @@ import AuthLayout from '../components/AuthLayout';
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading, error, clearError } = useStore();
   const [formData, setFormData] = useState({
     email: '',
@@ -16,6 +17,23 @@ function Login() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check for auth errors on page load (like Google auth failures)
+  useEffect(() => {
+    const errorParam = new URLSearchParams(location.search).get('error');
+    if (errorParam) {
+      if (errorParam === 'google_auth_failed') {
+        toast.error('Google authentication failed. Please try again.');
+      } else {
+        toast.error(`Authentication error: ${errorParam}`);
+      }
+      
+      // Clean up the URL
+      const url = new URL(window.location);
+      url.searchParams.delete('error');
+      window.history.replaceState({}, document.title, url.toString());
+    }
+  }, [location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

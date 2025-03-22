@@ -499,37 +499,78 @@ export const registerWithReferral = async (req, res) => {
 
 export const checkAuth = async (req, res) => {
     try {
-        const { token } = req.cookies;
+        console.log('checkAuth route called');
+        
+        // Get token from cookies or Authorization header
+        let token = req.cookies.token;
+        console.log('Cookie token:', token ? 'present' : 'not present');
+        
+        // Check Authorization header if no cookie token (for mobile clients)
+        if (!token && req.headers.authorization) {
+            const authHeader = req.headers.authorization;
+            console.log('Authorization header:', authHeader ? `${authHeader.substring(0, 15)}...` : 'not present');
+            
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+                console.log('Using token from Authorization header');
+            }
+        }
         
         if (!token) {
-            return res.json({ success: false });
+            console.log('No token found in request');
+            return res.json({ success: false, isAuthenticated: false });
         }
+        
+        console.log('Token found, length:', token.length);
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findByPk(decoded.id);
-
-        if (!user) {
-            return res.json({ success: false });
-        }
-
-        res.json({
-            success: true,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                isAccountVerified: user.isAccountVerified,
-                isAdmin: user.isAdmin,
-                balance: parseFloat(user.balance || 0).toFixed(2),
-                referralCode: user.referralCode,
-                referralCount: user.referralCount,
-                referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
-                successfulReferrals: user.successfulReferrals || 0,
-                profileImage: user.profileImage,
-                createdAt: user.createdAt
+        // Verify the token
+        try {
+            console.log('Verifying token...');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            console.log('Token verified, decoded id:', decoded.id);
+            
+            // For temp users during Google auth process, return limited auth success
+            if (decoded.isTempUser) {
+                console.log('User is temporary - from Google auth flow');
+                return res.json({ 
+                    success: true, 
+                    isAuthenticated: true,
+                    isTempUser: true,
+                    user: {
+                        id: decoded.id,
+                        email: decoded.email
+                    }
+                });
             }
-        });
+
+            // Check if user exists in DB
+            console.log('Looking up user in database with id:', decoded.id);
+            const user = await User.findByPk(decoded.id);
+            
+            if (!user) {
+                console.log('User not found in database');
+                return res.json({ success: false, isAuthenticated: false });
+            }
+
+            // User is authenticated
+            console.log('User authenticated successfully:', user.name);
+            return res.json({ 
+                success: true, 
+                isAuthenticated: true,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    isAdmin: user.isAdmin || false,
+                    isAccountVerified: user.isAccountVerified || false
+                } 
+            });
+        } catch (error) {
+            console.error('Token verification failed:', error.message);
+            return res.json({ success: false, isAuthenticated: false });
+        }
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        console.error('Auth check error:', error);
+        return res.json({ success: false, isAuthenticated: false });
     }
 };

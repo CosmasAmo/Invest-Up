@@ -5,7 +5,7 @@ import InvestmentCard from '../components/InvestmentCard';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
 import Footer from '../components/footer';
-import { FaPlus, FaChartLine, FaSpinner, FaExclamationCircle, FaSearch, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaChartLine, FaSpinner, FaExclamationCircle, FaSearch, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -57,7 +57,6 @@ function Investments() {
     .toFixed(2);
 
   // Count investments by status
-  const approvedCount = investments.filter(i => i.status === 'approved').length;
   const pendingCount = investments.filter(i => i.status === 'pending').length;
   
   // Handle edit button click
@@ -154,23 +153,37 @@ function Investments() {
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
       
-      <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row md:items-center md:justify-between mb-8"
+        >
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">My Investments</h1>
-            <p className="text-gray-400">View and manage your investment portfolio</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">My Investments</h1>
+            <p className="text-slate-400">View and manage your investment portfolio</p>
           </div>
           
-          <div className="mt-4 md:mt-0">
-            <Link
-              to="/invest"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg shadow-lg transition-all duration-200"
+          <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+              onClick={() => window.history.back()}
+            >
+              <FaArrowLeft className="mr-2" />
+              Back
+            </motion.button>
+            
+            <Link 
+              to="/invest" 
+              className="inline-flex items-center px-4 py-2.5 sm:px-5 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium text-sm sm:text-base"
             >
               <FaPlus className="mr-2" />
               New Investment
             </Link>
           </div>
-        </div>
+        </motion.div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 p-6 rounded-xl border border-slate-700/50 shadow-lg">

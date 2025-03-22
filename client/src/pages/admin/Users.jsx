@@ -488,10 +488,12 @@ function Users() {
                                                                 })}
                                                             </span>
                                                         </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-slate-400">Referral Code:</span>
-                                                            <span className="text-slate-300 truncate ml-2 text-right max-w-[150px]">{getUserReferralCode(user.id)}</span>
-                                                        </div>
+                                                        {!user.isAdmin && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-slate-400">Referral Code:</span>
+                                                                <span className="text-slate-300 truncate ml-2 text-right max-w-[150px]">{getUserReferralCode(user.id)}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -856,43 +858,73 @@ function Users() {
                                                 })}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Referral Code:</span>
-                                            <span className="text-slate-300">{getUserReferralCode(viewingUser.id)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Referral Count:</span>
-                                            <span className="text-slate-300">{viewingUser.referralCount || 0}</span>
-                                        </div>
+                                        {!viewingUser.isAdmin && (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400">Referral Code:</span>
+                                                    <span className="text-slate-300">{getUserReferralCode(viewingUser.id)}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400">Referral Count:</span>
+                                                    <span className="text-slate-300">{viewingUser.referralCount || 0}</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 
-                                {/* Financial Information */}
-                                <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
-                                    <h4 className="text-lg font-semibold text-white mb-4">Financial Information</h4>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Balance:</span>
-                                            <span className="text-green-400 font-medium">${(viewingUser.balance ? parseFloat(viewingUser.balance) : 0).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Total Investments:</span>
-                                            <span className="text-blue-400 font-medium">${viewingUser.totalInvestments || '0.00'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Total Profits:</span>
-                                            <span className="text-emerald-400 font-medium">${viewingUser.totalProfits || '0.00'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Total Withdrawals:</span>
-                                            <span className="text-amber-400 font-medium">${viewingUser.totalWithdrawals || '0.00'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Referral Earnings:</span>
-                                            <span className="text-purple-400 font-medium">${viewingUser.referralEarnings || '0.00'}</span>
+                                {/* Admin Information */}
+                                {viewingUser.isAdmin ? (
+                                    <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+                                        <h4 className="text-lg font-semibold text-white mb-4">Administrator Details</h4>
+                                        <div className="space-y-4">
+                                            <div className="p-4 rounded-lg border bg-purple-900/20 border-purple-700/40">
+                                                <div className="flex items-center mb-3">
+                                                    <ShieldCheckIcon className="w-5 h-5 mr-2 text-purple-400 flex-shrink-0" />
+                                                    <span className="text-purple-300 font-medium truncate">Administrator Privileges</span>
+                                                </div>
+                                                <p className="text-sm text-slate-400">
+                                                    This user has full administrative access to the platform, including user management, transaction approvals, and system settings.
+                                                </p>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Role:</span>
+                                                <span className="text-purple-400 font-medium">Administrator</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Status:</span>
+                                                <span className="text-green-400 font-medium">Active</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    /* Financial Information - Only for regular users */
+                                    <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+                                        <h4 className="text-lg font-semibold text-white mb-4">Financial Information</h4>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Balance:</span>
+                                                <span className="text-green-400 font-medium">${(viewingUser.balance ? parseFloat(viewingUser.balance) : 0).toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Total Investments:</span>
+                                                <span className="text-blue-400 font-medium">${viewingUser.totalInvestments || '0.00'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Total Profits:</span>
+                                                <span className="text-emerald-400 font-medium">${viewingUser.totalProfits || '0.00'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Total Withdrawals:</span>
+                                                <span className="text-amber-400 font-medium">${viewingUser.totalWithdrawals || '0.00'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Referral Earnings:</span>
+                                                <span className="text-purple-400 font-medium">${viewingUser.referralEarnings || '0.00'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

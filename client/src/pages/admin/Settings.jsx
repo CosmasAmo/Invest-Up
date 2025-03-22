@@ -14,7 +14,14 @@ function Settings() {
         profitPercentage: 5,
         profitInterval: 5, // in minutes
         withdrawalFee: 2,
-        referralsRequired: 2
+        referralsRequired: 2,
+        depositAddresses: {
+            BINANCE: '374592285',
+            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+        }
     });
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
@@ -30,7 +37,21 @@ function Settings() {
             setIsFetching(true);
             const response = await axios.get('/api/settings', { withCredentials: true });
             if (response.data.success) {
-                setSettings(response.data.settings);
+                // Make sure depositAddresses exists with default values
+                const settingsData = response.data.settings;
+                if (!settingsData.depositAddresses) {
+                    settingsData.depositAddresses = {
+                        BINANCE: '374592285',
+                        TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+                        BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                        ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                        OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+                    };
+                }
+                setSettings(settingsData);
+                
+                // Always save to localStorage for backup
+                localStorage.setItem('adminSettings', JSON.stringify(settingsData));
             }
         } catch (error) {
             console.error('Failed to fetch settings:', error);
@@ -38,7 +59,39 @@ function Settings() {
             try {
                 const savedSettings = localStorage.getItem('adminSettings');
                 if (savedSettings) {
-                    setSettings(JSON.parse(savedSettings));
+                    const parsedSettings = JSON.parse(savedSettings);
+                    // Ensure depositAddresses exists with default values
+                    if (!parsedSettings.depositAddresses) {
+                        parsedSettings.depositAddresses = {
+                            BINANCE: '374592285',
+                            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+                            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+                        };
+                    }
+                    setSettings(parsedSettings);
+                } else {
+                    // If no settings in localStorage, use default values
+                    const defaultSettings = {
+                        referralBonus: 5,
+                        minWithdrawal: 3,
+                        minDeposit: 3,
+                        minInvestment: 3,
+                        profitPercentage: 5,
+                        profitInterval: 5,
+                        withdrawalFee: 2,
+                        referralsRequired: 2,
+                        depositAddresses: {
+                            BINANCE: '374592285',
+                            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+                            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+                        }
+                    };
+                    setSettings(defaultSettings);
+                    localStorage.setItem('adminSettings', JSON.stringify(defaultSettings));
                 }
             } catch (localError) {
                 console.error('Failed to load settings from localStorage:', localError);
@@ -115,7 +168,14 @@ function Settings() {
             profitPercentage: 5,
             profitInterval: 5,
             withdrawalFee: 2,
-            referralsRequired: 2
+            referralsRequired: 2,
+            depositAddresses: {
+                BINANCE: '374592285',
+                TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+                BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+                OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+            }
         };
         
         setSettings(defaultSettings);
@@ -364,6 +424,184 @@ function Settings() {
                     </div>
                 </motion.div>
                 
+                {/* Payment Addresses Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="bg-slate-800 rounded-xl shadow-xl overflow-hidden border border-slate-700 mt-8"
+                >
+                    <div className="px-6 py-4 bg-slate-700 border-b border-slate-600 flex justify-between items-center">
+                        <div className="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            <h2 className="text-lg font-semibold text-white">Payment Addresses</h2>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <p className="text-gray-300 mb-4">
+                                Configure the deposit addresses that will be shown to users when they make deposits.
+                            </p>
+                            
+                            <div className="space-y-4">
+                                {settings.depositAddresses && Object.entries(settings.depositAddresses).map(([key, address]) => (
+                                    <div key={key} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-sm font-medium text-blue-400">
+                                                {key} Address
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (window.confirm(`Are you sure you want to delete ${key} payment method?`)) {
+                                                        const newSettings = { ...settings };
+                                                        if (newSettings.depositAddresses && key in newSettings.depositAddresses) {
+                                                            // Create a new object without the key to be deleted
+                                                            const { [key]: removed, ...rest } = newSettings.depositAddresses;
+                                                            console.log(`Removed address: ${removed}`); // Log removed address for debugging
+                                                            newSettings.depositAddresses = rest;
+                                                            setSettings(newSettings);
+                                                            
+                                                            // Update localStorage immediately
+                                                            localStorage.setItem('adminSettings', JSON.stringify(newSettings));
+                                                            toast.success(`${key} payment method removed successfully`);
+                                                        }
+                                                    }
+                                                }}
+                                                className="text-xs px-2 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded-md transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                        <div className="flex">
+                                            <input
+                                                type="text"
+                                                name={`depositAddresses.${key}`}
+                                                value={address}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...settings };
+                                                    if (!newSettings.depositAddresses) {
+                                                        newSettings.depositAddresses = {};
+                                                    }
+                                                    newSettings.depositAddresses[key] = e.target.value;
+                                                    setSettings(newSettings);
+                                                    
+                                                    // Update localStorage on each change
+                                                    localStorage.setItem('adminSettings', JSON.stringify(newSettings));
+                                                }}
+                                                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!settings.depositAddresses || Object.keys(settings.depositAddresses).length === 0) && (
+                                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                                        <p className="text-yellow-400 text-sm">
+                                            No deposit addresses configured. Add addresses for payment methods such as BINANCE, TRC20, BEP20, ERC20, etc.
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                {/* Add New Address Type Section */}
+                                <div className="mt-6 border-t border-slate-700 pt-4">
+                                    <h3 className="text-sm font-medium text-white mb-3">Add New Payment Method</h3>
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="md:flex-1">
+                                            <input
+                                                type="text"
+                                                id="newAddressType"
+                                                placeholder="Address Type (e.g., BITCOIN)"
+                                                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+                                            />
+                                        </div>
+                                        <div className="md:flex-1">
+                                            <input
+                                                type="text"
+                                                id="newAddressValue"
+                                                placeholder="Address Value"
+                                                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const type = document.getElementById('newAddressType')?.value?.trim();
+                                                const value = document.getElementById('newAddressValue')?.value?.trim();
+                                                
+                                                if (type && value) {
+                                                    const newSettings = { ...settings };
+                                                    if (!newSettings.depositAddresses) {
+                                                        newSettings.depositAddresses = {};
+                                                    }
+                                                    newSettings.depositAddresses[type.toUpperCase()] = value;
+                                                    setSettings(newSettings);
+                                                    
+                                                    // Update localStorage immediately
+                                                    localStorage.setItem('adminSettings', JSON.stringify(newSettings));
+                                                    toast.success(`${type.toUpperCase()} payment method added successfully`);
+                                                    
+                                                    // Clear the input fields
+                                                    if (document.getElementById('newAddressType')) {
+                                                        document.getElementById('newAddressType').value = '';
+                                                    }
+                                                    if (document.getElementById('newAddressValue')) {
+                                                        document.getElementById('newAddressValue').value = '';
+                                                    }
+                                                } else {
+                                                    toast.warning('Please enter both the address type and value');
+                                                }
+                                            }}
+                                            className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mt-1 md:mt-0"
+                                        >
+                                            Add Address
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">
+                                        Add new payment methods with their corresponding addresses. Type should be a short identifier like BITCOIN, LITECOIN, etc.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="pt-4 border-t border-slate-700 mt-8">
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div className="text-sm text-gray-400">
+                                        <p>Address changes will be immediately visible to users making deposits.</p>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className={`w-full sm:w-auto px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                                            saveSuccess 
+                                                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Processing...
+                                            </>
+                                        ) : saveSuccess ? (
+                                            <>
+                                                <CheckCircleIcon className="h-5 w-5" />
+                                                Saved Successfully
+                                            </>
+                                        ) : (
+                                            'Save Addresses'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </motion.div>
+                
                 {/* Settings Info Card */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -387,6 +625,7 @@ function Settings() {
                                 <li><span className="text-white font-medium">Profit Interval:</span> How often (in minutes) profit is calculated and added.</li>
                                 <li><span className="text-white font-medium">Referral Bonus:</span> Amount users receive after required number of successful referrals.</li>
                                 <li><span className="text-white font-medium">Referrals Required:</span> Number of successful referrals needed to earn the bonus.</li>
+                                <li><span className="text-white font-medium">Deposit Addresses:</span> The payment addresses shown to users when they make deposits.</li>
                             </ul>
                         </div>
                     </div>

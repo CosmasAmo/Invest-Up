@@ -2,8 +2,16 @@ import { assets } from '../assets/assets';
 import PropTypes from 'prop-types';
 
 function GoogleAuthButton({ type = 'login' }) {
+  // Get the correct API URL based on environment
+  const getApiUrl = () => {
+    if (import.meta.env.PROD) {
+      return import.meta.env.VITE_API_URL || window.location.origin.replace(/:\d+$/, ':5000');
+    }
+    return 'http://localhost:5000';
+  };
+
   const handleGoogleAuth = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = `${getApiUrl()}/api/auth/google`;
   };
 
   return (

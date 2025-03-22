@@ -25,31 +25,6 @@ export const createInvestment = async (req, res) => {
             return res.json({ success: false, message: 'Insufficient balance' });
         }
 
-        // Check if this is the user's first investment
-        const existingInvestments = await Investment.findAll({
-            where: { userId, status: 'approved' }
-        });
-
-        if (existingInvestments.length === 0) {
-            // This is the first investment, check if it meets the 50% requirement
-            const firstDeposit = await Deposit.findOne({
-                where: { userId, status: 'approved' },
-                order: [['createdAt', 'ASC']]
-            });
-
-            if (firstDeposit) {
-                const firstDepositAmount = parseFloat(firstDeposit.amount);
-                const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, minInvestment);
-
-                if (parseFloat(amount) < minRequiredInvestment) {
-                    return res.json({ 
-                        success: false, 
-                        message: `Your first investment must be at least 50% of your first deposit (${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount (${minInvestment}).`
-                    });
-                }
-            }
-        }
-
         const investment = await Investment.create({
             userId,
             amount,
@@ -181,39 +156,9 @@ export const editInvestment = async (req, res) => {
         }
         
         // Check if user has enough balance for the new amount
-        // We need to add back the original investment amount since it was already deducted
         const availableBalance = parseFloat(user.balance) + parseFloat(investment.amount);
         if (parseFloat(amount) > availableBalance) {
             return res.json({ success: false, message: 'Insufficient balance' });
-        }
-        
-        // Check if this is the user's first investment
-        const existingInvestments = await Investment.findAll({
-            where: { 
-                userId, 
-                status: 'approved',
-                id: { [Op.ne]: investmentId } // Exclude current investment
-            }
-        });
-
-        if (existingInvestments.length === 0) {
-            // This is the first investment, check if it meets the 50% requirement
-            const firstDeposit = await Deposit.findOne({
-                where: { userId, status: 'approved' },
-                order: [['createdAt', 'ASC']]
-            });
-
-            if (firstDeposit) {
-                const firstDepositAmount = parseFloat(firstDeposit.amount);
-                const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, minInvestment);
-
-                if (parseFloat(amount) < minRequiredInvestment) {
-                    return res.json({ 
-                        success: false, 
-                        message: `Your first investment must be at least 50% of your first deposit (${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount (${minInvestment}).`
-                    });
-                }
-            }
         }
         
         // Update the investment
@@ -250,19 +195,26 @@ export const deleteInvestment = async (req, res) => {
             });
         }
         
-        // Check if investment is pending
-        if (investment.status !== 'pending') {
+        // Handle different statuses
+        const user = await User.findByPk(userId);
+        const wasApproved = investment.status === 'approved';
+        const wasPending = investment.status === 'pending';
+        
+        if (investment.status === 'pending') {
+            // For pending investments, refund the amount
+            if (user) {
+                await user.increment('balance', { by: parseFloat(investment.amount) });
+            }
+        } else if (investment.status === 'approved') {
+            // For approved investments, refund the amount to the user's balance
+            if (user) {
+                await user.increment('balance', { by: parseFloat(investment.amount) });
+            }
+        } else {
             return res.json({ 
                 success: false, 
-                message: 'Only pending investments can be deleted' 
+                message: 'Only pending or approved investments can be deleted' 
             });
-        }
-        
-        // Get the user to refund the amount
-        const user = await User.findByPk(userId);
-        if (user) {
-            // Refund the investment amount to the user's balance
-            await user.increment('balance', { by: parseFloat(investment.amount) });
         }
         
         // Delete the investment
@@ -270,7 +222,11 @@ export const deleteInvestment = async (req, res) => {
         
         res.json({ 
             success: true, 
-            message: 'Investment deleted successfully and amount refunded to your balance'
+            message: wasApproved 
+                ? 'Investment deleted successfully and investment amount refunded to your balance'
+                : wasPending
+                    ? 'Investment deleted successfully and amount refunded to your balance'
+                    : 'Investment deleted successfully'
         });
         
     } catch (error) {

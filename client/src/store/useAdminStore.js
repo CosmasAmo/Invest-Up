@@ -355,7 +355,12 @@ const useAdminStore = create((set) => ({
         try {
             const { data } = await axios.get('/api/admin/messages');
             if (data.success) {
-                set({ messages: data.messages });
+                // Count unread messages
+                const unreadCount = data.messages.filter(msg => msg.status === 'unread').length;
+                set({ 
+                    messages: data.messages,
+                    unreadCount: unreadCount
+                });
             }
         } catch (error) {
             console.error('Error fetching messages:', error);
@@ -372,13 +377,41 @@ const useAdminStore = create((set) => ({
                 set(state => ({
                     messages: state.messages.map(msg =>
                         msg.id === messageId ? { ...msg, status: 'replied', reply } : msg
-                    )
+                    ),
+                    // Update unreadCount if the message was previously unread
+                    unreadCount: state.messages.find(msg => msg.id === messageId)?.status === 'unread' 
+                        ? state.unreadCount - 1 
+                        : state.unreadCount
                 }));
                 return true;
             }
             return false;
         } catch (error) {
             console.error('Error sending reply:', error);
+            return false;
+        }
+    },
+
+    markAsRead: async (messageId) => {
+        try {
+            const { data } = await axios.post('/api/admin/mark-as-read', {
+                messageId
+            });
+            if (data.success) {
+                set(state => ({
+                    messages: state.messages.map(msg =>
+                        msg.id === messageId ? { ...msg, status: 'read' } : msg
+                    ),
+                    // Decrement unread count only if the message was previously unread
+                    unreadCount: state.messages.find(msg => msg.id === messageId)?.status === 'unread' 
+                        ? state.unreadCount - 1 
+                        : state.unreadCount
+                }));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error marking message as read:', error);
             return false;
         }
     }

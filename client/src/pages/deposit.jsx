@@ -7,39 +7,6 @@ import axios from 'axios';
 import Footer from '../components/footer';
 import { FaClipboard, FaCheck, FaUpload, FaArrowLeft, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
 
-const DEPOSIT_METHODS = {
-  BINANCE: {
-    name: 'Binance ID',
-    icon: '₮',
-    address: '374592285',
-    description: 'Deposit USDT to this Binance ID'
-  },
-  TRC20: {
-    name: 'Tron (TRC20)',
-    icon: '₮',
-    address: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-    description: 'Send USDT via Tron network'
-  },
-  BEP20: {
-    name: 'BNB Smart Chain (BEP20)',
-    icon: '₮',
-    address: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-    description: 'Send USDT via BNB Smart Chain'
-  },
-  ERC20: {
-    name: 'Ethereum (ERC20)',
-    icon: '₮',
-    address: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-    description: 'Send USDT via Ethereum network'
-  },
-  OPTIMISM: {
-    name: 'Optimism',
-    icon: '₮',
-    address: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-    description: 'Send USDT via Optimism network'
-  }
-};
-
 function Deposit() {
   const { submitDeposit, isLoading } = useStore();
   const [amount, setAmount] = useState('');
@@ -47,8 +14,10 @@ function Deposit() {
   const [step, setStep] = useState(1);
   const [proofFile, setProofFile] = useState(null);
   const [settings, setSettings] = useState({
-    minDeposit: 3 // Default value
+    minDeposit: 3, // Default value
+    depositAddresses: {}
   });
+  const [depositMethods, setDepositMethods] = useState({});
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [copied, setCopied] = useState(false);
   const addressInputRef = useRef(null);
@@ -59,14 +28,99 @@ function Deposit() {
       try {
         setIsLoadingSettings(true);
         const response = await axios.get('/api/settings', { withCredentials: true });
+        
         if (response.data.success) {
+          const fetchedSettings = response.data.settings;
+          
+          // Check if depositAddresses exists in server response
+          let depositAddressesData = fetchedSettings.depositAddresses || {};
+          
+          // If depositAddresses is empty, try to get it from localStorage
+          if (Object.keys(depositAddressesData).length === 0) {
+            try {
+              const savedSettings = localStorage.getItem('adminSettings');
+              if (savedSettings) {
+                const parsedSettings = JSON.parse(savedSettings);
+                if (parsedSettings.depositAddresses && Object.keys(parsedSettings.depositAddresses).length > 0) {
+                  depositAddressesData = parsedSettings.depositAddresses;
+                  console.log('Using deposit addresses from localStorage:', depositAddressesData);
+                }
+              }
+            } catch (localStorageError) {
+              console.error('Error reading from localStorage:', localStorageError);
+            }
+          }
+          
           setSettings({
-            minDeposit: response.data.settings.minDeposit
+            minDeposit: fetchedSettings.minDeposit,
+            depositAddresses: depositAddressesData
           });
+          
+          // Set up deposit methods based on the addresses from admin settings
+          const methods = {};
+          
+          // Dynamically create methods for all deposit addresses
+          Object.entries(depositAddressesData).forEach(([key, address]) => {
+            methods[key] = {
+              name: key === 'BINANCE' ? 'Binance ID' : 
+                     key === 'TRC20' ? 'Tron (TRC20)' :
+                     key === 'BEP20' ? 'BNB Smart Chain (BEP20)' :
+                     key === 'ERC20' ? 'Ethereum (ERC20)' :
+                     key === 'OPTIMISM' ? 'Optimism' : key,
+              icon: '₮',
+              address: address,
+              description: key === 'BINANCE' ? 'Deposit USDT to this Binance ID' :
+                         key === 'TRC20' ? 'Send USDT via Tron network' :
+                         key === 'BEP20' ? 'Send USDT via BNB Smart Chain' :
+                         key === 'ERC20' ? 'Send USDT via Ethereum network' :
+                         key === 'OPTIMISM' ? 'Send USDT via Optimism network' :
+                         `Send USDT via ${key} network`
+            };
+          });
+          
+          setDepositMethods(methods);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
-        // If there's an error, we'll use the default values
+        // If there's an error, try to load from localStorage
+        try {
+          const savedSettings = localStorage.getItem('adminSettings');
+          if (savedSettings) {
+            const parsedSettings = JSON.parse(savedSettings);
+            if (parsedSettings.depositAddresses) {
+              // Set up deposit methods based on localStorage
+              const methods = {};
+              const depositAddressesData = parsedSettings.depositAddresses;
+              
+              // Dynamically create methods for all deposit addresses
+              Object.entries(depositAddressesData).forEach(([key, address]) => {
+                methods[key] = {
+                  name: key === 'BINANCE' ? 'Binance ID' : 
+                         key === 'TRC20' ? 'Tron (TRC20)' :
+                         key === 'BEP20' ? 'BNB Smart Chain (BEP20)' :
+                         key === 'ERC20' ? 'Ethereum (ERC20)' :
+                         key === 'OPTIMISM' ? 'Optimism' : key,
+                  icon: '₮',
+                  address: address,
+                  description: key === 'BINANCE' ? 'Deposit USDT to this Binance ID' :
+                             key === 'TRC20' ? 'Send USDT via Tron network' :
+                             key === 'BEP20' ? 'Send USDT via BNB Smart Chain' :
+                             key === 'ERC20' ? 'Send USDT via Ethereum network' :
+                             key === 'OPTIMISM' ? 'Send USDT via Optimism network' :
+                             `Send USDT via ${key} network`
+                };
+              });
+              
+              setDepositMethods(methods);
+              setSettings({
+                minDeposit: parsedSettings.minDeposit || 3,
+                depositAddresses: depositAddressesData
+              });
+            }
+          }
+        } catch (localStorageError) {
+          console.error('Error reading from localStorage:', localStorageError);
+        }
       } finally {
         setIsLoadingSettings(false);
       }
@@ -92,16 +146,20 @@ function Deposit() {
       toast.error(`Please enter an amount of $${settings.minDeposit} or more`);
       return;
     }
+    
+    if (Object.keys(depositMethods).length === 0) {
+      toast.error('No deposit methods available. Please contact support.');
+      return;
+    }
+    
     setSelectedMethod(method);
     setStep(2);
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.size <= 5 * 1024 * 1024) { // 5MB limit
+    if (file) {
       setProofFile(file);
-    } else {
-      toast.error('File size should be less than 5MB');
     }
   };
 
@@ -169,6 +227,23 @@ function Deposit() {
       <Navbar />
       
       <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Make a Deposit</h1>
+            <p className="text-slate-400">Add funds to your account</p>
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+            onClick={() => window.history.back()}
+          >
+            <FaArrowLeft className="mr-2" />
+            Back
+          </motion.button>
+        </div>
+        
         <motion.div 
           className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-700/50"
           initial={{ opacity: 0, y: 20 }}
@@ -210,11 +285,17 @@ function Deposit() {
                   {step === 1 && (
                     <motion.div
                       key="step1"
-                      variants={stepVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-gradient-to-b from-slate-800/80 to-slate-900/90 rounded-2xl shadow-xl overflow-hidden border border-slate-700/50"
                     >
+                      <div className="p-6 sm:p-8 bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-b border-slate-700/50">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-white">Make a Deposit</h1>
+                        <p className="mt-2 text-slate-300">Add funds to your account</p>
+                      </div>
+                      
                       <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 shadow-lg mb-6">
                         <div className="flex items-start space-x-3 mb-4 text-amber-400 bg-amber-900/20 p-4 rounded-lg">
                           <FaInfoCircle className="h-5 w-5 mt-0.5" />
@@ -255,28 +336,40 @@ function Deposit() {
                         </div>
                         
                         <h3 className="text-lg font-medium text-white mb-4">Select Payment Method</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {Object.entries(DEPOSIT_METHODS).map(([key, method]) => (
-                            <div
-                              key={key}
-                              onClick={() => handleMethodSelect(key)}
-                              className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md ${
-                                amount && parseFloat(amount) >= settings.minDeposit
-                                  ? 'border-slate-600 hover:border-blue-500 bg-slate-900/70 hover:bg-slate-800/70'
-                                  : 'border-slate-700 bg-slate-900/30 opacity-50 cursor-not-allowed'
-                              }`}
-                            >
-                              <div className="flex items-center">
-                                <div className="w-10 h-10 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400 font-bold mr-3">
-                                  {method.icon}
-                                </div>
-                                <div>
-                                  <h4 className="font-medium text-white">{method.name}</h4>
-                                  <p className="text-sm text-slate-400">{method.description}</p>
+                        <div className="grid grid-cols-1 gap-4">
+                          {Object.keys(depositMethods).length === 0 ? (
+                            <div className="col-span-1 p-4 sm:p-6 text-center bg-slate-900/50 border border-slate-700 rounded-xl">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-slate-500 mb-2 sm:mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <h4 className="text-lg sm:text-xl font-medium text-white mb-2">No Deposit Methods Available</h4>
+                              <p className="text-sm text-slate-400">
+                                The admin has not configured any deposit methods. Please contact support for assistance.
+                              </p>
+                            </div>
+                          ) : (
+                            Object.entries(depositMethods).map(([key, method]) => (
+                              <div
+                                key={key}
+                                onClick={() => handleMethodSelect(key)}
+                                className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md ${
+                                  amount && parseFloat(amount) >= settings.minDeposit
+                                    ? 'border-slate-600 hover:border-blue-500 bg-slate-900/70 hover:bg-slate-800/70'
+                                    : 'border-slate-700 bg-slate-900/30 opacity-50 cursor-not-allowed'
+                                }`}
+                              >
+                                <div className="flex items-center">
+                                  <div className="min-w-[40px] w-10 h-10 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400 font-bold mr-3">
+                                    {method.icon}
+                                  </div>
+                                  <div className="flex-1 overflow-hidden">
+                                    <h4 className="font-medium text-white truncate">{method.name}</h4>
+                                    <p className="text-sm text-slate-400 truncate">{method.description}</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -299,93 +392,109 @@ function Deposit() {
                           <span>Back to payment methods</span>
                         </button>
                         
-                        <div className="mb-6">
-                          <h3 className="text-lg font-medium text-white mb-2">
-                            Send {amount} USDT via {DEPOSIT_METHODS[selectedMethod].name}
-                          </h3>
-                          <p className="text-slate-300 mb-4">
-                            Please send exactly <span className="font-semibold text-white">{amount} USDT</span> to the address below:
-                          </p>
-                          
-                          <div className="relative">
-                            <input
-                              ref={addressInputRef}
-                              type="text"
-                              value={DEPOSIT_METHODS[selectedMethod].address}
-                              readOnly
-                              className="block w-full pr-12 py-3 px-4 bg-slate-900/70 border border-slate-700 rounded-lg text-white font-mono text-sm"
-                            />
-                            <button
-                              onClick={() => copyToClipboard(DEPOSIT_METHODS[selectedMethod].address)}
-                              className="absolute inset-y-0 right-0 px-3 flex items-center bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors duration-200"
-                            >
-                              {copied ? <FaCheck className="h-5 w-5" /> : <FaClipboard className="h-5 w-5" />}
-                            </button>
-                          </div>
-                          {copied && (
-                            <p className="mt-2 text-sm text-green-400">Address copied to clipboard!</p>
-                          )}
-                        </div>
-                        
-                        <div className="mb-6">
-                          <h3 className="text-lg font-medium text-white mb-4">Upload Payment Proof</h3>
-                          <div className="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center hover:border-blue-500 transition-colors duration-200">
-                            <input
-                              type="file"
-                              id="proofFile"
-                              onChange={handleFileChange}
-                              className="hidden"
-                              accept="image/*"
-                            />
-                            <label
-                              htmlFor="proofFile"
-                              className="cursor-pointer flex flex-col items-center justify-center"
-                            >
-                              {proofFile ? (
-                                <div className="text-center">
-                                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-900/30 text-green-400 mb-3">
-                                    <FaCheck className="h-6 w-6" />
-                                  </div>
-                                  <p className="text-white font-medium">{proofFile.name}</p>
-                                  <p className="text-slate-400 text-sm mt-1">
-                                    {(proofFile.size / 1024 / 1024).toFixed(2)} MB
-                                  </p>
-                                  <p className="text-blue-400 text-sm mt-3 hover:text-blue-300">
-                                    Click to change file
-                                  </p>
+                        {depositMethods[selectedMethod] ? (
+                          <>
+                            <div className="mb-6">
+                              <h3 className="text-lg font-medium text-white mb-2">
+                                Send {amount} USDT via {depositMethods[selectedMethod].name}
+                              </h3>
+                              <p className="text-slate-300 mb-4">
+                                Please send exactly <span className="font-semibold text-white">{amount} USDT</span> to the address below:
+                              </p>
+                              
+                              <div className="mb-6">
+                                <div className="relative">
+                                  <input
+                                    ref={addressInputRef}
+                                    type="text"
+                                    value={depositMethods[selectedMethod].address}
+                                    readOnly
+                                    className="block w-full pr-12 py-3 px-4 bg-slate-900/70 border border-slate-700 rounded-lg text-white font-mono text-xs sm:text-sm overflow-x-auto whitespace-nowrap"
+                                  />
+                                  <button
+                                    onClick={() => copyToClipboard(depositMethods[selectedMethod].address)}
+                                    className="absolute inset-y-0 right-0 px-3 flex items-center bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors duration-200"
+                                  >
+                                    {copied ? <FaCheck className="h-5 w-5" /> : <FaClipboard className="h-5 w-5" />}
+                                  </button>
                                 </div>
-                              ) : (
-                                <>
-                                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-900/30 text-blue-400 mb-3">
-                                    <FaUpload className="h-6 w-6" />
-                                  </div>
-                                  <p className="text-white font-medium">Drag and drop or click to upload</p>
-                                  <p className="text-slate-400 text-sm mt-1">
-                                    Upload a screenshot of your payment (Max 5MB)
-                                  </p>
-                                </>
-                              )}
-                            </label>
+                                {copied && (
+                                  <p className="mt-2 text-sm text-green-400">Address copied to clipboard!</p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="mb-6">
+                              <h3 className="text-lg font-medium text-white mb-4">Upload Payment Proof</h3>
+                              <div className="border-2 border-dashed border-slate-600 rounded-xl p-4 sm:p-6 text-center hover:border-blue-500 transition-colors duration-200">
+                                <input
+                                  type="file"
+                                  id="proofFile"
+                                  onChange={handleFileChange}
+                                  className="hidden"
+                                  accept="image/*"
+                                />
+                                <label
+                                  htmlFor="proofFile"
+                                  className="cursor-pointer flex flex-col items-center justify-center p-2"
+                                >
+                                  {proofFile ? (
+                                    <div className="text-center">
+                                      <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-900/30 text-green-400 mb-2 sm:mb-3">
+                                        <FaCheck className="h-5 w-5 sm:h-6 sm:w-6" />
+                                      </div>
+                                      <p className="text-white font-medium text-sm sm:text-base break-all">{proofFile.name}</p>
+                                      <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                                        {(proofFile.size / 1024 / 1024).toFixed(2)} MB
+                                      </p>
+                                      <p className="text-blue-400 text-xs sm:text-sm mt-2 sm:mt-3 hover:text-blue-300">
+                                        Click to change file
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-900/30 text-blue-400 mb-2 sm:mb-3">
+                                        <FaUpload className="h-5 w-5 sm:h-6 sm:w-6" />
+                                      </div>
+                                      <p className="text-white font-medium text-sm sm:text-base">Click to upload</p>
+                                      <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                                        Upload a screenshot of your payment
+                                      </p>
+                                    </>
+                                  )}
+                                </label>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-end">
+                              <button
+                                onClick={handleSubmit}
+                                disabled={!proofFile || isLoading}
+                                className={`px-6 py-3 rounded-lg font-medium flex items-center justify-center min-w-[150px] ${
+                                  !proofFile || isLoading
+                                    ? 'bg-slate-700 text-slate-300 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-900/30'
+                                } transition-all duration-300`}
+                              >
+                                {isLoading ? (
+                                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                                ) : (
+                                  'Submit Deposit'
+                                )}
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="p-6 text-center bg-red-900/20 border border-red-700/30 rounded-xl mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <h4 className="text-xl font-medium text-white mb-2">Payment Method Unavailable</h4>
+                            <p className="text-slate-300 mb-4">
+                              This payment method is no longer available. Please go back and select a different method.
+                            </p>
                           </div>
-                        </div>
-                        
-                        <div className="flex justify-end">
-                          <button
-                            onClick={handleSubmit}
-                            disabled={!proofFile || isLoading}
-                            className={`px-6 py-3 rounded-lg font-medium flex items-center justify-center min-w-[150px] ${
-                              !proofFile || isLoading
-                                ? 'bg-slate-700 text-slate-300 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-900/30'
-                            } transition-all duration-300`}
-                          >
-                            {isLoading ? (
-                              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                            ) : (
-                              'Submit Deposit'
-                            )}
-                          </button>
-                        </div>
+                        )}
                       </div>
                     </motion.div>
                   )}

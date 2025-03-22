@@ -5,7 +5,7 @@ import useStore from '../store/useStore'
 import Navbar from '../components/navbar'
 import Footer from '../components/footer'
 import axios from 'axios'
-import { FaFilter, FaSearch, FaDownload, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationCircle, FaSpinner, FaHistory, FaExternalLinkAlt, FaFilePdf, FaFileExcel, FaFileCsv, FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
+import { FaFilter, FaSearch, FaDownload, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationCircle, FaSpinner, FaHistory, FaExternalLinkAlt, FaFilePdf, FaFileExcel, FaFileCsv } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -23,19 +23,6 @@ function Transactions() {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const transactionsPerPage = 10
   const exportMenuRef = useRef(null)
-
-  // State for edit/delete modals
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [transactionToEdit, setTransactionToEdit] = useState(null);
-  const [editFormData, setEditFormData] = useState({
-    amount: '',
-    paymentMethod: '',
-    walletAddress: ''
-  });
-  const [editFile, setEditFile] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,34 +54,6 @@ function Transactions() {
 
     fetchData()
   }, [fetchDashboardData, userData])
-
-  // Function to refresh transaction data
-  const fetchData = async () => {
-    setIsLoading(true)
-    try {
-      await fetchDashboardData()
-      
-      // Fetch all transactions directly from the API
-      const response = await axios.get('/api/user/transactions');
-      if (response.data.success) {
-        setTransactions(response.data.transactions || []);
-      } else {
-        // Fallback to recentTransactions if the API call fails
-        if (userData?.recentTransactions) {
-          setTransactions(userData.recentTransactions);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      // Fallback to recentTransactions if the API call fails
-      if (userData?.recentTransactions) {
-        setTransactions(userData.recentTransactions);
-      }
-      setError('Failed to load all transactions. Showing recent transactions only.');
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   // Preload dashboard data when hovering over the back button
   const handleBackHover = () => {
@@ -338,118 +297,6 @@ function Transactions() {
     }
   }, [showExportMenu])
 
-  // Handle edit button click
-  const handleEditClick = (transaction) => {
-    setTransactionToEdit(transaction);
-    setEditFormData({
-      amount: transaction.amount,
-      paymentMethod: transaction.paymentMethod || '',
-      walletAddress: transaction.walletAddress || ''
-    });
-    setShowEditModal(true);
-  };
-
-  // Handle delete button click
-  const handleDeleteClick = (transaction) => {
-    setTransactionToDelete(transaction);
-    setShowDeleteModal(true);
-  };
-
-  // Handle edit form change
-  const handleEditFormChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Handle file change for deposit edit
-  const handleFileChange = (e) => {
-    setEditFile(e.target.files[0]);
-  };
-
-  // Handle edit form submit
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      let response;
-      const formData = new FormData();
-
-      if (transactionToEdit.type === 'deposit') {
-        formData.append('depositId', transactionToEdit.id);
-        formData.append('amount', editFormData.amount);
-        formData.append('paymentMethod', editFormData.paymentMethod);
-        if (editFile) {
-          formData.append('proofImage', editFile);
-        }
-
-        response = await axios.put('/api/transactions/deposit/edit', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      } else if (transactionToEdit.type === 'withdrawal') {
-        response = await axios.put('/api/withdrawals/edit', {
-          withdrawalId: transactionToEdit.id,
-          amount: editFormData.amount,
-          paymentMethod: editFormData.paymentMethod,
-          walletAddress: editFormData.walletAddress
-        });
-      } else if (transactionToEdit.type === 'investment') {
-        response = await axios.put('/api/investments/edit', {
-          investmentId: transactionToEdit.id,
-          amount: editFormData.amount
-        });
-      }
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setShowEditModal(false);
-        // Refresh transactions
-        fetchData();
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      toast.error('An error occurred. Please try again.');
-      console.error('Error updating transaction:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle delete confirm
-  const handleDeleteConfirm = async () => {
-    setIsSubmitting(true);
-
-    try {
-      let response;
-
-      if (transactionToDelete.type === 'deposit') {
-        response = await axios.delete(`/api/transactions/deposit/${transactionToDelete.id}`);
-      } else if (transactionToDelete.type === 'withdrawal') {
-        response = await axios.delete(`/api/withdrawals/${transactionToDelete.id}`);
-      } else if (transactionToDelete.type === 'investment') {
-        response = await axios.delete(`/api/investments/${transactionToDelete.id}`);
-      }
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setShowDeleteModal(false);
-        // Refresh transactions
-        fetchData();
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      toast.error('An error occurred. Please try again.');
-      console.error('Error deleting transaction:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900">
@@ -680,7 +527,6 @@ function Transactions() {
                     <th scope="col" className="px-4 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                     <th scope="col" className="px-4 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">Date</th>
                     <th scope="col" className="px-4 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Details</th>
-                    <th scope="col" className="px-4 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700/30 bg-slate-800/30">
@@ -735,26 +581,6 @@ function Transactions() {
                               'N/A'}
                           </span>
                         ) : 'N/A'}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        {transaction.status === 'pending' && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEditClick(transaction)}
-                              className="p-1.5 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
-                              title="Edit Transaction"
-                            >
-                              <FaEdit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(transaction)}
-                              className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
-                              title="Delete Transaction"
-                            >
-                              <FaTrash className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
                       </td>
                     </motion.tr>
                   ))}
@@ -859,205 +685,6 @@ function Transactions() {
           )}
         </motion.div>
       </div>
-      
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && transactionToDelete && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl p-6 max-w-md w-full"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-white">Confirm Delete</h3>
-              <button 
-                onClick={() => setShowDeleteModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to delete this {transactionToDelete.type}? This action cannot be undone.
-              {transactionToDelete.type !== 'deposit' && (
-                <span className="block mt-2 text-green-400">
-                  Your funds will be returned to your balance.
-                </span>
-              )}
-            </p>
-            
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <FaSpinner className="animate-spin mr-2" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>Delete</>
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-      
-      {/* Edit Transaction Modal */}
-      {showEditModal && transactionToEdit && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl p-6 max-w-md w-full my-8"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-white">
-                Edit {transactionToEdit.type.charAt(0).toUpperCase() + transactionToEdit.type.slice(1)}
-              </h3>
-              <button 
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            
-            <form onSubmit={handleEditSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Amount
-                  </label>
-                  <input
-                    type="number"
-                    name="amount"
-                    value={editFormData.amount}
-                    onChange={handleEditFormChange}
-                    className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
-                    step="0.01"
-                    min="0"
-                    required
-                  />
-                </div>
-                
-                {transactionToEdit.type === 'deposit' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
-                        Payment Method
-                      </label>
-                      <select
-                        name="paymentMethod"
-                        value={editFormData.paymentMethod}
-                        onChange={handleEditFormChange}
-                        className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
-                        required
-                      >
-                        <option value="">Select Payment Method</option>
-                        <option value="BINANCE">Binance ID</option>
-                        <option value="TRC20">Tron (TRC20)</option>
-                        <option value="BEP20">BNB Smart Chain (BEP20)</option>
-                        <option value="ERC20">Ethereum (ERC20)</option>
-                        <option value="OPTIMISM">Optimism</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
-                        Proof of Payment
-                      </label>
-                      <input
-                        type="file"
-                        onChange={handleFileChange}
-                        className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
-                        accept="image/*"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        Leave empty to keep the current proof image
-                      </p>
-                    </div>
-                  </>
-                )}
-                
-                {transactionToEdit.type === 'withdrawal' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
-                        Payment Method
-                      </label>
-                      <select
-                        name="paymentMethod"
-                        value={editFormData.paymentMethod}
-                        onChange={handleEditFormChange}
-                        className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
-                        required
-                      >
-                        <option value="">Select Payment Method</option>
-                        <option value="BINANCE">Binance ID</option>
-                        <option value="TRC20">Tron (TRC20)</option>
-                        <option value="BEP20">BNB Smart Chain (BEP20)</option>
-                        <option value="ERC20">Ethereum (ERC20)</option>
-                        <option value="OPTIMISM">Optimism</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
-                        Wallet Address
-                      </label>
-                      <input
-                        type="text"
-                        name="walletAddress"
-                        value={editFormData.walletAddress}
-                        onChange={handleEditFormChange}
-                        className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
-                        required
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              <div className="flex justify-end space-x-4 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <FaSpinner className="animate-spin mr-2" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>Save Changes</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
       
       <Footer />
     </div>

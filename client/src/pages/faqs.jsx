@@ -75,7 +75,7 @@ const Faqs = () => {
       },
       {
         question: "How are the 5% daily profits calculated?",
-        answer: `The ${settings.profitPercentage}% daily profit is calculated based on the amount you have invested. For example, if you create an investment of $100, you will earn $${(100 * settings.profitPercentage / 100).toFixed(2)} daily once your investment is approved.`
+        answer: `The ${settings.profitPercentage}% daily profit is calculated based on the amount you have invested, but only on weekdays (Monday to Friday). For example, if you create an investment of $100, you will earn $${(100 * settings.profitPercentage / 100).toFixed(2)} daily on weekdays once your investment is approved. No profits are accumulated on weekends (Saturday and Sunday).`
       },
       {
         question: "How do I create an account?",

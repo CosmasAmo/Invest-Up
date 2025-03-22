@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import AdminLayout from '../../components/admin/AdminLayout';
 import useAdminStore from '../../store/useAdminStore';
-import { UsersIcon, CurrencyDollarIcon, UserGroupIcon, ArrowTrendingUpIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, UserGroupIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
@@ -83,25 +83,33 @@ function Dashboard() {
             textColor: 'text-green-100'
         },
         { 
-            title: 'Total Referral Earnings', 
-            value: `$${stats?.totalReferralEarnings || '0.00'}`,
-            icon: CurrencyDollarIcon,
-            color: 'bg-gradient-to-r from-purple-600 to-purple-400',
-            textColor: 'text-purple-100'
-        },
-        { 
-            title: 'Total Investments', 
-            value: `$${stats?.totalInvestments || '0.00'}`,
-            icon: ArrowTrendingUpIcon,
-            color: 'bg-gradient-to-r from-amber-600 to-amber-400',
-            textColor: 'text-amber-100'
-        },
-        { 
             title: 'Pending Transactions', 
             value: (pendingDeposits?.length || 0) + (pendingWithdrawals?.length || 0) + (pendingInvestments?.length || 0),
             icon: ClockIcon,
             color: 'bg-gradient-to-r from-red-600 to-red-400',
             textColor: 'text-red-100'
+        },
+        { 
+            title: 'Unread Messages', 
+            value: unreadCount || 0,
+            icon: ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                </svg>
+            ),
+            color: 'bg-gradient-to-r from-purple-600 to-purple-400',
+            textColor: 'text-purple-100'
+        },
+        { 
+            title: 'Recent Activities', 
+            value: recentTransactions?.length || 0,
+            icon: ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            ),
+            color: 'bg-gradient-to-r from-amber-600 to-amber-400',
+            textColor: 'text-amber-100'
         }
     ];
 

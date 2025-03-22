@@ -17,7 +17,7 @@ import { startProfitCron } from './cron/profitCron.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import withdrawalRouter from './routes/withdrawalRoutes.js';
 import settingsRouter from './routes/settingsRoutes.js';
-import { calculateProfits } from './utils/profitCalculator.js';
+import { calculateAndUpdateProfits } from './services/profitService.js';
 import { auditLogMiddleware } from './middleware/auditLogMiddleware.js';
 import { initializeSettings } from './controllers/settingsController.js';
 
@@ -71,14 +71,11 @@ app.use(cors({
 
 // Add session middleware before passport initialization
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'session',
+    secret: process.env.SESSION_SECRET || 'session_secret_key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production' || 
-               process.env.FORCE_SECURE_COOKIES === 'true' || 
-               (process.env.NODE_ENV !== 'production' && 
-                process.env.HTTPS === 'true'), 
+        secure: process.env.NODE_ENV === 'production', 
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         httpOnly: true
@@ -114,8 +111,8 @@ app.use(auditLogMiddleware);
 // Add after your other initializations
 startProfitCron();
 
-// Run profit calculation every minute
-setInterval(calculateProfits, 60 * 1000);
+// Use the newer profitService that already has weekend checks
+setInterval(calculateAndUpdateProfits, 60 * 60 * 1000); // Check every hour instead of every minute
 
 app.listen(port, () => {
     console.log(`Server running on port: ${port}`);

@@ -256,7 +256,7 @@ function MakeMoneyOnline() {
                     JD
                   </div>
                   <div className="ml-4">
-                    <h4 className="text-white font-bold">John Doe</h4>
+                    <h4 className="text-white font-bold">Melokuhle Joshua</h4>
                     <p className="text-gray-400">Investor since 2022</p>
                   </div>
                 </div>
@@ -274,7 +274,7 @@ function MakeMoneyOnline() {
                     MS
                   </div>
                   <div className="ml-4">
-                    <h4 className="text-white font-bold">Mary Smith</h4>
+                    <h4 className="text-white font-bold">Noah Williams</h4>
                     <p className="text-gray-400">Investor since 2021</p>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ function MakeMoneyOnline() {
                     RJ
                   </div>
                   <div className="ml-4">
-                    <h4 className="text-white font-bold">Robert Johnson</h4>
+                    <h4 className="text-white font-bold">Charlotte Spencer</h4>
                     <p className="text-gray-400">Investor since 2023</p>
                   </div>
                 </div>

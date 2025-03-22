@@ -1,22 +1,33 @@
 import Withdrawal from '../models/Withdrawal.js';
 import User from '../models/userModel.js';
-import Investment from '../models/Investment.js';
-import Deposit from '../models/Deposit.js';
 import { getSetting } from './settingsController.js';
 
-// Valid USDT withdrawal methods
-const VALID_WITHDRAWAL_METHODS = ['BINANCE', 'TRC20', 'BEP20', 'ERC20', 'OPTIMISM'];
+// We'll replace this with dynamic fetching from settings
+// const VALID_WITHDRAWAL_METHODS = ['BINANCE', 'TRC20', 'BEP20', 'ERC20', 'OPTIMISM'];
 
 export const requestWithdrawal = async (req, res) => {
     try {
         const { amount, paymentMethod, walletAddress } = req.body;
         const userId = req.userId;
         
+        // Get valid withdrawal methods from settings
+        let validWithdrawalMethods = [];
+        try {
+            const depositAddresses = await getSetting('depositAddresses');
+            if (depositAddresses && typeof depositAddresses === 'object') {
+                validWithdrawalMethods = Object.keys(depositAddresses);
+            }
+        } catch (settingError) {
+            console.error('Error fetching valid withdrawal methods:', settingError);
+            // Fallback to common methods if we can't get from settings
+            validWithdrawalMethods = ['BINANCE', 'TRC20', 'BEP20', 'ERC20', 'OPTIMISM'];
+        }
+        
         // Validate payment method
-        if (!VALID_WITHDRAWAL_METHODS.includes(paymentMethod)) {
+        if (!validWithdrawalMethods.includes(paymentMethod)) {
             return res.json({ 
                 success: false, 
-                message: 'Invalid withdrawal method. Only USDT withdrawals are accepted.' 
+                message: `Invalid withdrawal method. Valid methods are: ${validWithdrawalMethods.join(', ')}` 
             });
         }
         
@@ -28,63 +39,6 @@ export const requestWithdrawal = async (req, res) => {
         const user = await User.findByPk(userId);
         if (!user) {
             return res.json({ success: false, message: 'User not found' });
-        }
-
-        // Check if user has made at least one investment
-        const userInvestments = await Investment.findAll({
-            where: { 
-                userId,
-                status: 'approved'
-            },
-            order: [['createdAt', 'ASC']] // Get oldest first to check first investment
-        });
-
-        if (userInvestments.length === 0) {
-            return res.json({ 
-                success: false, 
-                message: 'You need to make at least one investment before you can withdraw funds.' 
-            });
-        }
-
-        // Get user's first deposit
-        const firstDeposit = await Deposit.findOne({
-            where: {
-                userId,
-                status: 'approved'
-            },
-            order: [['createdAt', 'ASC']]
-        });
-
-        if (!firstDeposit) {
-            return res.json({
-                success: false,
-                message: 'No approved deposits found. Please make a deposit first.'
-            });
-        }
-
-        // Check if first investment meets the criteria (50% of first deposit and not less than minInvestment)
-        const firstInvestment = userInvestments[0];
-        const firstDepositAmount = parseFloat(firstDeposit.amount);
-        const firstInvestmentAmount = parseFloat(firstInvestment.amount);
-        const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, minInvestment);
-
-        if (firstInvestmentAmount < minRequiredInvestment) {
-            return res.json({
-                success: false,
-                message: `Your first investment must be at least 50% of your first deposit (${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount (${minInvestment}).`
-            });
-        }
-
-        // Check if user has made any profit
-        const totalProfit = userInvestments.reduce((sum, investment) => {
-            return sum + parseFloat(investment.totalProfit || 0);
-        }, 0);
-
-        if (totalProfit <= 0) {
-            return res.json({
-                success: false,
-                message: 'You need to earn some profit from your investments before making a withdrawal. Please wait for your investments to generate profit.'
-            });
         }
 
         if (parseFloat(amount) < minWithdrawal) {
@@ -227,11 +181,24 @@ export const editWithdrawal = async (req, res) => {
             });
         }
         
+        // Get valid withdrawal methods from settings
+        let validWithdrawalMethods = [];
+        try {
+            const depositAddresses = await getSetting('depositAddresses');
+            if (depositAddresses && typeof depositAddresses === 'object') {
+                validWithdrawalMethods = Object.keys(depositAddresses);
+            }
+        } catch (settingError) {
+            console.error('Error fetching valid withdrawal methods:', settingError);
+            // Fallback to common methods if we can't get from settings
+            validWithdrawalMethods = ['BINANCE', 'TRC20', 'BEP20', 'ERC20', 'OPTIMISM'];
+        }
+        
         // Validate payment method
-        if (paymentMethod && !VALID_WITHDRAWAL_METHODS.includes(paymentMethod)) {
+        if (paymentMethod && !validWithdrawalMethods.includes(paymentMethod)) {
             return res.json({ 
                 success: false, 
-                message: 'Invalid withdrawal method. Only USDT withdrawals are accepted.' 
+                message: `Invalid withdrawal method. Valid methods are: ${validWithdrawalMethods.join(', ')}` 
             });
         }
         
@@ -302,19 +269,24 @@ export const deleteWithdrawal = async (req, res) => {
             });
         }
         
-        // Check if withdrawal is pending
-        if (withdrawal.status !== 'pending') {
+        // Handle different statuses
+        const user = await User.findByPk(userId);
+        let wasApproved = withdrawal.status === 'approved';
+        let wasPending = withdrawal.status === 'pending';
+        
+        if (withdrawal.status === 'pending') {
+            // For pending withdrawals, refund the amount
+            if (user) {
+                await user.increment('balance', { by: parseFloat(withdrawal.amount) });
+            }
+        } else if (withdrawal.status === 'approved') {
+            // For approved withdrawals, we don't need to refund as the amount has already been withdrawn
+            // We'll just delete the record but keep track of it in totals
+        } else {
             return res.json({ 
                 success: false, 
-                message: 'Only pending withdrawals can be deleted' 
+                message: 'Only pending or approved withdrawals can be deleted' 
             });
-        }
-        
-        // Get the user to refund the amount
-        const user = await User.findByPk(userId);
-        if (user) {
-            // Refund the withdrawal amount to the user's balance
-            await user.increment('balance', { by: parseFloat(withdrawal.amount) });
         }
         
         // Delete the withdrawal
@@ -322,7 +294,11 @@ export const deleteWithdrawal = async (req, res) => {
         
         res.json({ 
             success: true, 
-            message: 'Withdrawal request deleted successfully and amount refunded to your balance'
+            message: wasApproved 
+                ? 'Withdrawal record deleted successfully. The amount will still be reflected in your total withdrawals.' 
+                : wasPending 
+                    ? 'Withdrawal request deleted successfully and amount refunded to your balance'
+                    : 'Withdrawal deleted successfully'
         });
         
     } catch (error) {

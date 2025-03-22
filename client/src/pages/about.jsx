@@ -5,7 +5,7 @@ import Footer from '../components/footer';
 import { Link } from 'react-router-dom';
 import SectionHeader from '../components/SectionHeader';
 import { fadeInUp } from '../utils/animations';
-import { FaUsers, FaChartLine, FaGlobeAmericas } from 'react-icons/fa';
+import { FaUsers, FaChartLine, FaHeadset } from 'react-icons/fa';
 
 function About() {
   const [animateStats, setAnimateStats] = useState(false);
@@ -19,9 +19,9 @@ function About() {
   }, []);
 
   const stats = [
-    { icon: <FaUsers className="text-blue-400 text-4xl mb-2" />, value: "10K+", label: "Active Users" },
-    { icon: <FaChartLine className="text-blue-400 text-4xl mb-2" />, value: "$600M+", label: "Trading Volume" },
-    { icon: <FaGlobeAmericas className="text-blue-400 text-4xl mb-2" />, value: "17+", label: "Countries" }
+    { icon: <FaChartLine className="text-blue-400 text-4xl mb-2" />, value: "$500M+", label: "Trading Volume" },
+    { icon: <FaUsers className="text-blue-400 text-4xl mb-2" />, value: "15K+", label: "Active Users" },
+    { icon: <FaHeadset className="text-blue-400 text-4xl mb-2" />, value: "24/7", label: "Customer Support" }
   ];
 
   const timeline = [

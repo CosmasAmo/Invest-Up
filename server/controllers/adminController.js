@@ -535,11 +535,11 @@ export const createUser = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Generate referral code
-    const referralCode = crypto.randomBytes(4).toString('hex');
-
     // Handle profile image if uploaded
     const profileImage = req.file ? req.file.filename : null;
+
+    // Generate referral code only for non-admin users
+    const referralCode = isAdmin ? null : crypto.randomBytes(4).toString('hex');
 
     const user = await User.create({
       name,

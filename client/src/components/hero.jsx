@@ -54,7 +54,7 @@ function Hero({
 								Start Earning Now
 							</Link>
 							<Link
-								to="/about"
+								to="/make-money-online"
 								className="bg-transparent border border-blue-500 text-blue-500 hover:bg-blue-500/10 px-8 py-3 rounded-full
 									transition-all duration-300 inline-block text-lg font-semibold"
 							>

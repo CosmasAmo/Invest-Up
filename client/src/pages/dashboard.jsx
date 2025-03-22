@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import useStore from '../store/useStore'
 import Navbar from '../components/navbar'
@@ -11,9 +11,37 @@ import { FaChartLine, FaWallet, FaMoneyBillWave, FaExchangeAlt, FaChartBar } fro
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { userData, stats, fetchDashboardData, isVerified, fetchDeposits } = useStore()
+  const location = useLocation();
+  const { userData, stats, fetchDashboardData, isVerified, fetchDeposits, checkAuth } = useStore();
 
   useEffect(() => {
+    // Check for token in URL (from Google OAuth redirect)
+    const query = new URLSearchParams(location.search);
+    const token = query.get('token');
+    
+    if (token) {
+      console.log('Found token in URL:', token.substring(0, 10) + '...');
+      
+      // Save token to localStorage
+      localStorage.setItem('auth_token', token);
+      console.log('Saved token to localStorage');
+      
+      // Set the token in axios headers
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('Set Authorization header with token');
+      
+      // Remove token from URL without refreshing page
+      navigate('/dashboard', { replace: true });
+      
+      // Verify authentication with the new token
+      console.log('Calling checkAuth() with new token');
+      checkAuth();
+      
+      toast.success('Successfully logged in with Google!');
+    } else {
+      console.log('No token in URL, checking auth status');
+    }
+    
     if (!isVerified) {
       navigate('/email-verify');
       toast.info('Please verify your email first');
@@ -22,7 +50,7 @@ function Dashboard() {
     
     fetchDashboardData();
     fetchDeposits();
-  }, [fetchDashboardData, fetchDeposits, isVerified, navigate])
+  }, [fetchDashboardData, fetchDeposits, isVerified, navigate, location.search, checkAuth]);
 
   if (!userData || !stats) {
     return (

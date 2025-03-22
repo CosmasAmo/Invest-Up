@@ -29,6 +29,8 @@ import Transactions from './pages/transactions'
 import Terms from './pages/terms'
 import MakeMoneyOnline from './pages/make-money-online'
 import ApiDebug from './components/ApiDebug'
+import CompleteGoogleProfile from './pages/CompleteGoogleProfile'
+import AuthCallback from './components/AuthCallback'
 
 function App() {
   const { initialize, checkSessionExpiration, error } = useStore();
@@ -54,9 +56,15 @@ function App() {
     }
   }, [error]);
 
+  // Check for token in URL (for OAuth callbacks)
+  const hasToken = new URLSearchParams(location.search).has('token');
+
   return (
     <div className="app-container bg-slate-900 text-white min-h-screen">
       <ToastContainer theme="dark" />
+      {/* Render AuthCallback if we have a token in the URL */}
+      {hasToken && <AuthCallback />}
+      
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -85,6 +93,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
         <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+        <Route path="/complete-profile" element={<CompleteGoogleProfile />} />
       </Routes>
       
       {/* Add the API Debug component */}

@@ -5,76 +5,38 @@ import Navbar from '../components/navbar';
 import useStore from '../store/useStore';
 import axios from 'axios';
 import Footer from '../components/footer';
-import { FaChartLine, FaInfoCircle, FaExclamationTriangle, FaMoneyBillWave, FaPercentage, FaCalendarAlt, FaSpinner, FaCheckCircle } from 'react-icons/fa';
+import { FaChartLine, FaExclamationTriangle, FaInfoCircle, FaArrowLeft } from 'react-icons/fa';
 
 function Invest() {
-  const { submitInvestment, isLoading, userData } = useStore();
+  const { submitInvestment, isLoading: isSubmitting, userData } = useStore();
   const [amount, setAmount] = useState('');
   const [settings, setSettings] = useState({
     minInvestment: 3,
-    profitPercentage: 5,
-    profitInterval: 5
+    profitPercentage: 5
   });
-  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [firstDeposit, setFirstDeposit] = useState(null);
-  const [hasInvestments, setHasInvestments] = useState(false);
-  const [isLoadingDeposits, setIsLoadingDeposits] = useState(true);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 
   useEffect(() => {
-    // Fetch settings from the server
+    // Fetch settings
     const fetchSettings = async () => {
+      setIsLoadingSettings(true);
       try {
-        setIsLoadingSettings(true);
-        const response = await axios.get('/api/settings', { withCredentials: true });
+        const response = await axios.get('/api/settings');
         if (response.data.success) {
           setSettings({
-            minInvestment: response.data.settings.minInvestment,
-            profitPercentage: response.data.settings.profitPercentage,
-            profitInterval: response.data.settings.profitInterval
+            minInvestment: parseFloat(response.data.settings.minInvestment) || 3,
+            profitPercentage: parseFloat(response.data.settings.profitPercentage) || 5
           });
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
-        // If there's an error, we'll use the default values
+        toast.error('Failed to load settings. Using default values.');
       } finally {
         setIsLoadingSettings(false);
       }
     };
 
     fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    // Check if user has any approved investments and get first deposit
-    const fetchUserData = async () => {
-      try {
-        setIsLoadingDeposits(true);
-        
-        // Get user's investments
-        const investmentsResponse = await axios.get('/api/investments', { withCredentials: true });
-        if (investmentsResponse.data.success) {
-          const approvedInvestments = investmentsResponse.data.investments.filter(inv => inv.status === 'approved');
-          setHasInvestments(approvedInvestments.length > 0);
-        }
-        
-        // Get user's first deposit
-        const depositsResponse = await axios.get('/api/deposits', { withCredentials: true });
-        if (depositsResponse.data.success) {
-          const approvedDeposits = depositsResponse.data.deposits.filter(dep => dep.status === 'approved');
-          if (approvedDeposits.length > 0) {
-            // Sort by creation date and get the first one
-            approvedDeposits.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            setFirstDeposit(approvedDeposits[0]);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setIsLoadingDeposits(false);
-      }
-    };
-
-    fetchUserData();
   }, []);
 
   const handleAmountChange = (e) => {
@@ -97,178 +59,144 @@ function Invest() {
       return;
     }
 
-    // Check if this is the first investment and if it meets the 50% requirement
-    if (!hasInvestments && firstDeposit) {
-      const firstDepositAmount = parseFloat(firstDeposit.amount);
-      const minRequiredInvestment = Math.max(firstDepositAmount * 0.5, settings.minInvestment);
-      
-      if (parseFloat(amount) < minRequiredInvestment) {
-        toast.error(`Your first investment must be at least 50% of your first deposit ($${(firstDepositAmount * 0.5).toFixed(2)}) and not less than the minimum investment amount ($${settings.minInvestment}).`);
-        return;
-      }
+    // Check if the investment meets the minimum amount requirement
+    if (parseFloat(amount) < settings.minInvestment) {
+      toast.error(`Minimum investment amount is $${settings.minInvestment}.`);
+      return;
     }
 
     try {
-      const success = await submitInvestment({ amount: parseFloat(amount) });
-      if (success) {
-        toast.success('Investment request submitted successfully. Awaiting admin approval.');
+      const result = await submitInvestment({ amount: parseFloat(amount) });
+      if (result.success) {
+        toast.success('Investment submitted successfully!');
         setAmount('');
-        // Redirect is now handled in the store
+      } else {
+        toast.error(result.message);
       }
-    } catch (error) {
-      toast.error(error.message || 'Failed to create investment');
+    } catch (errorObj) {
+      console.error('Investment error:', errorObj);
+      toast.error('An error occurred. Please try again.');
     }
   };
 
-  // Calculate expected returns
+  // Calculate daily return
   const calculateDailyReturn = () => {
     if (!amount) return 0;
     return (parseFloat(amount) * settings.profitPercentage / 100).toFixed(2);
   };
 
+  // Calculate monthly return (30 days)
   const calculateMonthlyReturn = () => {
     if (!amount) return 0;
-    return (parseFloat(amount) * settings.profitPercentage / 100 * 30).toFixed(2);
+    // Calculate for 21 weekdays in a month (average)
+    return (parseFloat(amount) * settings.profitPercentage / 100 * 21).toFixed(2);
   };
 
+  // Calculate yearly return
   const calculateYearlyReturn = () => {
     if (!amount) return 0;
-    return (parseFloat(amount) * settings.profitPercentage / 100 * 365).toFixed(2);
+    // Calculate for 252 weekdays in a year (average)
+    return (parseFloat(amount) * settings.profitPercentage / 100 * 252).toFixed(2);
   };
 
-  // Calculate minimum required investment for first-time investors
+  // Get minimum investment amount from settings
   const getMinimumInvestmentAmount = () => {
-    if (hasInvestments || !firstDeposit) {
-      return settings.minInvestment;
-    }
-    
-    const firstDepositAmount = parseFloat(firstDeposit.amount);
-    return Math.max(firstDepositAmount * 0.5, settings.minInvestment);
+    return settings.minInvestment;
   };
 
   return (
     <div className="min-h-screen bg-slate-900">
       <Navbar />
       
-      <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <motion.div 
-          className="bg-gradient-to-b from-slate-800/80 to-slate-900/90 rounded-2xl shadow-xl overflow-hidden border border-slate-700/50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="p-6 sm:p-8 bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-b border-slate-700/50">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Create Investment</h1>
-            <p className="mt-2 text-slate-300">Invest your funds and earn daily profits</p>
+      {isLoadingSettings ? (
+        <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex items-center justify-center">
+          <div className="text-center">
+            <svg className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-slate-400 text-lg">Loading investment options...</p>
           </div>
-          
-          <div className="p-6 sm:p-8">
-            {isLoadingSettings || isLoadingDeposits ? (
-              <div className="flex flex-col justify-center items-center py-16">
-                <FaSpinner className="animate-spin h-12 w-12 text-blue-500 mb-4" />
-                <p className="text-slate-400">Loading investment options...</p>
-              </div>
-            ) : (
-              <div className="max-w-3xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-                  >
-                    <div className="flex items-center mb-2">
-                      <div className="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 mr-3">
-                        <FaPercentage className="h-5 w-5" />
-                      </div>
-                      <h3 className="text-sm font-medium text-slate-300">Profit Rate</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-white">{settings.profitPercentage}% <span className="text-sm font-normal text-slate-400">/ day</span></p>
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
-                    className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-                  >
-                    <div className="flex items-center mb-2">
-                      <div className="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 mr-3">
-                        <FaMoneyBillWave className="h-5 w-5" />
-                      </div>
-                      <h3 className="text-sm font-medium text-slate-300">Min Investment</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-white">${getMinimumInvestmentAmount()} <span className="text-sm font-normal text-slate-400">USD</span></p>
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.3 }}
-                    className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 p-5 rounded-xl border border-slate-700/50 shadow-lg"
-                  >
-                    <div className="flex items-center mb-2">
-                      <div className="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 mr-3">
-                        <FaCalendarAlt className="h-5 w-5" />
-                      </div>
-                      <h3 className="text-sm font-medium text-slate-300">Available Balance</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-white">${parseFloat(userData?.balance || 0).toFixed(2)} <span className="text-sm font-normal text-slate-400">USD</span></p>
-                  </motion.div>
+        </div>
+      ) : (
+        <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <motion.div 
+            className="bg-gradient-to-b from-slate-800/80 to-slate-900/90 rounded-2xl shadow-xl overflow-hidden border border-slate-700/50"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="p-4 sm:p-6 lg:p-10">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+                <div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">Create Investment</h1>
+                  <p className="text-slate-400 mt-1 text-sm sm:text-base">Invest your funds and earn daily profits</p>
                 </div>
-                
-                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 shadow-lg mb-6">
-                  <div className="flex items-start space-x-3 mb-6 text-amber-400 bg-amber-900/20 p-4 rounded-lg border border-amber-900/30">
-                    <FaInfoCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-medium text-amber-300">Investment Information</h3>
-                      <p className="text-sm text-amber-200/80 mt-1">
-                        Investments earn {settings.profitPercentage}% profit daily. Profits are automatically added to your balance every 24 hours.
-                        You can withdraw your investment at any time after 7 days.
-                        {!hasInvestments && firstDeposit && (
-                          <span className="block mt-2">
-                            <strong>Note:</strong> Your first investment must be at least 50% of your first deposit (${(parseFloat(firstDeposit.amount) * 0.5).toFixed(2)}).
-                          </span>
-                        )}
-                      </p>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="mt-3 sm:mt-0 inline-flex items-center px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm rounded-lg shadow-md hover:shadow-blue-900/30 transition-all duration-300 font-medium"
+                  onClick={() => window.history.back()}
+                >
+                  <FaArrowLeft className="mr-2" />
+                  Back
+                </motion.button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                <div>
+                  <div className="bg-gradient-to-br from-amber-900/30 to-yellow-900/30 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-amber-700/30">
+                    <div className="flex flex-col sm:flex-row sm:items-start">
+                      <div className="bg-amber-900/50 rounded-full p-2 sm:p-3 mb-3 sm:mb-0 sm:mr-4 self-start inline-flex">
+                        <FaInfoCircle className="h-5 w-5 sm:h-6 sm:w-6 text-amber-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">Investment Information</h3>
+                        <p className="text-xs sm:text-sm text-amber-200/80 mt-1">
+                          Investments earn {settings.profitPercentage}% profit daily on weekdays (Monday to Friday). Profits are automatically added to your balance every 24 hours. Withdrawals are processed within 0-4 hours.
+                        </p>
+                        <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-amber-900/30 rounded-lg border border-amber-700/30">
+                          <p className="text-xs sm:text-sm text-amber-200/80 flex items-start">
+                            <FaExclamationTriangle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                            <span>Important: Profits only accumulate on weekdays (Monday to Friday). No profits are earned on weekends.</span>
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     <div>
-                      <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
+                      <label htmlFor="amount" className="block text-xs sm:text-sm font-medium text-slate-300 mb-1 sm:mb-2">
                         Investment Amount (USD)
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-slate-400">$</span>
+                        <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+                          <span className="text-slate-400 text-sm sm:text-base">$</span>
                         </div>
                         <input
                           type="text"
                           id="amount"
                           value={amount}
                           onChange={handleAmountChange}
+                          className="block w-full pl-6 sm:pl-8 pr-10 sm:pr-12 py-2 sm:py-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm sm:text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Enter amount"
-                          className="block w-full pl-8 pr-12 py-3 bg-slate-900/70 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-slate-500 transition-all duration-200"
                         />
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                          <span className="text-slate-400">USD</span>
+                        <div className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center">
+                          <span className="text-slate-400 text-sm sm:text-base">USD</span>
                         </div>
                       </div>
                       
                       {amount && parseFloat(amount) < getMinimumInvestmentAmount() && (
-                        <p className="mt-2 text-sm text-red-400 flex items-center">
-                          <FaExclamationTriangle className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
-                          {!hasInvestments && firstDeposit 
-                            ? `Your first investment must be at least 50% of your first deposit ($${(parseFloat(firstDeposit.amount) * 0.5).toFixed(2)})`
-                            : `Minimum investment amount is $${settings.minInvestment}`
-                          }
+                        <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-400 flex items-center">
+                          <FaExclamationTriangle className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                          Minimum investment amount is ${settings.minInvestment}
                         </p>
                       )}
                       
                       {amount && parseFloat(amount) > parseFloat(userData?.balance || 0) && (
-                        <p className="mt-2 text-sm text-red-400 flex items-center">
-                          <FaExclamationTriangle className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                        <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-400 flex items-center">
+                          <FaExclamationTriangle className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
                           Insufficient balance
                         </p>
                       )}
@@ -278,70 +206,123 @@ function Invest() {
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="bg-gradient-to-r from-slate-900/70 to-slate-800/70 p-5 rounded-xl border border-slate-700/50"
+                        className="bg-slate-800/50 rounded-lg p-2.5 sm:p-4 border border-slate-700/50"
                       >
-                        <h3 className="text-lg font-medium text-white mb-4 flex items-center">
-                          <FaChartLine className="mr-2 text-blue-400" />
-                          Expected Returns
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-green-500/30 transition-colors duration-300">
-                            <p className="text-sm text-slate-400 mb-1">Daily Profit</p>
-                            <p className="text-xl font-bold text-green-400">${calculateDailyReturn()}</p>
+                        <h4 className="text-xs sm:text-sm font-medium text-slate-300 mb-2 sm:mb-3">Profit Projection (Weekdays Only)</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                          <div className="bg-slate-800 p-2.5 sm:p-3 rounded-lg border border-slate-700/50">
+                            <div className="flex justify-between items-center sm:block">
+                              <p className="text-xs text-slate-400">Daily (Weekday)</p>
+                              <p className="text-sm sm:text-base md:text-lg font-semibold text-green-400 sm:mt-1">+${calculateDailyReturn()}</p>
+                            </div>
                           </div>
-                          <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-green-500/30 transition-colors duration-300">
-                            <p className="text-sm text-slate-400 mb-1">Monthly Profit</p>
-                            <p className="text-xl font-bold text-green-400">${calculateMonthlyReturn()}</p>
+                          <div className="bg-slate-800 p-2.5 sm:p-3 rounded-lg border border-slate-700/50">
+                            <div className="flex justify-between items-center sm:block">
+                              <p className="text-xs text-slate-400">Monthly (21 Days)</p>
+                              <p className="text-sm sm:text-base md:text-lg font-semibold text-green-400 sm:mt-1">+${calculateMonthlyReturn()}</p>
+                            </div>
                           </div>
-                          <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-green-500/30 transition-colors duration-300">
-                            <p className="text-sm text-slate-400 mb-1">Yearly Profit</p>
-                            <p className="text-xl font-bold text-green-400">${calculateYearlyReturn()}</p>
+                          <div className="bg-slate-800 p-2.5 sm:p-3 rounded-lg border border-slate-700/50">
+                            <div className="flex justify-between items-center sm:block">
+                              <p className="text-xs text-slate-400">Yearly (252 Days)</p>
+                              <p className="text-sm sm:text-base md:text-lg font-semibold text-green-400 sm:mt-1">+${calculateYearlyReturn()}</p>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="mt-4 p-3 bg-green-900/20 border border-green-900/30 rounded-lg">
-                          <p className="text-sm text-green-300 flex items-start">
-                            <FaInfoCircle className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span>
-                              By investing ${parseFloat(amount).toFixed(2)}, you&apos;ll earn approximately ${calculateDailyReturn()} every day, 
-                              which is ${calculateMonthlyReturn()} per month.
-                            </span>
-                          </p>
-                        </div>
+                        <p className="text-xs text-slate-400 mt-2 sm:mt-3">
+                          * Projections are based on weekday-only profit accumulation (Monday to Friday)
+                        </p>
                       </motion.div>
                     )}
 
-                    <div className="flex justify-end">
+                    <div>
                       <button
                         type="submit"
-                        disabled={isLoading || !amount || parseFloat(amount) < getMinimumInvestmentAmount() || parseFloat(amount) > parseFloat(userData?.balance || 0)}
-                        className={`px-6 py-3 rounded-lg font-medium flex items-center justify-center min-w-[180px] ${
-                          isLoading || !amount || parseFloat(amount) < getMinimumInvestmentAmount() || parseFloat(amount) > parseFloat(userData?.balance || 0)
-                            ? 'bg-slate-700 text-slate-300 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-900/30'
-                        } transition-all duration-300`}
+                        disabled={isSubmitting || !amount || parseFloat(amount) < getMinimumInvestmentAmount() || parseFloat(amount) > parseFloat(userData?.balance || 0)}
+                        className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-medium text-sm sm:text-base text-white ${
+                          isSubmitting || !amount || parseFloat(amount) < getMinimumInvestmentAmount() || parseFloat(amount) > parseFloat(userData?.balance || 0)
+                            ? 'bg-slate-700 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                        } transition-all duration-300 flex items-center justify-center`}
                       >
-                        {isLoading ? (
+                        {isSubmitting ? (
                           <>
-                            <FaSpinner className="animate-spin h-5 w-5 mr-2" />
-                            <span>Processing...</span>
+                            <svg className="animate-spin -ml-1 mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
                           </>
                         ) : (
-                          <>
-                            <FaCheckCircle className="mr-2" />
-                            <span>Create Investment</span>
-                          </>
+                          <>Create Investment</>
                         )}
                       </button>
                     </div>
                   </form>
                 </div>
+                
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-700/30">
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-4">Investment Benefits</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <div className="bg-blue-900/30 rounded-full p-2 mr-3 flex-shrink-0">
+                        <FaChartLine className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm sm:text-base font-medium text-white">Daily Profits</h4>
+                        <p className="text-xs sm:text-sm text-slate-400">Earn {settings.profitPercentage}% profit daily on weekdays (Monday to Friday) on your investment amount.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <div className="bg-green-900/30 rounded-full p-2 mr-3 flex-shrink-0">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm sm:text-base font-medium text-white">Automatic Payments</h4>
+                        <p className="text-xs sm:text-sm text-slate-400">Profits are automatically added to your balance every 24 hours.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <div className="bg-purple-900/30 rounded-full p-2 mr-3 flex-shrink-0">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm sm:text-base font-medium text-white">Flexible Terms</h4>
+                        <p className="text-xs sm:text-sm text-slate-400">Withdraw your investment at any time within a period of 0-4 hours.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <div className="bg-amber-900/30 rounded-full p-2 mr-3 flex-shrink-0">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm sm:text-base font-medium text-white">Compound Growth</h4>
+                        <p className="text-xs sm:text-sm text-slate-400">Reinvest your profits to maximize your earnings through compound growth.</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-5 p-3 sm:p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                    <h4 className="text-sm sm:text-base font-medium text-white mb-1 sm:mb-2">Your Current Balance</h4>
+                    <p className="text-xl sm:text-2xl font-bold text-white">${parseFloat(userData?.balance || 0).toFixed(2)}</p>
+                    <p className="text-xs sm:text-sm text-slate-400 mt-1">Available for investment</p>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
       
       <Footer />
     </div>

@@ -7,13 +7,15 @@
     "start": "node server.js",
     "server": "nodemon server.js",
     "local-network": "node scripts/start-local-network.js",
-    "network-test": "node scripts/network-test.js"
+    "network-test": "node scripts/network-test.js",
+    "fix-weekend-profits": "node scripts/fixWeekendProfits.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
