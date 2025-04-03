@@ -73,7 +73,7 @@ export const getAllUsers = async (req, res) => {
             attributes: [
                 'id', 'name', 'email', 'isAccountVerified', 
                 'referralCount', 'referralEarnings', 'balance',
-                'createdAt', 'isAdmin', 'profileImage'
+                'createdAt', 'isAdmin', 'profileImage', 'profilePicture'
             ],
             order: [['createdAt', 'DESC']]
         });
@@ -158,25 +158,47 @@ export const handleDeposit = async (req, res) => {
     const { depositId, status } = req.body;
     
     try {
+        console.log(`Processing deposit ${depositId} with status ${status}`);
+        
         const deposit = await Deposit.findByPk(depositId, {
             include: [{ model: User }]
         });
         
         if (!deposit) {
+            console.log(`Deposit ${depositId} not found`);
             return res.json({ success: false, message: 'Deposit not found' });
         }
 
         if (status === 'approved') {
+            // Check if the deposit is already approved to prevent double processing
+            if (deposit.status === 'approved') {
+                console.log(`Deposit ${depositId} is already approved`);
+                return res.json({ 
+                    success: false, 
+                    message: 'This deposit has already been approved' 
+                });
+            }
+            
+            console.log(`Starting transaction for deposit ${depositId}`);
             // Start a transaction to ensure data consistency
             await sequelize.transaction(async (t) => {
+                const currentBalance = parseFloat(deposit.User.balance);
+                const depositAmount = parseFloat(deposit.amount);
+                console.log(`Current balance: ${currentBalance}, Adding: ${depositAmount}`);
+                
                 // Update user's balance
                 await deposit.User.increment('balance', { 
-                    by: parseFloat(deposit.amount),
+                    by: depositAmount,
                     transaction: t 
                 });
                 
+                // Reload user to get updated balance
+                await deposit.User.reload({ transaction: t });
+                console.log(`New balance after increment: ${deposit.User.balance}`);
+                
                 // If user was referred, handle referral bonus
                 if (deposit.User.referredBy) {
+                    console.log(`Processing referral bonus for user ${deposit.User.id}`);
                     const referrer = await User.findByPk(deposit.User.referredBy, { transaction: t });
                     if (referrer) {
                         // Check if this is their first deposit
@@ -190,6 +212,7 @@ export const handleDeposit = async (req, res) => {
                         });
 
                         if (previousDeposits === 0) {
+                            console.log(`First deposit for user ${deposit.User.id}, processing referral bonus`);
                             // Increment successful referrals for referrer
                             await referrer.increment('successfulReferrals', { transaction: t });
                             await referrer.reload({ transaction: t });
@@ -200,6 +223,7 @@ export const handleDeposit = async (req, res) => {
                             // Award bonus when referrals reach the required number
                             if (referrer.successfulReferrals % referralsRequired === 0) {
                                 const bonusAmount = await getSetting('referralBonus');
+                                console.log(`Awarding bonus of ${bonusAmount} to referrer ${referrer.id}`);
                                 await Promise.all([
                                     referrer.increment('referralEarnings', { 
                                         by: bonusAmount,
@@ -220,8 +244,10 @@ export const handleDeposit = async (req, res) => {
 
                 // Update deposit status
                 await deposit.update({ status }, { transaction: t });
+                console.log(`Deposit ${depositId} status updated to ${status}`);
             });
             
+            console.log(`Successfully processed deposit ${depositId}`);
             res.json({ 
                 success: true, 
                 message: `Deposit ${status}`,
@@ -230,6 +256,7 @@ export const handleDeposit = async (req, res) => {
         } else {
             // If not approving, just update the status
             await deposit.update({ status });
+            console.log(`Deposit ${depositId} status updated to ${status}`);
             res.json({ 
                 success: true, 
                 message: `Deposit ${status}`,
@@ -387,9 +414,20 @@ export const handleInvestment = async (req, res) => {
             return res.json({ success: false, message: 'Investment not found' });
         }
 
+        // Get daily profit rate from settings when approving an investment
+        let dailyProfitRate = null;
+        if (status === 'approved') {
+            dailyProfitRate = await getSetting('profitPercentage');
+            if (!dailyProfitRate) {
+                return res.json({ success: false, message: 'Profit percentage not set in settings' });
+            }
+        }
+
         await investment.update({ 
             status,
-            lastProfitUpdate: status === 'approved' ? new Date() : null
+            lastProfitUpdate: status === 'approved' ? new Date() : null,
+            dailyProfitRate: status === 'approved' ? dailyProfitRate : null,
+            totalProfit: 0.00
         });
 
         if (status === 'approved') {
@@ -581,6 +619,7 @@ export const updateUser = async (req, res) => {
     console.log('Updating user:', userId);
     console.log('Request body:', req.body);
     console.log('isAdmin value:', isAdmin);
+    console.log('File upload:', req.file);
     
     const user = await User.findByPk(userId);
     if (!user) {
@@ -598,7 +637,7 @@ export const updateUser = async (req, res) => {
       
       // Check if email is taken by another user
       const existingUser = await User.findOne({ where: { email } });
-      if (existingUser) {
+      if (existingUser && existingUser.id !== user.id) {
         return res.json({ success: false, message: 'Email already exists' });
       }
     }
@@ -611,8 +650,9 @@ export const updateUser = async (req, res) => {
     console.log('isAdmin after conversion:', isAdminBoolean);
 
     // Handle profile image if uploaded
-    let profileImage = user.profileImage;
+    let profileImage = user.profileImage || user.profilePicture;
     if (req.file) {
+      console.log('New profile image uploaded:', req.file.filename);
       profileImage = '/uploads/' + req.file.filename;
     }
 
@@ -623,8 +663,11 @@ export const updateUser = async (req, res) => {
       isAdmin: isAdminBoolean,
       isAccountVerified,
       balance,
-      profileImage
+      profileImage,
+      profilePicture: profileImage // Update both fields for consistency
     };
+
+    console.log('Update data:', updateData);
 
     // If password is provided, hash it and add to update data
     if (password && password.trim() !== '') {
@@ -638,6 +681,7 @@ export const updateUser = async (req, res) => {
 
     // Get the updated user data
     const updatedUser = await User.findByPk(userId);
+    console.log('Updated user data:', updatedUser);
 
     // If totalInvestments, totalProfits, or totalWithdrawals were provided, update related records
     if (totalInvestments !== undefined || totalProfits !== undefined || totalWithdrawals !== undefined) {
@@ -653,10 +697,20 @@ export const updateUser = async (req, res) => {
       // For example, you could create adjustment records or update existing records
     }
 
+    // Format user data to ensure consistent profile image fields
+    const userData = updatedUser.toJSON();
+    
+    // Ensure both profile image fields are consistently set
+    if (userData.profileImage && !userData.profilePicture) {
+      userData.profilePicture = userData.profileImage;
+    } else if (userData.profilePicture && !userData.profileImage) {
+      userData.profileImage = userData.profilePicture;
+    }
+
     res.json({ 
       success: true, 
       message: 'User updated successfully',
-      user: updatedUser
+      user: userData
     });
   } catch (error) {
     console.error('Error updating user:', error);
@@ -761,5 +815,132 @@ export const getUserReferralCodes = async (req, res) => {
     } catch (error) {
         console.error('Error fetching user referral codes:', error);
         res.json({ success: false, message: error.message });
+    }
+};
+
+// Add a test email function to help diagnose email deliverability issues
+export const testEmail = async (req, res) => {
+    try {
+        const { testEmail } = req.body;
+        
+        if (!testEmail) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Test email address is required' 
+            });
+        }
+        
+        console.log('Attempting to send test email to:', testEmail);
+        
+        // Simplified email for better deliverability
+        const mailOptions = {
+            from: {
+                name: process.env.SENDER_NAME || 'Invest Up Support',
+                address: process.env.SENDER_EMAIL
+            },
+            to: testEmail,
+            subject: 'Invest Up Email Test',
+            text: `This is a test email from Invest Up
+
+This email was sent to verify that the email delivery system is working correctly.
+
+Email Configuration:
+- SMTP Host: ${process.env.SMTP_HOST || 'smtp-brevo.com'}
+- SMTP Port: ${process.env.SMTP_PORT || '587'}
+- Sender Email: ${process.env.SENDER_EMAIL}
+- Test Time: ${new Date().toISOString()}
+
+If you received this email, it means that your email delivery system is working correctly!
+
+Best regards,
+Invest Up Support Team`,
+            html: `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invest Up Email Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; }
+        .header { border-bottom: 2px solid #4A86E8; padding-bottom: 10px; margin-bottom: 20px; }
+        .info { background-color: #f9f9f9; padding: 15px; border-left: 3px solid #4A86E8; margin-bottom: 15px; }
+        .footer { font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Invest Up Email Test</h2>
+        </div>
+        
+        <p>This email was sent to verify that the email delivery system is working correctly.</p>
+        
+        <div class="info">
+            <h3>Email Configuration</h3>
+            <p><strong>SMTP Host:</strong> ${process.env.SMTP_HOST || 'smtp-brevo.com'}</p>
+            <p><strong>SMTP Port:</strong> ${process.env.SMTP_PORT || '587'}</p>
+            <p><strong>Sender Email:</strong> ${process.env.SENDER_EMAIL}</p>
+            <p><strong>Test Time:</strong> ${new Date().toISOString()}</p>
+        </div>
+        
+        <p>If you received this email, it means that your email delivery system is working correctly!</p>
+        
+        <div class="footer">
+            <p>Best regards,<br>Invest Up Support Team</p>
+        </div>
+    </div>
+</body>
+</html>
+            `
+        };
+        
+        try {
+            // Log SMTP configuration for debugging
+            console.log('SMTP configuration for test email:', {
+                host: process.env.SMTP_HOST || 'smtp-brevo.com',
+                port: process.env.SMTP_PORT || '587',
+                user: process.env.SMTP_USER,
+                sender: process.env.SENDER_EMAIL,
+                recipient: testEmail
+            });
+            
+            // Send test email
+            const info = await transporter.sendMail(mailOptions);
+            console.log('Test email sent successfully:', info.messageId);
+            
+            res.json({ 
+                success: true, 
+                message: 'Test email sent successfully', 
+                details: {
+                    messageId: info.messageId,
+                    recipient: testEmail,
+                    time: new Date().toISOString()
+                }
+            });
+        } catch (emailError) {
+            console.error('Failed to send test email:', emailError);
+            const errorInfo = {
+                message: emailError.message,
+                stack: emailError.stack,
+                code: emailError.code
+            };
+            console.error('Email error details:', errorInfo);
+            
+            res.status(500).json({ 
+                success: false, 
+                message: 'Failed to send test email: ' + emailError.message,
+                error: errorInfo
+            });
+        }
+    } catch (error) {
+        console.error('Error in test email function:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to send test email', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 }; 

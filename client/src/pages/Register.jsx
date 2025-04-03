@@ -12,12 +12,13 @@ function Register() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const referralCode = queryParams.get('ref');
-  const { register, isAuthenticated, isLoading } = useStore();
+  const { register, isAuthenticated, isLoading, userData } = useStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const submitTimeoutRef = useRef(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,10 +33,20 @@ function Register() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
+    // Handle navigation based on authentication and verification status
+    if (isAuthenticated && userData) {
+      if (userData.isTempUser) {
+        // For Google OAuth users with temporary token
+        navigate('/complete-profile');
+      } else if (!userData.isAccountVerified && formSubmitted) {
+        // For regular users who just registered and need to verify email
+        navigate('/email-verify');
+      } else if (userData.isAccountVerified) {
+        // For verified users
+        navigate('/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, formSubmitted, userData]);
 
   useEffect(() => {
     if (!isLoading && isSubmitting) {
@@ -159,7 +170,9 @@ function Register() {
         const response = await register(formDataToSend);
         
         if (response.success) {
+          setFormSubmitted(true);
           toast.success('Registration successful! Please verify your email.');
+          // Navigate to email verification page immediately
           navigate('/email-verify');
         } else {
           if (response.errorType === 'EMAIL_EXISTS') {

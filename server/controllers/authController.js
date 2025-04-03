@@ -5,6 +5,7 @@ import transporter from '../config/nodemailer.js';
 import {EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE} from '../config/emailTemplates.js';
 import crypto from 'crypto';
 import validateEmail from '../utils/emailValidator.js';
+import cloudinary from '../config/cloudinary.js';
 
 export const register = async (req, res) => {
     const {name, email, password, referralCode} = req.body;
@@ -52,7 +53,6 @@ export const register = async (req, res) => {
             const referrer = await User.findOne({ where: { referralCode } });
             if (referrer) {
                 referredBy = referrer.id;
-                // Remove the immediate bonus - will be given after first deposit
                 await referrer.increment('referralCount');
             }
         }
@@ -61,13 +61,29 @@ export const register = async (req, res) => {
         
         // Generate verification OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiry = Date.now() + 10 * 60 * 1000;
+        const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now as bigint
 
-        // Handle profile image if uploaded
-        let profileImage = null;
+        let profilePicture = null;
+        
+        // Handle profile image upload if provided
         if (req.file) {
-            // Get the relative path to the uploaded file
-            profileImage = `/uploads/profiles/${req.file.filename}`;
+            try {
+                // Convert buffer to base64
+                const b64 = Buffer.from(req.file.buffer).toString('base64');
+                const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+                
+                // Upload to Cloudinary
+                const uploadResult = await cloudinary.uploader.upload(dataURI, {
+                    folder: 'profile_pictures',
+                    resource_type: 'auto'
+                });
+                
+                profilePicture = uploadResult.secure_url;
+                console.log('Profile image uploaded to Cloudinary:', profilePicture);
+            } catch (uploadError) {
+                console.error('Error uploading profile image:', uploadError);
+                // Continue with registration even if image upload fails
+            }
         }
 
         console.log('Creating new user...');
@@ -79,7 +95,7 @@ export const register = async (req, res) => {
             referredBy,
             verifyOtp: otp,
             verifyOtpExpireAt: otpExpiry,
-            profileImage
+            profilePicture // Store the Cloudinary URL
         });
         console.log(`User created with ID: ${user.id}`);
 
@@ -115,17 +131,17 @@ export const register = async (req, res) => {
         });
 
         console.log('Registration successful');
-        // Also send token in response body for mobile clients
         return res.json({
             success: true,
-            token: token, // Include token in response for mobile clients
+            token: token,
             userData: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
                 referralCode: user.referralCode,
                 isAccountVerified: user.isAccountVerified,
-                isAdmin: user.isAdmin
+                isAdmin: user.isAdmin,
+                profilePicture: user.profilePicture // Include the profile picture URL in response
             },
             message: 'Registration successful! Please verify your email.'
         });
@@ -133,9 +149,8 @@ export const register = async (req, res) => {
     } catch (error) {
         console.error('Registration error:', error);
         return res.status(500).json({
-            success: false, 
-            message: 'An error occurred during registration. Please try again.',
-            error: error.message
+            success: false,
+            message: error.message
         });
     }
 };
@@ -209,7 +224,7 @@ export const login = async (req, res) => {
                 referralCount: user.referralCount,
                 referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
                 successfulReferrals: user.successfulReferrals || 0,
-                profileImage: user.profileImage
+                profilePicture: user.profilePicture
             }
         });
     } catch (error) {
@@ -303,7 +318,7 @@ export const sendResetOtp = async (req, res) => {
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+        const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now as bigint
 
         await user.update({
             resetOtp: otp,
@@ -422,7 +437,7 @@ export const registerWithReferral = async (req, res) => {
         
         // Generate verification OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiry = Date.now() + 10 * 60 * 1000;
+        const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now as bigint
 
         console.log('Creating new user with referral...');
         const user = await User.create({
@@ -502,11 +517,11 @@ export const checkAuth = async (req, res) => {
         console.log('checkAuth route called');
         
         // Get token from cookies or Authorization header
-        let token = req.cookies.token;
+        let token = req.cookies && req.cookies.token ? req.cookies.token : null;
         console.log('Cookie token:', token ? 'present' : 'not present');
         
         // Check Authorization header if no cookie token (for mobile clients)
-        if (!token && req.headers.authorization) {
+        if (!token && req.headers && req.headers.authorization) {
             const authHeader = req.headers.authorization;
             console.log('Authorization header:', authHeader ? `${authHeader.substring(0, 15)}...` : 'not present');
             
@@ -526,6 +541,15 @@ export const checkAuth = async (req, res) => {
         // Verify the token
         try {
             console.log('Verifying token...');
+            // Check if JWT_SECRET is properly set
+            if (!process.env.JWT_SECRET) {
+                console.error('JWT_SECRET is not set in environment variables');
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Server configuration error' 
+                });
+            }
+            
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             console.log('Token verified, decoded id:', decoded.id);
             
@@ -543,34 +567,62 @@ export const checkAuth = async (req, res) => {
                 });
             }
 
-            // Check if user exists in DB
-            console.log('Looking up user in database with id:', decoded.id);
-            const user = await User.findByPk(decoded.id);
-            
-            if (!user) {
-                console.log('User not found in database');
-                return res.json({ success: false, isAuthenticated: false });
+            // Check if User model is available
+            if (!User) {
+                console.error('User model is not properly imported or defined');
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Server configuration error' 
+                });
             }
 
-            // User is authenticated
-            console.log('User authenticated successfully:', user.name);
-            return res.json({ 
-                success: true, 
-                isAuthenticated: true,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    isAdmin: user.isAdmin || false,
-                    isAccountVerified: user.isAccountVerified || false
-                } 
+            // Check if user exists in DB - use try/catch for database operation
+            console.log('Looking up user in database with id:', decoded.id);
+            try {
+                const user = await User.findByPk(decoded.id);
+                
+                if (!user) {
+                    console.log('User not found in database');
+                    return res.json({ success: false, isAuthenticated: false });
+                }
+
+                // User is authenticated
+                console.log('User authenticated successfully:', user.name);
+                return res.json({ 
+                    success: true, 
+                    isAuthenticated: true,
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        isAdmin: user.isAdmin || false,
+                        isAccountVerified: user.isAccountVerified || false
+                    } 
+                });
+            } catch (dbError) {
+                console.error('Database error when finding user:', dbError);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Database error', 
+                    error: dbError.message 
+                });
+            }
+        } catch (jwtError) {
+            console.error('Token verification failed:', jwtError.message);
+            // For token errors, return 401 instead of 500
+            return res.status(401).json({ 
+                success: false, 
+                isAuthenticated: false, 
+                message: 'Invalid or expired token'
             });
-        } catch (error) {
-            console.error('Token verification failed:', error.message);
-            return res.json({ success: false, isAuthenticated: false });
         }
     } catch (error) {
         console.error('Auth check error:', error);
-        return res.json({ success: false, isAuthenticated: false });
+        return res.status(500).json({ 
+            success: false, 
+            isAuthenticated: false,
+            message: 'Server error during authentication check',
+            error: error.message
+        });
     }
 };

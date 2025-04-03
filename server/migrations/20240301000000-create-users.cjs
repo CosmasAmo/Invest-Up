@@ -26,8 +26,8 @@ module.exports = {
         defaultValue: ''
       },
       verifyOtpExpireAt: {
-        type: DataTypes.BIGINT,
-        defaultValue: 0
+        type: DataTypes.DATE,
+        allowNull: true
       },
       isAccountVerified: {
         type: DataTypes.BOOLEAN,
@@ -38,8 +38,8 @@ module.exports = {
         defaultValue: ''
       },
       resetOtpExpireAt: {
-        type: DataTypes.BIGINT,
-        defaultValue: 0
+        type: DataTypes.DATE,
+        allowNull: true
       },
       googleId: {
         type: DataTypes.STRING,

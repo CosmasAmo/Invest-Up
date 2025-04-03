@@ -25,6 +25,7 @@ function Dashboard() {
         unreadCount,
         fetchMessages,
         replyToMessage,
+        testEmail,
         recentTransactions,
         fetchRecentTransactions
     } = useAdminStore();
@@ -32,6 +33,9 @@ function Dashboard() {
     const [replyModal, setReplyModal] = useState({ isOpen: false, message: null });
     const [reply, setReply] = useState('');
     const [isReplying, setIsReplying] = useState(false);
+    const [testEmailModal, setTestEmailModal] = useState(false);
+    const [testEmailAddress, setTestEmailAddress] = useState('');
+    const [isSendingTest, setIsSendingTest] = useState(false);
 
     useEffect(() => {
         fetchAdminStats();
@@ -66,6 +70,30 @@ function Dashboard() {
         fetchMessages,
         fetchRecentTransactions
     ]);
+
+    // Add test email handler
+    const handleTestEmail = async () => {
+        if (!testEmailAddress.trim() || !/\S+@\S+\.\S+/.test(testEmailAddress)) {
+            toast.error('Please enter a valid email address');
+            return;
+        }
+
+        setIsSendingTest(true);
+        try {
+            const result = await testEmail(testEmailAddress);
+            if (result.success) {
+                toast.success(`Test email sent to ${testEmailAddress}`);
+                setTestEmailModal(false);
+                setTestEmailAddress('');
+            } else {
+                toast.error(result.error || 'Failed to send test email');
+            }
+        } catch (error) {
+            toast.error(error.message || 'Failed to send test email');
+        } finally {
+            setIsSendingTest(false);
+        }
+    };
 
     const statsCards = [
         { 
@@ -359,14 +387,28 @@ function Dashboard() {
         setIsReplying(true);
         try {
             const success = await replyToMessage(replyModal.message.id, reply);
+            
+            // Close the modal in all cases since the reply is saved in the DB
+            const result = useAdminStore.getState();
+            
             if (success) {
-                toast.success('Reply sent successfully');
+                if (!result.emailSent) {
+                    // Show a toast message if reply was saved but email couldn't be delivered
+                    toast.warning('Reply saved but email delivery failed. User will see your reply when they log in.');
+                } else {
+                    toast.success('Reply sent successfully via email');
+                }
                 setReplyModal({ isOpen: false, message: null });
+            } else {
+                // Handle complete failure
+                const errorMessage = result.error;
+                toast.error(errorMessage || 'Failed to save reply');
             }
         } catch (error) {
-            toast.error(error.message || 'Failed to send reply');
+            toast.error(error.message || 'Failed to process reply');
+        } finally {
+            setIsReplying(false);
         }
-        setIsReplying(false);
     };
 
     // Add this new render function for recent transactions
@@ -442,6 +484,12 @@ function Dashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
+                        <button 
+                            onClick={() => setTestEmailModal(true)} 
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                            Test Email
+                        </button>
                         <button 
                             onClick={() => fetchAdminStats()} 
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -667,6 +715,50 @@ function Dashboard() {
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isReplying ? 'Sending...' : 'Send Reply'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Test Email Modal */}
+            {testEmailModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 bg-slate-700 border-b border-slate-600">
+                            <h3 className="text-lg font-semibold text-white">Test Email Delivery</h3>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-300 mb-4">
+                                Send a test email to verify that the email system is working correctly.
+                            </p>
+                            <div className="mb-4">
+                                <label className="block text-white mb-2" htmlFor="testEmail">
+                                    Email Address
+                                </label>
+                                <input
+                                    id="testEmail"
+                                    type="email"
+                                    placeholder="Enter email address"
+                                    value={testEmailAddress}
+                                    onChange={(e) => setTestEmailAddress(e.target.value)}
+                                    className="w-full bg-slate-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex justify-end mt-4 space-x-2">
+                                <button
+                                    onClick={() => setTestEmailModal(false)}
+                                    className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleTestEmail}
+                                    disabled={isSendingTest || !testEmailAddress.trim()}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSendingTest ? 'Sending...' : 'Send Test Email'}
                                 </button>
                             </div>
                         </div>

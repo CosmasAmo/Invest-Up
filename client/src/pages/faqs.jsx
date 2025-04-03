@@ -71,7 +71,7 @@ const Faqs = () => {
       },
       {
         question: "Is there a minimum or maximum withdrawal amount?",
-        answer: `The minimum withdrawal amount is $${settings.minWithdrawal}, and the maximum withdrawal amount per transaction is $100,000 daily. These limits are in place to ensure smooth operations and security.`
+        answer: `The minimum withdrawal amount is $${settings.minWithdrawal}. These limits are in place to ensure smooth operations and security.`
       },
       {
         question: "How are the 5% daily profits calculated?",

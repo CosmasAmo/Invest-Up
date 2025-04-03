@@ -16,7 +16,7 @@ function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
-  const [profileImage, setProfileImage] = useState(userData?.profileImage || null);
+  const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   
   const [formData, setFormData] = useState({
@@ -48,13 +48,11 @@ function Profile() {
         email: userData.email || ''
       }));
       
-      // Handle profile image
-      if (userData.profileImage) {
-        setProfileImage(userData.profileImage);
-        // Clear any preview since we're using the stored image
-        setImagePreview(null);
+      // Handle profile image - get from userData
+      const profileImg = userData.profilePicture || userData.profileImage;
+      if (profileImg) {
+        setImagePreview(profileImg);
       } else {
-        setProfileImage(null);
         setImagePreview(null);
       }
       
@@ -83,6 +81,8 @@ function Profile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     
     try {
@@ -90,27 +90,21 @@ function Profile() {
       formDataToSend.append('name', formData.name);
       formDataToSend.append('email', formData.email);
       
-      if (profileImage && profileImage !== userData?.profileImage) {
+      if (profileImage) {
+        console.log('Attaching profile image to form data:', profileImage.name, profileImage.type, profileImage.size);
         formDataToSend.append('profileImage', profileImage);
       }
-      
-      console.log('Updating profile with:', {
-        name: formData.name,
-        email: formData.email,
-        hasNewImage: profileImage !== userData?.profileImage
-      });
       
       const success = await updateProfile(formDataToSend);
       
       if (success) {
         toast.success('Profile updated successfully');
         setIsEditing(false);
-      } else {
-        toast.error('Failed to update profile. Please try again.');
+        // Reset the profile image state after successful update
+        setProfileImage(null);
       }
     } catch (error) {
-      console.error('Profile update error:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(`Failed to update profile: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -136,6 +130,20 @@ function Profile() {
     }
   };
 
+  // Helper function to get profile image
+  const getProfileImg = () => {
+    // If we have a preview from file upload, use that
+    if (imagePreview && imagePreview.startsWith('data:')) {
+      return imagePreview; // Data URL from file preview
+    }
+    
+    // Otherwise get from user data and process with getImageUrl
+    if (!userData) return null;
+    
+    const profileImg = userData.profilePicture || userData.profileImage;
+    return profileImg; // Already processed by the store
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
@@ -151,21 +159,36 @@ function Profile() {
             <div className="w-full md:w-1/4 bg-slate-900/80 p-4 sm:p-6 backdrop-blur-sm">
               <div className="flex flex-col items-center mb-6 sm:mb-8">
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 mb-3 sm:mb-4 group">
-                  {imagePreview || userData?.profileImage ? (
+                  {getProfileImg() ? (
                     <img 
-                      src={imagePreview || (userData?.profileImage 
-                        ? userData.profileImage.startsWith('http') 
-                          ? userData.profileImage 
-                          : `${axios.defaults.baseURL}${userData.profileImage}`
-                        : null)} 
+                      src={getProfileImg()} 
                       alt="Profile" 
                       className="w-full h-full object-cover rounded-full"
                       onError={(e) => {
-                        console.error('Profile image failed to load:', e);
+                        console.error('Profile image failed to load:', e.target.src);
+                        
+                        // Try to determine if this is a client-side URL error
+                        const src = e.target.src;
+                        if (src && src.includes('https://investuptrading.com/uploads')) {
+                          console.log('Detected client URL in profile image, attempting to fix');
+                          useStore.getState().refreshUserProfile();
+                        }
+                        
                         e.target.onerror = null; // Prevent infinite loop
                         e.target.style.display = 'none'; // Hide the broken image
-                        // Show fallback
-                        e.target.parentNode.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-700 rounded-full"><svg class="text-gray-400 w-16 h-16 sm:w-20 sm:h-20" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg></div>';
+                        
+                        // Show fallback with refresh button
+                        const fallbackHtml = `
+                          <div class="w-full h-full flex flex-col items-center justify-center bg-slate-700 rounded-full">
+                            <svg class="text-gray-400 w-12 h-12 sm:w-16 sm:h-16" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                            <button class="mt-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded" onclick="window.location.reload()">
+                              Reload
+                            </button>
+                          </div>
+                        `;
+                        e.target.parentNode.innerHTML = fallbackHtml;
                       }}
                     />
                   ) : (
@@ -175,16 +198,41 @@ function Profile() {
                   )}
                   
                   {isEditing && (
-                    <label htmlFor="profile-image" className="absolute bottom-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full p-2 sm:p-2.5 cursor-pointer shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300">
-                      <FaCamera className="text-white text-sm sm:text-base" />
-                      <input 
-                        type="file" 
-                        id="profile-image" 
-                        className="hidden" 
+                    <label 
+                      htmlFor="profile-image" 
+                      className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-2 cursor-pointer hover:bg-blue-600 transition-colors"
+                    >
+                      <FaCamera className="text-white" />
+                      <input
+                        type="file"
+                        id="profile-image"
+                        className="hidden"
                         accept="image/*"
                         onChange={handleImageChange}
                       />
                     </label>
+                  )}
+                  
+                  {!isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Use our dedicated profile refresh function
+                        useStore.getState().refreshUserProfile().then(() => {
+                          toast.info('Profile data refreshed');
+                          // Force reload the page to make sure all images are refreshed
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 1000);
+                        });
+                      }}
+                      className="absolute top-0 right-0 bg-slate-700 rounded-full p-1.5 cursor-pointer hover:bg-slate-600 transition-colors opacity-70 hover:opacity-100"
+                      title="Refresh profile image"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
                   )}
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{userData?.name}</h3>

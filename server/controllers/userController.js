@@ -41,6 +41,23 @@ export const getUserdata = async (req, res) => {
             referrerName = referrer ? referrer.name : null;
         }
 
+        // Handle profile image - use either profileImage or profilePicture
+        const profileImage = user.profileImage || null;
+        const profilePicture = user.profilePicture || profileImage;
+
+        // Validate paths - ensure they start with either http, https, or /uploads/
+        const isValidImagePath = (path) => {
+            return path && (
+                path.startsWith('http://') || 
+                path.startsWith('https://') || 
+                path.startsWith('/uploads/')
+            );
+        };
+
+        // Apply validation
+        const validatedProfileImage = isValidImagePath(profileImage) ? profileImage : null;
+        const validatedProfilePicture = isValidImagePath(profilePicture) ? profilePicture : null;
+
         return res.json({
             success: true,
             userData: {
@@ -53,7 +70,8 @@ export const getUserdata = async (req, res) => {
                 successfulReferrals: user.successfulReferrals || 0,
                 referralEarnings: parseFloat(user.referralEarnings || 0).toFixed(2),
                 balance: parseFloat(user.balance || 0).toFixed(2),
-                profileImage: user.profileImage,
+                profileImage: validatedProfileImage,
+                profilePicture: validatedProfilePicture,
                 recentTransactions: deposits.slice(0, 5), // Get last 5 transactions
                 referredBy: referrerName,
                 createdAt: user.createdAt
@@ -110,7 +128,10 @@ export const updateProfile = async (req, res) => {
         if (profileImage) {
             // Store the image path in the database
             console.log('Profile image received:', profileImage.filename);
-            updateData.profileImage = '/uploads/' + profileImage.filename;
+            const profileImagePath = '/uploads/' + profileImage.filename;
+            console.log('Setting profile image path to:', profileImagePath);
+            updateData.profileImage = profileImagePath;
+            updateData.profilePicture = profileImagePath; // Update both fields for consistency
         }
 
         // Update the user's profile
@@ -133,12 +154,37 @@ export const updateProfile = async (req, res) => {
                 // Continue execution even if this fails
             }
         }
+        
+        // Format user data to ensure consistent profile image fields
+        const userData = updatedUser.toJSON();
+        if (userData.profileImage && !userData.profilePicture) {
+            userData.profilePicture = userData.profileImage;
+        } else if (userData.profilePicture && !userData.profileImage) {
+            userData.profileImage = userData.profilePicture;
+        }
+
+        // Validate paths - ensure they start with either http, https, or /uploads/
+        const isValidImagePath = (path) => {
+            return path && (
+                path.startsWith('http://') || 
+                path.startsWith('https://') || 
+                path.startsWith('/uploads/')
+            );
+        };
+
+        // Apply validation
+        if (!isValidImagePath(userData.profileImage)) {
+            userData.profileImage = null;
+        }
+        if (!isValidImagePath(userData.profilePicture)) {
+            userData.profilePicture = null;
+        }
 
         // Return success response with updated user data
         return res.json({ 
             success: true, 
             message: 'Profile updated successfully',
-            userData: updatedUser
+            userData: userData
         });
 
     } catch (error) {
@@ -153,6 +199,14 @@ export const getDashboardData = async (req, res) => {
         
         // Get user data
         const user = await User.findByPk(userId);
+        
+        // Ensure both profile image fields are properly set
+        const userData = user.toJSON();
+        if (userData.profileImage && !userData.profilePicture) {
+            userData.profilePicture = userData.profileImage;
+        } else if (userData.profilePicture && !userData.profileImage) {
+            userData.profileImage = userData.profilePicture;
+        }
         
         // Get investments data
         const investments = await Investment.findAll({
@@ -249,19 +303,23 @@ export const getDashboardData = async (req, res) => {
         // Count pending deposits
         const pendingDeposits = deposits.filter(dep => dep.status === 'pending').length;
 
+        // Return with consistent user data
         res.json({
             success: true,
             user: {
-                ...user.toJSON(),
-                successfulReferrals: user.successfulReferrals || 0,
-                recentTransactions: allTransactions.slice(0, 10) // Get last 10 transactions
+                ...userData,
+                successfulReferrals: userData.successfulReferrals || 0,
+                recentTransactions: allTransactions.slice(0, 10), // Get last 10 transactions
+                // Ensure both profile image fields are properly set
+                profilePicture: userData.profilePicture || userData.profileImage || null,
+                profileImage: userData.profileImage || userData.profilePicture || null
             },
             stats: {
                 totalDeposits,
                 totalInvestments: investmentStats.totalInvestments,
                 totalProfit: investmentStats.totalProfit,
                 activeInvestments: investmentStats.activeInvestments,
-                referralEarnings: parseFloat(user.referralEarnings || 0),
+                referralEarnings: parseFloat(userData.referralEarnings || 0),
                 pendingDeposits,
                 totalWithdrawals,
                 pendingWithdrawals,
@@ -296,6 +354,9 @@ export const getUserDeposits = async (req, res) => {
 export const getUserTransactions = async (req, res) => {
     try {
         const userId = req.userId;
+        
+        // Get user data for including in response
+        const user = await User.findByPk(userId);
         
         // Get deposits data
         const deposits = await Deposit.findAll({
@@ -361,6 +422,14 @@ export const getUserTransactions = async (req, res) => {
             .filter(inv => inv.status === 'approved')
             .reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
 
+        // Format user data to ensure consistent profile image fields
+        const userData = user ? user.toJSON() : {};
+        if (userData.profileImage && !userData.profilePicture) {
+            userData.profilePicture = userData.profileImage;
+        } else if (userData.profilePicture && !userData.profileImage) {
+            userData.profileImage = userData.profilePicture;
+        }
+
         res.json({
             success: true,
             transactions: allTransactions,
@@ -368,6 +437,12 @@ export const getUserTransactions = async (req, res) => {
                 totalDeposits,
                 totalWithdrawals,
                 totalInvestments
+            },
+            userData: {
+                name: userData.name,
+                email: userData.email,
+                profileImage: userData.profileImage,
+                profilePicture: userData.profilePicture
             }
         });
     } catch (error) {

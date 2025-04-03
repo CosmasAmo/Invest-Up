@@ -1,18 +1,9 @@
 import axios from 'axios';
 
-// Determine the API URL based on the environment
-const getApiUrl = () => {
-  // In production, you would use your actual domain
-  if (import.meta.env.PROD) {
-    return 'https://yourdomain.com'; // Replace with your production URL
-  }
-  
-  // For development, always use localhost
-  return 'http://localhost:5000';
-};
-
 const instance = axios.create({
-    baseURL: getApiUrl(),
+    baseURL: import.meta.env.PROD 
+        ? 'https://investuptrading.com/backend'
+        : 'http://localhost:5000',
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json'

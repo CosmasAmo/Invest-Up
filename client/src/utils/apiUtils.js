@@ -1,66 +1,71 @@
 import axios from 'axios';
 
 /**
+ * Set the API base URL based on the environment
+ * @returns {string} API base URL
+ */
+export function getApiBaseUrl() {
+  if (import.meta.env.PROD) {
+    return 'https://investuptrading.com/backend';
+  }
+  return 'http://localhost:5000';
+}
+
+/**
  * Creates a request configuration with proper headers for authentication
+ * @param {string} token - Optional existing token
  * @returns {Object} Request configuration for axios
  */
-export const createRequestConfig = () => {
-  // Get the token from localStorage
-  const token = localStorage.getItem('auth_token');
-  
-  // Create a request config with explicit headers
+export function createRequestConfig(token = null) {
   const config = {
     headers: {
       'Content-Type': 'application/json',
     },
-    withCredentials: true
   };
   
-  // Add Authorization header if we have a token
+  // Add authorization token if provided
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   
   return config;
-};
+}
 
 /**
  * Handles API errors
  * @param {Error} error - The error object from axios
- * @param {Function} setError - Function to set the error state
- * @param {string} customMessage - Custom error message prefix
+ * @returns {string} Error message
  */
-export const handleApiError = (error, setError, customMessage = 'API Error') => {
-  console.error(`${customMessage}:`, error);
-  setError(error.message || 'An unknown error occurred');
-};
+export function handleApiError(error) {
+  if (error.response) {
+    // Server responded with an error
+    return error.response.data.message || 'An error occurred with the server.';
+  } else if (error.request) {
+    // Request was made but no response received
+    return 'No response received from server. Please check your connection.';
+  } else {
+    // Error in request setup
+    return error.message || 'An unexpected error occurred.';
+  }
+}
 
 /**
- * Makes an authenticated API request with proper error handling
- * @param {string} method - HTTP method (get, post, put, delete)
- * @param {Object} data - Request data (for POST/PUT)
+ * Makes an API request and handles errors consistently
+ * @param {Function} apiCallFn - Function that returns a promise (axios call)
  * @param {Function} setError - Function to set error state
  * @param {string} errorMessage - Custom error message
- * @returns {Promise} - Promise with the response data
+ * @returns {Promise} - Promise resolved with the response data
  */
-export const makeApiRequest = async (method, url, data = null, setError, errorMessage) => {
+export const makeApiRequest = async (apiCallFn, setError, errorMessage = 'API Error') => {
   try {
-    const config = createRequestConfig();
-    
-    let response;
-    if (method.toLowerCase() === 'get') {
-      response = await axios.get(url, config);
-    } else if (method.toLowerCase() === 'post') {
-      response = await axios.post(url, data, config);
-    } else if (method.toLowerCase() === 'put') {
-      response = await axios.put(url, data, config);
-    } else if (method.toLowerCase() === 'delete') {
-      response = await axios.delete(url, config);
-    }
-    
+    const response = await apiCallFn();
     return response.data;
   } catch (error) {
-    handleApiError(error, setError, errorMessage);
+    const message = handleApiError(error);
+    if (setError) {
+      setError(message);
+    }
+    console.error(`${errorMessage}:`, error);
     throw error;
   }
 }; 

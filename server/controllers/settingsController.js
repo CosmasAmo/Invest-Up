@@ -113,6 +113,9 @@ export const updateSettings = async (req, res) => {
       }
     });
 
+    // Check if profitInterval has changed
+    const profitIntervalChanged = settings.profitInterval !== profitInterval;
+
     // Update settings
     await settings.update({
       referralBonus,
@@ -125,6 +128,33 @@ export const updateSettings = async (req, res) => {
       referralsRequired,
       depositAddresses
     });
+
+    // If profit interval has changed, update the calculation schedule
+    if (profitIntervalChanged) {
+      try {
+        // Make internal request to update the profit calculation interval
+        const http = await import('http');
+        const options = {
+          hostname: 'localhost',
+          port: process.env.PORT || 5001,
+          path: '/api/admin/update-profit-interval',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        };
+
+        const updateIntervalReq = http.request(options);
+        updateIntervalReq.on('error', (error) => {
+          console.error('Error updating profit calculation interval:', error);
+        });
+        updateIntervalReq.end();
+        
+        console.log(`Profit interval updated to ${profitInterval} minutes`);
+      } catch (intervalError) {
+        console.error('Failed to update profit calculation interval:', intervalError);
+      }
+    }
 
     res.json({
       success: true,
@@ -171,5 +201,44 @@ export const getSetting = async (key) => {
       referralsRequired: 2
     };
     return defaults[key] || null;
+  }
+};
+
+// Get public settings - accessible without authentication
+export const getPublicSettings = async (req, res) => {
+  try {
+    // Get the first settings record or create default if none exists
+    const [settings] = await Settings.findOrCreate({
+      where: { id: 1 },
+      defaults: {
+        referralBonus: 5,
+        minWithdrawal: 3,
+        minDeposit: 3,
+        minInvestment: 3,
+        profitPercentage: 5,
+        profitInterval: 5,
+        withdrawalFee: 2,
+        referralsRequired: 2
+      }
+    });
+
+    // Only return a subset of settings that are safe for public consumption
+    const publicSettings = {
+      minDeposit: settings.minDeposit,
+      minInvestment: settings.minInvestment,
+      profitPercentage: settings.profitPercentage,
+      referralBonus: settings.referralBonus,
+      referralsRequired: settings.referralsRequired
+    };
+
+    res.json({
+      success: true,
+      settings: publicSettings
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 }; 

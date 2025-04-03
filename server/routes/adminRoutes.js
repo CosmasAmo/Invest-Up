@@ -7,7 +7,8 @@ import {
     getPendingInvestments, handleInvestment, getApprovedInvestments, 
     getPendingWithdrawals, handleWithdrawal, getMessages, 
     markAsRead, replyToMessage, createUser, deleteUser, 
-    updateUser, getRecentTransactions, getUserReferralCodes 
+    updateUser, getRecentTransactions, getUserReferralCodes, 
+    testEmail
 } from '../controllers/adminController.js';
 import adminAuth from '../middleware/adminAuth.js';
 import { auditLogMiddleware } from '../middleware/auditLogMiddleware.js';
@@ -17,11 +18,14 @@ const adminRouter = express.Router();
 // Configure multer for profile image uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
+        console.log('Upload destination for file:', file.originalname);
         cb(null, 'uploads/');
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+        const filename = 'profile-' + uniqueSuffix + path.extname(file.originalname);
+        console.log('Generated filename for upload:', filename);
+        cb(null, filename);
     }
 });
 
@@ -32,6 +36,14 @@ const upload = multer({
         const filetypes = /jpeg|jpg|png|gif/;
         const mimetype = filetypes.test(file.mimetype);
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        
+        console.log('File upload details:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            mimetypeValid: mimetype,
+            extnameValid: extname
+        });
         
         if (mimetype && extname) {
             return cb(null, true);
@@ -70,5 +82,6 @@ adminRouter.post('/users', adminAuth, upload.single('profileImage'), createUser)
 adminRouter.delete('/users/:userId', adminAuth, deleteUser);
 adminRouter.put('/users/:userId', adminAuth, upload.single('profileImage'), updateUser);
 adminRouter.get('/transactions/recent', adminAuth, getRecentTransactions);
+adminRouter.post('/test-email', adminAuth, testEmail);
 
 export default adminRouter; 

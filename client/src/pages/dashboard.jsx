@@ -42,7 +42,12 @@ function Dashboard() {
       console.log('No token in URL, checking auth status');
     }
     
-    if (!isVerified) {
+    // Only redirect to email verification if user data is loaded and not verified
+    // Skip the check for users coming from Google auth (they will have a special localStorage flag)
+    const isGoogleVerified = localStorage.getItem('is_verified') === 'true';
+    
+    if (userData && !userData.isAccountVerified && !isVerified && !isGoogleVerified) {
+      console.log('User not verified, redirecting to email verification');
       navigate('/email-verify');
       toast.info('Please verify your email first');
       return;
@@ -50,7 +55,7 @@ function Dashboard() {
     
     fetchDashboardData();
     fetchDeposits();
-  }, [fetchDashboardData, fetchDeposits, isVerified, navigate, location.search, checkAuth]);
+  }, [fetchDashboardData, fetchDeposits, isVerified, navigate, location.search, checkAuth, userData]);
 
   if (!userData || !stats) {
     return (

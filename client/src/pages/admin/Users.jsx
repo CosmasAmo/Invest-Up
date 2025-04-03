@@ -81,7 +81,8 @@ function Users() {
             
             // Check if there's a profile image to upload
             const profileImageInput = document.getElementById('profileImage');
-            const hasNewProfileImage = profileImageInput && profileImageInput.files && profileImageInput.files.length > 0;
+            const hasNewProfileImage = window.hasNewProfileImage && profileImageInput && 
+                                       profileImageInput.files && profileImageInput.files.length > 0;
             
             if (hasNewProfileImage) {
                 // Create FormData for file upload
@@ -128,7 +129,10 @@ function Users() {
                 totalWithdrawals: 0
             });
             
-            // Force a complete refresh of the user list
+            // Reset the hasNewProfileImage flag
+            window.hasNewProfileImage = false;
+            
+            // Force a complete refresh of the user list using the timestamp to bust cache
             await fetchAllUsers();
             
             const codes = await fetchReferralCodes();
@@ -204,10 +208,10 @@ function Users() {
 
     // Render user card header with View More button instead of eye icon
     const renderUserCardHeader = (user) => (
-        <div className={`p-6 pr-8 border-b ${
+        <div className={`p-6 border-b ${
             user.isAdmin 
-            ? 'bg-gradient-to-r from-purple-900/40 to-slate-800/40 border-purple-700/50' 
-            : 'bg-gradient-to-r from-slate-700/30 to-slate-800/30 border-slate-700/50'
+            ? 'border-purple-600/30' 
+            : 'border-slate-700'
         }`}>
             <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3 max-w-[65%]">
@@ -216,16 +220,22 @@ function Users() {
                         ? 'bg-gradient-to-br from-purple-600 to-indigo-700 shadow-purple-900/20' 
                         : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/20'
                     }`}>
-                        {user.profileImage ? (
+                        {(user.profileImage || user.profilePicture) ? (
                             <img 
-                                src={user.profileImage.startsWith('http') 
-                                    ? user.profileImage 
-                                    : user.profileImage.startsWith('/uploads/') 
-                                        ? `${axios.defaults.baseURL}${user.profileImage}`
-                                        : `${axios.defaults.baseURL}/uploads/${user.profileImage}`
+                                src={(user.profileImage || user.profilePicture).startsWith('http') 
+                                    ? (user.profileImage || user.profilePicture) 
+                                    : (user.profileImage || user.profilePicture).startsWith('/uploads/') 
+                                        ? `${axios.defaults.baseURL}${user.profileImage || user.profilePicture}`
+                                        : `${axios.defaults.baseURL}/uploads/${user.profileImage || user.profilePicture}`
                                 }
                                 alt={user.name}
                                 className="h-10 w-10 rounded-full object-cover"
+                                onError={(e) => {
+                                    console.error('Profile image failed to load:', e.target.src);
+                                    e.target.onerror = null; // Prevent infinite loop
+                                    e.target.style.display = 'none';
+                                    e.target.parentNode.innerHTML = '<svg class="h-10 w-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd"></path></svg>';
+                                }}
                             />
                         ) : (
                             <UserCircleIcon className="h-10 w-10 text-gray-400" />
@@ -559,16 +569,22 @@ function Users() {
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Profile Image</label>
                                 <div className="flex items-center space-x-4">
                                     <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-600 profile-preview">
-                                        {editingUser && editingUser.profileImage ? (
+                                        {editingUser && (editingUser.profileImage || editingUser.profilePicture) ? (
                                             <img 
-                                                src={editingUser.profileImage.startsWith('http') 
-                                                    ? editingUser.profileImage 
-                                                    : editingUser.profileImage.startsWith('/uploads/') 
-                                                        ? `${axios.defaults.baseURL}${editingUser.profileImage}`
-                                                        : `${axios.defaults.baseURL}/uploads/${editingUser.profileImage}`
+                                                src={(editingUser.profileImage || editingUser.profilePicture).startsWith('http') 
+                                                    ? (editingUser.profileImage || editingUser.profilePicture) 
+                                                    : (editingUser.profileImage || editingUser.profilePicture).startsWith('/uploads/') 
+                                                        ? `${axios.defaults.baseURL}${editingUser.profileImage || editingUser.profilePicture}`
+                                                        : `${axios.defaults.baseURL}/uploads/${editingUser.profileImage || editingUser.profilePicture}`
                                                 }
                                                 alt={editingUser.name}
                                                 className="h-20 w-20 rounded-full object-cover"
+                                                onError={(e) => {
+                                                    console.error('Profile image failed to load:', e.target.src);
+                                                    e.target.onerror = null; // Prevent infinite loop
+                                                    e.target.style.display = 'none';
+                                                    e.target.parentNode.innerHTML = '<svg class="h-20 w-20 text-gray-400" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd"></path></svg>';
+                                                }}
                                             />
                                         ) : (
                                             <UserCircleIcon className="h-20 w-20 text-gray-400" />
@@ -582,6 +598,9 @@ function Users() {
                                             onChange={(e) => {
                                                 const file = e.target.files[0];
                                                 if (file) {
+                                                    // Flag to indicate that a new profile image has been selected
+                                                    window.hasNewProfileImage = true;
+                                                    
                                                     const reader = new FileReader();
                                                     reader.onloadend = () => {
                                                         try {
@@ -762,16 +781,22 @@ function Users() {
                                         ? 'bg-gradient-to-br from-purple-600 to-indigo-700 shadow-purple-900/20' 
                                         : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/20'
                                     }`}>
-                                        {viewingUser.profileImage ? (
+                                        {(viewingUser.profileImage || viewingUser.profilePicture) ? (
                                             <img 
-                                                src={viewingUser.profileImage.startsWith('http') 
-                                                    ? viewingUser.profileImage 
-                                                    : viewingUser.profileImage.startsWith('/uploads/') 
-                                                        ? `${axios.defaults.baseURL}${viewingUser.profileImage}`
-                                                        : `${axios.defaults.baseURL}/uploads/${viewingUser.profileImage}`
+                                                src={(viewingUser.profileImage || viewingUser.profilePicture).startsWith('http') 
+                                                    ? (viewingUser.profileImage || viewingUser.profilePicture) 
+                                                    : (viewingUser.profileImage || viewingUser.profilePicture).startsWith('/uploads/') 
+                                                        ? `${axios.defaults.baseURL}${viewingUser.profileImage || viewingUser.profilePicture}`
+                                                        : `${axios.defaults.baseURL}/uploads/${viewingUser.profileImage || viewingUser.profilePicture}`
                                                 }
                                                 alt={viewingUser.name}
                                                 className="h-20 w-20 object-cover"
+                                                onError={(e) => {
+                                                    console.error('Profile image failed to load:', e.target.src);
+                                                    e.target.onerror = null; // Prevent infinite loop
+                                                    e.target.style.display = 'none';
+                                                    e.target.parentNode.innerHTML = '<svg class="h-16 w-16 text-gray-400" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd"></path></svg>';
+                                                }}
                                             />
                                         ) : (
                                             <UserCircleIcon className="h-16 w-16 text-gray-400" />

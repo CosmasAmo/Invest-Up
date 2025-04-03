@@ -2,10 +2,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useStore from '../store/useStore'
 import { Link } from 'react-router-dom'
-import { FaUser, FaSignOutAlt, FaShieldAlt, FaUserShield, FaChartLine, FaWallet, FaExchangeAlt, FaChevronDown } from 'react-icons/fa'
+import { FaUser, FaSignOutAlt, FaShieldAlt, FaUserShield, FaChartLine, FaWallet, FaExchangeAlt, FaChevronDown, FaUserCircle } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import PropTypes from 'prop-types'
-import axios from 'axios'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -66,6 +65,28 @@ function Navbar() {
   const navigateToSecurity = () => {
     setIsDropdownOpen(false)
     navigate('/profile', { state: { activeTab: 'security' } })
+  }
+
+  // Helper function to get profile image
+  const getProfileImage = () => {
+    if (!userData) return null;
+    
+    // Get the profile image URL
+    const imageUrl = userData.profilePicture || userData.profileImage;
+    
+    // Check if it's a valid URL (not a client-side URL that will fail)
+    if (imageUrl && imageUrl.includes('https://investuptrading.com/backend/uploads')) {
+      console.log('Detected invalid client-side URL in navbar:', imageUrl);
+      // Force refresh server config and user data
+      setTimeout(() => {
+        useStore.getState().fetchServerConfig().then(() => {
+          useStore.getState().fetchUserData();
+        });
+      }, 1000);
+      return null; // Don't try to render this URL
+    }
+    
+    return imageUrl;
   }
 
   return (
@@ -129,30 +150,29 @@ function Navbar() {
                   }`}
                 >
                   <div className="relative">
-                    {userData.profileImage ? (
-                      <img 
-                        src={userData.profileImage.startsWith('http') 
-                          ? userData.profileImage 
-                          : `${axios.defaults.baseURL}${userData.profileImage}`}
-                        alt="Profile" 
-                        className="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                    {getProfileImage() ? (
+                      <img
+                        src={getProfileImage()}
+                        alt={userData.name}
+                        className="w-9 h-9 rounded-full object-cover"
                         onError={(e) => {
-                          console.error('Profile image failed to load in navbar:', e);
+                          console.error('Profile image failed to load in navbar:', e.target.src);
+                          
+                          // Try to determine if this is a client-side URL error
+                          const src = e.target.src;
+                          if (src && src.includes('https://investuptrading.com/backend/uploads')) {
+                            console.log('Detected client URL in navbar image, attempting to fix');
+                            useStore.getState().refreshUserProfile();
+                          }
+                          
                           e.target.onerror = null; // Prevent infinite loop
-                          e.target.style.display = 'none'; // Hide the broken image
-                          // Replace with initials
-                          e.target.parentNode.innerHTML = `
-                            <div class="w-9 h-9 flex justify-center items-center
-                              rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md">
-                              ${getInitial()}
-                            </div>
-                          `;
+                          e.target.style.display = 'none';
+                          e.target.parentNode.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-700 rounded-full"><svg class="text-gray-400 w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg></div>';
                         }}
                       />
                     ) : (
-                      <div className="w-9 h-9 flex justify-center items-center
-                        rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md">
-                        {getInitial()}
+                      <div className="w-9 h-9 flex items-center justify-center bg-slate-700 rounded-full">
+                        <FaUserCircle className="text-gray-400 w-5 h-5" />
                       </div>
                     )}
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-900 shadow-sm"></div>
@@ -177,13 +197,17 @@ function Navbar() {
                     >
                       <div className="p-4 border-b border-slate-700">
                         <div className="flex items-center">
-                          {userData.profileImage ? (
-                            <img 
-                              src={userData.profileImage.startsWith('http') 
-                                ? userData.profileImage 
-                                : `${axios.defaults.baseURL}${userData.profileImage}`}
-                              alt="Profile" 
+                          {getProfileImage() ? (
+                            <img
+                              src={getProfileImage()}
+                              alt={userData.name}
                               className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                              onError={(e) => {
+                                console.error('Profile image failed to load in dropdown:', e.target.src);
+                                e.target.onerror = null; // Prevent infinite loop
+                                e.target.style.display = 'none';
+                                e.target.parentNode.innerHTML = '<div class="w-12 h-12 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">' + getInitial() + '</div>';
+                              }}
                             />
                           ) : (
                             <div className="w-12 h-12 flex justify-center items-center
@@ -380,22 +404,16 @@ function Navbar() {
                   <>
                     <div className="pt-4 pb-2 border-t border-slate-700/50">
                       <div className="flex items-center px-4">
-                        {userData.profileImage ? (
-                          <img 
-                            src={userData.profileImage.startsWith('http') 
-                              ? userData.profileImage 
-                              : `${axios.defaults.baseURL}${userData.profileImage}`}
-                            alt="Profile" 
+                        {getProfileImage() ? (
+                          <img
+                            src={getProfileImage()}
+                            alt={userData.name}
                             className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
                             onError={(e) => {
-                              e.target.onerror = null;
+                              console.error('Profile image failed to load in mobile menu:', e.target.src);
+                              e.target.onerror = null; // Prevent infinite loop
                               e.target.style.display = 'none';
-                              e.target.parentNode.innerHTML = `
-                                <div class="w-10 h-10 flex justify-center items-center
-                                  rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
-                                  ${getInitial()}
-                                </div>
-                              `;
+                              e.target.parentNode.innerHTML = '<div class="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">' + getInitial() + '</div>';
                             }}
                           />
                         ) : (

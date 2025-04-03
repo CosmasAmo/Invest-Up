@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(process.env.POSTGRES_URI, {
+const sequelize = new Sequelize(process.env.POSTGRES_URL, {
   dialect: 'postgres',
   logging: false
 });
@@ -20,9 +20,9 @@ const User = sequelize.define('User', {
   isAdmin: { type: Sequelize.BOOLEAN, defaultValue: false },
   isAccountVerified: { type: Sequelize.BOOLEAN, defaultValue: true },
   verifyOtp: { type: Sequelize.STRING, defaultValue: '' },
-  verifyOtpExpireAt: { type: Sequelize.BIGINT, defaultValue: 0 },
+  verifyOtpExpireAt: { type: Sequelize.DATE, allowNull: true },
   resetOtp: { type: Sequelize.STRING, defaultValue: '' },
-  resetOtpExpireAt: { type: Sequelize.BIGINT, defaultValue: 0 },
+  resetOtpExpireAt: { type: Sequelize.DATE, allowNull: true },
   referralCode: { type: Sequelize.STRING },
   referralCount: { type: Sequelize.INTEGER, defaultValue: 0 },
   referredBy: { type: Sequelize.UUID, allowNull: true },
@@ -32,9 +32,9 @@ const User = sequelize.define('User', {
 });
 
 // Custom admin user details - change these to your preferred values
-const ADMIN_NAME = 'New Admin';
-const ADMIN_EMAIL = 'newadmin@example.com';
-const ADMIN_PASSWORD = 'Admin@123';
+const ADMIN_NAME = 'Cosmas Admin';
+const ADMIN_EMAIL = 'cosmasamooscar@gmail.com';
+const ADMIN_PASSWORD = 'SecureAdmin@123!';
 
 async function setupCustomAdminUser() {
   try {
@@ -62,9 +62,9 @@ async function setupCustomAdminUser() {
         balance: 0.00,
         referralEarnings: 0.00,
         verifyOtp: '',
-        verifyOtpExpireAt: 0,
+        verifyOtpExpireAt: null,
         resetOtp: '',
-        resetOtpExpireAt: 0,
+        resetOtpExpireAt: null,
         successfulReferrals: 0
       });
       console.log(`Admin user ${ADMIN_EMAIL} updated successfully`);
@@ -82,9 +82,9 @@ async function setupCustomAdminUser() {
         balance: 0.00,
         referralEarnings: 0.00,
         verifyOtp: '',
-        verifyOtpExpireAt: 0,
+        verifyOtpExpireAt: null,
         resetOtp: '',
-        resetOtpExpireAt: 0,
+        resetOtpExpireAt: null,
         successfulReferrals: 0
       });
       console.log(`Admin user ${ADMIN_EMAIL} created successfully`);

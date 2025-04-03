@@ -13,8 +13,8 @@ export const calculateProfits = async () => {
             return;
         }
         
-        // Get profit settings
-        const profitPercentage = await getSetting('profitPercentage');
+        // Get profit settings (default profit rate and interval)
+        const defaultProfitRate = await getSetting('profitPercentage');
         const profitInterval = await getSetting('profitInterval');
         
         // Find eligible investments that haven't been updated recently
@@ -32,8 +32,11 @@ export const calculateProfits = async () => {
         
         let updatedCount = 0;
         for (const investment of investments) {
+            // Use investment's specific profit rate or fall back to default
+            const profitRate = investment.dailyProfitRate || defaultProfitRate;
+            
             // Calculate profit based on the configured percentage
-            const profitAmount = parseFloat(investment.amount) * (profitPercentage / 100);
+            const profitAmount = parseFloat(investment.amount) * (parseFloat(profitRate) / 100);
             
             // Add profit to user's balance
             await investment.User.increment('balance', { by: profitAmount });

@@ -24,6 +24,11 @@ const Investment = sequelize.define('Investment', {
     type: DataTypes.ENUM('pending', 'approved', 'rejected', 'completed'),
     defaultValue: 'pending'
   },
+  dailyProfitRate: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: null,
+    allowNull: true
+  },
   totalProfit: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0.00

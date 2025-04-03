@@ -13,7 +13,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || 'https://investuptrading.com/backend/api/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -60,30 +60,51 @@ passport.use(
 
 // Add these required Passport serialization methods
 passport.serializeUser((user, done) => {
-    // For Google profiles that aren't yet in our database
-    if (user.id && !user.googleId) {
-        done(null, user.id);
-    } else if (user.googleId) {
-        // For users from our database
-        done(null, user.id);
-    } else {
-        // For Google profiles
-        done(null, user.id || user.googleId);
+    // For our own users
+    if (user.id && typeof user.id === 'string' && user.id.includes('-')) {
+        console.log(`Serializing database user with ID: ${user.id}`);
+        done(null, { id: user.id, type: 'db' });
+    } 
+    // For Google users
+    else if (user.id || user.googleId) {
+        console.log(`Serializing Google user with ID: ${user.id || user.googleId}`);
+        done(null, { id: user.id || user.googleId, type: 'google' });
+    } 
+    else {
+        console.error('Unable to serialize user, no ID found:', user);
+        done(new Error('No user ID available for serialization'));
     }
 });
 
-passport.deserializeUser(async (id, done) => {
+passport.deserializeUser(async (serialized, done) => {
     try {
-        // Try to find user in our database
-        const user = await User.findByPk(id);
+        // Extract ID and type from serialized data
+        const { id, type } = typeof serialized === 'object' ? serialized : { id: serialized, type: 'db' };
         
-        if (user) {
-            done(null, user);
-        } else {
-            // If not found (temporary Google profile), create an empty user object
-            done(null, { id });
+        console.log(`Deserializing user with ID: ${id}, type: ${type}`);
+        
+        // If it's a database user
+        if (type === 'db') {
+            try {
+                const user = await User.findByPk(id);
+                if (user) {
+                    return done(null, user);
+                }
+            } catch (dbError) {
+                console.error('Database error during deserializeUser:', dbError);
+                // Continue to return a minimal user object below
+            }
         }
+        
+        // If we get here, either:
+        // 1. It's a Google user without a DB entry yet
+        // 2. The database query failed
+        // 3. We couldn't find the user in the database
+        
+        // Return a minimal user object with just the ID
+        done(null, { id, isTemporary: true });
     } catch (error) {
+        console.error('Error in deserializeUser:', error);
         done(error, null);
     }
 });

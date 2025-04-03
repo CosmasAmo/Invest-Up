@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(process.env.POSTGRES_URI, {
+const sequelize = new Sequelize(process.env.POSTGRES_URL, {
   dialect: 'postgres',
   logging: false
 });
@@ -20,9 +20,9 @@ const User = sequelize.define('User', {
   isAdmin: { type: Sequelize.BOOLEAN, defaultValue: false },
   isAccountVerified: { type: Sequelize.BOOLEAN, defaultValue: false },
   verifyOtp: { type: Sequelize.STRING, defaultValue: '' },
-  verifyOtpExpireAt: { type: Sequelize.BIGINT, defaultValue: 0 },
+  verifyOtpExpireAt: { type: Sequelize.DATE, allowNull: true },
   resetOtp: { type: Sequelize.STRING, defaultValue: '' },
-  resetOtpExpireAt: { type: Sequelize.BIGINT, defaultValue: 0 },
+  resetOtpExpireAt: { type: Sequelize.DATE, allowNull: true },
   referralCode: { type: Sequelize.STRING },
   referralCount: { type: Sequelize.INTEGER, defaultValue: 0 },
   referredBy: { type: Sequelize.UUID, allowNull: true },
@@ -55,9 +55,9 @@ async function setupAdminUser() {
         balance: 0.00,
         referralEarnings: 0.00,
         verifyOtp: '',
-        verifyOtpExpireAt: 0,
+        verifyOtpExpireAt: null,
         resetOtp: '',
-        resetOtpExpireAt: 0
+        resetOtpExpireAt: null
       });
       console.log('Admin user updated successfully');
     } else {
@@ -74,9 +74,9 @@ async function setupAdminUser() {
         balance: 0.00,
         referralEarnings: 0.00,
         verifyOtp: '',
-        verifyOtpExpireAt: 0,
+        verifyOtpExpireAt: null,
         resetOtp: '',
-        resetOtpExpireAt: 0
+        resetOtpExpireAt: null
       });
       console.log('Admin user created successfully');
     }

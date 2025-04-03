@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { fadeInUp } from '../utils/animations'
 import { Helmet } from 'react-helmet'
+
 import { 
   CurrencyDollarIcon, 
   ChartBarIcon, 
@@ -17,8 +18,9 @@ import {
 } from '@heroicons/react/24/outline'
 import axios from 'axios'
 
+
 function MakeMoneyOnline() {
-  const [minDeposit, setMinDeposit] = useState(100);
+  const [minDeposit, setMinDeposit] = useState(3);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -26,13 +28,14 @@ function MakeMoneyOnline() {
     const fetchMinDeposit = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get('/api/settings', { withCredentials: true });
+        // Try to get the settings, but don't require authentication
+        const response = await axios.get('/api/settings/public', { withCredentials: true });
         if (response.data.success) {
           setMinDeposit(response.data.settings.minDeposit);
         }
       } catch (error) {
         console.error('Error fetching minimum deposit:', error);
-        // If there's an error, we'll use the default value
+        // Keep using the default value (3) if there's an error
       } finally {
         setIsLoading(false);
       }
@@ -47,7 +50,7 @@ function MakeMoneyOnline() {
         <title>Make Money Online | InvestUp - Your Path to Financial Freedom</title>
         <meta name="description" content="Discover how to make money online with InvestUp. Our platform offers secure investment opportunities with daily profits and minimal effort." />
         <meta name="keywords" content="make money online, passive income, online earnings, investment platform, daily profits, financial freedom, earn money from home" />
-        <link rel="canonical" href="https://yourdomain.com/make-money-online" />
+        <link rel="canonical" href="https://investuptrading.com/make-money-online" />
       </Helmet>
       
       <Navbar />

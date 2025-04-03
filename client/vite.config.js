@@ -13,8 +13,17 @@ export default defineConfig({
       overlay: true
     }
   },
-  define: {
-    // Define environment variables that will be available at build time
-    'process.env.VITE_BACKEND_URL': JSON.stringify('http://localhost:5000')
-  }
+  build: {
+    outDir: 'dist',
+    assetsInlineLimit: 0, // Don't inline anything
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        }
+      }
+    }
+  },
+  // We don't need to define environment variables here as Vite automatically
+  // exposes all variables with VITE_ prefix to the client
 })

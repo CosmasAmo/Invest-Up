@@ -1,8 +1,6 @@
 import Investment from '../models/Investment.js';
 import User from '../models/userModel.js';
-import Deposit from '../models/Deposit.js';
 import { getSetting } from './settingsController.js';
-import { Op } from 'sequelize';
 
 export const createInvestment = async (req, res) => {
     try {
@@ -54,7 +52,21 @@ export const handleInvestment = async (req, res) => {
             return res.json({ success: false, message: 'Investment not found' });
         }
 
-        await investment.update({ status });
+        // Get daily profit rate from settings when approving
+        let dailyProfitRate = null;
+        if (status === 'approved') {
+            dailyProfitRate = await getSetting('profitPercentage');
+            if (!dailyProfitRate) {
+                return res.json({ success: false, message: 'Profit percentage not set in settings' });
+            }
+        }
+
+        await investment.update({ 
+            status,
+            lastProfitUpdate: status === 'approved' ? new Date() : null,
+            dailyProfitRate: status === 'approved' ? dailyProfitRate : null,
+            totalProfit: status === 'approved' ? 0.00 : investment.totalProfit
+        });
 
         if (status === 'approved') {
             await investment.User.decrement('balance', { by: parseFloat(investment.amount) });

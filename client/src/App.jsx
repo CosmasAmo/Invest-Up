@@ -31,23 +31,27 @@ import MakeMoneyOnline from './pages/make-money-online'
 import ApiDebug from './components/ApiDebug'
 import CompleteGoogleProfile from './pages/CompleteGoogleProfile'
 import AuthCallback from './components/AuthCallback'
+import Messages from './pages/messages'
 
 function App() {
-  const { initialize, checkSessionExpiration, error } = useStore();
+  const { initialize, fetchServerConfig, checkSessionExpiration, error } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Check for session expiration first
-    const isExpired = checkSessionExpiration();
-    if (isExpired) {
-      toast.info('Your session has expired. Please log in again.');
-      navigate('/login');
-    } else {
-      // Initialize the store
-      initialize();
-    }
-  }, [initialize, checkSessionExpiration, navigate]);
+    // First fetch server configuration
+    fetchServerConfig().then(() => {
+      // Check for session expiration next
+      const isExpired = checkSessionExpiration();
+      if (isExpired) {
+        toast.info('Your session has expired. Please log in again.');
+        navigate('/login');
+      } else {
+        // Initialize the store
+        initialize();
+      }
+    });
+  }, [initialize, fetchServerConfig, checkSessionExpiration, navigate]);
 
   // Show error toast if there's an error in the store
   useEffect(() => {
@@ -66,16 +70,18 @@ function App() {
       {hasToken && <AuthCallback />}
       
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/email-verify" element={<EmailVerify />} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/email-verify" element={<PublicRoute><EmailVerify /></PublicRoute>} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faqs" element={<FAQs />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/make-money-online" element={<MakeMoneyOnline />} />
+        <Route path="/complete-profile" element={<CompleteGoogleProfile />} />
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
@@ -87,13 +93,13 @@ function App() {
         <Route path="/withdraw" element={<PrivateRoute><Withdraw /></PrivateRoute>} />
         <Route path="/withdrawals" element={<PrivateRoute><Withdrawals /></PrivateRoute>} />
         <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
+        <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
         
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
         <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-        <Route path="/complete-profile" element={<CompleteGoogleProfile />} />
       </Routes>
       
       {/* Add the API Debug component */}

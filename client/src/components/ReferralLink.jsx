@@ -28,7 +28,7 @@ function ReferralLink() {
     const fetchSettings = async () => {
       try {
         setIsLoadingSettings(true);
-        const response = await axios.get('/api/settings', { withCredentials: true });
+        const response = await axios.get('/api/settings/public', { withCredentials: true });
         if (response.data.success) {
           setSettings({
             referralBonus: response.data.settings.referralBonus,

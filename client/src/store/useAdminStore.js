@@ -57,7 +57,8 @@ const useAdminStore = create((set) => ({
         try {
             console.log('Fetching all users...');
             // Add a cache-busting parameter to prevent caching
-            const { data } = await axios.get(`/api/admin/users?_=${new Date().getTime()}`);
+            const timestamp = new Date().getTime();
+            const { data } = await axios.get(`/api/admin/users?_=${timestamp}`);
             if (data.success) {
                 console.log('Users fetched successfully:', data.users);
                 set({ users: data.users });
@@ -323,6 +324,14 @@ const useAdminStore = create((set) => ({
                             user.id === userId ? data.user : user
                         )
                     }));
+                    
+                    // If we're updating a profile image, we should reload all users after a short delay
+                    // to ensure the UI gets the latest data
+                    if (isFormData) {
+                        setTimeout(async () => {
+                            await useAdminStore.getState().fetchAllUsers();
+                        }, 500);
+                    }
                 } else {
                     // If no user data is returned, fetch all users to ensure data is fresh
                     await useAdminStore.getState().fetchAllUsers();
@@ -368,11 +377,13 @@ const useAdminStore = create((set) => ({
     },
 
     replyToMessage: async (messageId, reply) => {
+        set({ isLoading: true, error: null, emailSent: null });
         try {
             const { data } = await axios.post('/api/admin/reply-message', {
                 messageId,
                 reply
             });
+            
             if (data.success) {
                 set(state => ({
                     messages: state.messages.map(msg =>
@@ -381,14 +392,65 @@ const useAdminStore = create((set) => ({
                     // Update unreadCount if the message was previously unread
                     unreadCount: state.messages.find(msg => msg.id === messageId)?.status === 'unread' 
                         ? state.unreadCount - 1 
-                        : state.unreadCount
+                        : state.unreadCount,
+                    isLoading: false,
+                    error: null,
+                    emailSent: data.emailSent // Track if the email was actually sent
                 }));
                 return true;
+            } else {
+                // Handle server-side error
+                const errorMessage = data.message || 'Failed to send reply email';
+                console.error('Reply email error:', errorMessage);
+                set({ 
+                    error: errorMessage,
+                    isLoading: false,
+                    emailSent: false
+                });
+                return false;
             }
-            return false;
         } catch (error) {
-            console.error('Error sending reply:', error);
+            // Handle network or other errors
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to send reply email';
+            console.error('Error sending reply:', errorMessage);
+            set({ 
+                error: errorMessage,
+                isLoading: false,
+                emailSent: false
+            });
             return false;
+        }
+    },
+
+    // Test email function to verify email delivery
+    testEmail: async (testEmailAddress) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { data } = await axios.post('/api/admin/test-email', {
+                testEmail: testEmailAddress
+            });
+            
+            if (data.success) {
+                set({ 
+                    isLoading: false,
+                    error: null
+                });
+                return { success: true, details: data.details };
+            } else {
+                set({ 
+                    error: data.message || 'Failed to send test email',
+                    isLoading: false
+                });
+                return { success: false, error: data.message };
+            }
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to send test email';
+            console.error('Error in test email:', errorMessage);
+            set({ 
+                error: errorMessage,
+                isLoading: false
+            });
+            return { success: false, error: errorMessage };
         }
     },
 

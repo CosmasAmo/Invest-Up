@@ -21,7 +21,7 @@ function Invest() {
     const fetchSettings = async () => {
       setIsLoadingSettings(true);
       try {
-        const response = await axios.get('/api/settings');
+        const response = await axios.get('/api/settings/public');
         if (response.data.success) {
           setSettings({
             minInvestment: parseFloat(response.data.settings.minInvestment) || 3,

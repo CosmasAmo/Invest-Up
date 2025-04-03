@@ -3,21 +3,9 @@ import axios from 'axios';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { createRequestConfig, handleApiError } from '../utils/apiUtils';
 import { toast } from 'react-toastify';
+import axiosInstance from '../api/axios';  // Import the configured instance
 
-// Determine the API URL based on the environment
-const getApiUrl = () => {
-  // In production, you would use your actual domain
-  if (import.meta.env.PROD) {
-    return 'https://yourdomain.com'; // Replace with your production URL
-  }
-  
-  // For development, always use localhost
-  return 'http://localhost:5000';
-};
-
-// Set default base URL for axios
-axios.defaults.baseURL = getApiUrl();
-axios.defaults.withCredentials = true;
+// Use the axios instance from api/axios.js instead of setting defaults here
 
 // Add axios interceptors for request handling
 axios.interceptors.request.use(
@@ -99,6 +87,8 @@ const useStore = create(
       isAdmin: false,
       error: null,
       isLoading: false,
+      serverUrl: null, // Add server URL to state
+      uploadsUrl: null, // Add uploads URL to state
       stats: {
         balance: 0,
         totalProfit: 0,
@@ -115,6 +105,45 @@ const useStore = create(
       
       // Add updateApiUrl function to the store
       updateApiUrl,
+
+      // Get server configuration
+      fetchServerConfig: async () => {
+        try {
+          const { data } = await axios.get('/api/config');
+          if (data.success) {
+            console.log('Server config loaded:', data);
+            set({
+              serverUrl: data.serverUrl,
+              uploadsUrl: data.uploadsUrl
+            });
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error('Failed to load server configuration:', error);
+          return false;
+        }
+      },
+
+      // Function to get correct image URL
+      getImageUrl: (imagePath) => {
+        const state = get();
+        
+        if (!imagePath) return null;
+        
+        // If it's already a full URL (http or https), return as is
+        if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+          return imagePath;
+        }
+        
+        // If it's a relative upload path, prepend the server URL
+        if (imagePath.startsWith('/uploads/')) {
+          return state.serverUrl ? `${state.serverUrl}${imagePath}` : imagePath;
+        }
+        
+        // Otherwise, return the path as is
+        return imagePath;
+      },
 
       // Initialize authentication from localStorage
       initAuth: () => {
@@ -143,66 +172,36 @@ const useStore = create(
       // Add checkAuth function
       checkAuth: async () => {
         console.log('Checking authentication...');
-        set({ isLoading: true });
         try {
-          // Check if the session has expired
-          const authStorage = sessionStorage.getItem('auth-storage');
-          if (authStorage) {
-            try {
-              const authData = JSON.parse(authStorage);
-              if (authData.expiry && new Date().getTime() > authData.expiry) {
-                console.log('Session expired, logging out...');
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('is_admin');
-                sessionStorage.removeItem('auth-storage');
-                set({ 
-                  isAuthenticated: false, 
-                  isAdmin: false, 
-                  userData: null,
-                  isLoading: false 
-                });
-                return;
-              }
-            } catch (error) {
-              console.error('Error checking session expiration:', error);
-            }
-          }
-          
-          // Use the createRequestConfig utility
-          const config = createRequestConfig();
-          
-          const { data } = await axios.get('/api/auth/check', config);
+          const { data } = await axiosInstance.get('/api/auth/check');
           console.log('Auth check response:', data);
           
           if (data.success) {
-            const userData = data.userData || data.user;
-            const isAdmin = userData.isAdmin === true;
-            
-            console.log('User authenticated, isAdmin:', isAdmin);
-            
-            // Update localStorage with current admin status
-            localStorage.setItem('is_admin', isAdmin ? 'true' : 'false');
-            
-            set({
+            set({ 
               isAuthenticated: true,
-              isVerified: userData.isAccountVerified,
-              isAdmin: isAdmin === true, // Ensure boolean value
+              userData: data.user,
+              isVerified: data.user.isAccountVerified,
+              isAdmin: data.user.isAdmin === true
             });
-            
-            // Fetch complete user data to ensure we have all details including profile image
-            await get().fetchUserData();
+            return true;
           } else {
-            console.log('Authentication check failed: Not authenticated');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('is_admin');
-            set({ isAuthenticated: false, isAdmin: false, isLoading: false });
+            set({ 
+              isAuthenticated: false, 
+              userData: null,
+              isVerified: false,
+              isAdmin: false
+            });
+            return false;
           }
         } catch (error) {
-          // Handle error
-          console.error('Authentication check error:', error);
-          set({ isAuthenticated: false, isAdmin: false, isLoading: false });
-        } finally {
-          set({ isLoading: false });
+          console.error('Auth check error:', error);
+          set({ 
+            isAuthenticated: false, 
+            userData: null,
+            isVerified: false,
+            isAdmin: false
+          });
+          return false;
         }
       },
 
@@ -236,15 +235,30 @@ const useStore = create(
       // Modify the initialize function to only check auth state if needed
       initialize: async () => {
         const state = get();
-        if (!state.isAuthenticated) {
-          set({ isLoading: true });
-          try {
+        set({ isLoading: true });
+        
+        try {
+          // First fetch server configuration
+          await state.fetchServerConfig();
+          
+          // Then check authentication if needed
+          if (!state.isAuthenticated) {
             await state.checkAuth();
-          } catch (error) {
-            console.error('Initialization error:', error);
-          } finally {
-            set({ isLoading: false });
+          } else if (state.userData) {
+            // If already authenticated but the images might be incorrect, fix them now
+            const userData = { ...state.userData };
+            if (userData.profileImage) {
+              userData.profileImage = state.getImageUrl(userData.profileImage);
+            }
+            if (userData.profilePicture) {
+              userData.profilePicture = state.getImageUrl(userData.profilePicture);
+            }
+            set({ userData });
           }
+        } catch (error) {
+          console.error('Initialization error:', error);
+        } finally {
+          set({ isLoading: false });
         }
       },
 
@@ -302,9 +316,14 @@ const useStore = create(
                 token: data.token
               };
               
+              // Set token in localStorage and axios headers
+              localStorage.setItem('auth_token', data.token);
+              axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+              
               set({ 
                 userData: userDataWithToken,
                 isAuthenticated: true,
+                isVerified: false, // New user needs to verify email
                 isLoading: false,
                 error: null
               });
@@ -412,8 +431,18 @@ const useStore = create(
             }
           });
           if (data.success) {
-            // If the server returns the updated user data, use it directly
+            // Process the returned user data with image URLs
             if (data.userData) {
+              const state = get();
+              
+              // Process profile image URLs
+              if (data.userData.profileImage) {
+                data.userData.profileImage = state.getImageUrl(data.userData.profileImage);
+              }
+              if (data.userData.profilePicture) {
+                data.userData.profilePicture = state.getImageUrl(data.userData.profilePicture);
+              }
+              
               set({ userData: data.userData });
               return true;
             } else {
@@ -437,6 +466,18 @@ const useStore = create(
         try {
           const { data } = await axios.get('/api/user/data');
           if (data.success) {
+            const state = get();
+            
+            // Process profile image URLs
+            if (data.userData) {
+              if (data.userData.profileImage) {
+                data.userData.profileImage = state.getImageUrl(data.userData.profileImage);
+              }
+              if (data.userData.profilePicture) {
+                data.userData.profilePicture = state.getImageUrl(data.userData.profilePicture);
+              }
+            }
+            
             set({ 
               userData: data.userData,
               isAuthenticated: true,
@@ -445,6 +486,58 @@ const useStore = create(
           }
         } catch (error) {
           console.error('Failed to fetch user data:', error);
+        }
+      },
+
+      // Helper function to manually refresh profile images 
+      refreshUserProfile: async () => {
+        try {
+          console.log('Manually refreshing profile data...');
+          const state = get();
+          
+          // First make sure server config is loaded
+          await state.fetchServerConfig();
+          
+          // Then fetch the latest user data
+          await state.fetchUserData();
+          
+          // Force update profile paths in current user data as a backup
+          if (state.userData) {
+            const userData = { ...state.userData };
+            
+            if (userData.profileImage) {
+              // Check if this is a client URL that needs fixing
+              if (userData.profileImage.includes('https://investuptrading.com/uploads')) {
+                // Extract just the filename
+                const filename = userData.profileImage.split('/').pop();
+                const fixedPath = `/uploads/${filename}`;
+                userData.profileImage = state.getImageUrl(fixedPath);
+                console.log('Fixed client-side URL:', userData.profileImage);
+              } else {
+                userData.profileImage = state.getImageUrl(userData.profileImage);
+              }
+            }
+            
+            if (userData.profilePicture) {
+              // Check if this is a client URL that needs fixing
+              if (userData.profilePicture.includes('https://investuptrading.com/uploads')) {
+                // Extract just the filename
+                const filename = userData.profilePicture.split('/').pop();
+                const fixedPath = `/uploads/${filename}`;
+                userData.profilePicture = state.getImageUrl(fixedPath);
+                console.log('Fixed client-side URL:', userData.profilePicture);
+              } else {
+                userData.profilePicture = state.getImageUrl(userData.profilePicture);
+              }
+            }
+            
+            set({ userData });
+          }
+          
+          return true;
+        } catch (error) {
+          console.error('Failed to refresh profile data:', error);
+          return false;
         }
       },
 

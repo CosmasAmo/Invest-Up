@@ -21,67 +21,64 @@ const User = sequelize.define('User', {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: false
   },
   verifyOtp: {
     type: DataTypes.STRING,
-    defaultValue: ''
+    allowNull: true
   },
   verifyOtpExpireAt: {
     type: DataTypes.BIGINT,
+    allowNull: true,
     defaultValue: 0
   },
   isAccountVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  isEmailVerified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   resetOtp: {
     type: DataTypes.STRING,
-    defaultValue: ''
+    allowNull: true
   },
   resetOtpExpireAt: {
     type: DataTypes.BIGINT,
+    allowNull: true,
     defaultValue: 0
   },
   googleId: {
     type: DataTypes.STRING,
-    unique: true,
-    allowNull: true
+    allowNull: true,
+    unique: true
   },
   referralCode: {
     type: DataTypes.STRING,
-    unique: true,
-    allowNull: false
+    unique: true
   },
   referralCount: {
     type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: false
+    defaultValue: 0
   },
   referredBy: {
     type: DataTypes.UUID,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
     allowNull: true
   },
   balance: {
     type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0.00,
-    allowNull: false
+    defaultValue: 0.00
   },
   referralEarnings: {
     type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0.00,
-    allowNull: false
+    defaultValue: 0.00
   },
   isAdmin: {
     type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    allowNull: false
+    defaultValue: false
   },
-  profileImage: {
+  profilePicture: {
     type: DataTypes.STRING,
     allowNull: true
   },

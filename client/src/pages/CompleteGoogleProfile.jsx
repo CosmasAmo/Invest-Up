@@ -5,10 +5,12 @@ import { motion } from 'framer-motion';
 import { FaUser, FaCamera, FaSpinner, FaLock, FaTicketAlt } from 'react-icons/fa';
 import AuthLayout from '../components/AuthLayout';
 import axios from 'axios';
+import useStore from '../store/useStore';
 
 function CompleteGoogleProfile() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { checkAuth } = useStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -82,7 +84,7 @@ function CompleteGoogleProfile() {
       // Get API URL based on environment
       const getApiUrl = () => {
         if (import.meta.env.PROD) {
-          return import.meta.env.VITE_API_URL || window.location.origin.replace(/:\d+$/, ':5000');
+          return import.meta.env.VITE_BACKEND_URL || window.location.origin.replace(/:\d+$/, ':5000');
         }
         return 'http://localhost:5000';
       };
@@ -99,11 +101,23 @@ function CompleteGoogleProfile() {
       );
 
       if (response.data.success) {
+        console.log('Profile completion successful:', response.data);
+        
         // Save the new token
         localStorage.setItem('auth_token', response.data.token);
         
+        // Set axios default authorization header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        
+        // Update localStorage to mark user as verified (needed for useStore)
+        localStorage.setItem('is_verified', 'true');
+        
+        // Use the checkAuth function from the store we got via the hook
+        await checkAuth();
+        
         toast.success('Profile completed successfully!');
-        navigate('/dashboard');
+        // Since Google users are already verified, go directly to dashboard
+        navigate('/dashboard', { replace: true });
       } else {
         toast.error(response.data.message || 'Failed to complete profile');
       }

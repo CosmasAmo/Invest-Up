@@ -1,6 +1,7 @@
 import Contact from '../models/Contact.js';
 import User from '../models/userModel.js';
 import transporter from '../config/nodemailer.js';
+import nodemailer from 'nodemailer';
 
 export const submitMessage = async (req, res) => {
     try {
@@ -14,6 +15,8 @@ export const submitMessage = async (req, res) => {
             });
         }
 
+        console.log(`Processing contact form submission from: ${name} <${email}>`);
+
         // Create the contact message
         const contactMessage = await Contact.create({
             name,
@@ -22,25 +25,75 @@ export const submitMessage = async (req, res) => {
             message
         });
         
-        // Send confirmation email to user
+        // Simplified confirmation email structure for better deliverability
         const userMailOptions = {
             from: {
-                name: 'Invest Up',
+                name: process.env.SENDER_NAME || 'Invest Up Support',
                 address: process.env.SENDER_EMAIL
             },
             to: email,
             subject: 'Thank you for contacting us',
+            text: `Thank you for contacting us, ${name}!
+
+We have received your message regarding "${subject}".
+Our team will review your inquiry and respond as soon as possible.
+
+For reference, here's a copy of your message:
+${message}
+
+We typically respond to inquiries within 24-48 hours during business days.
+
+Best regards,
+Invest Up Support Team`,
             html: `
-                <h2>Thank you for contacting us, ${name}!</h2>
-                <p>We have received your message regarding "${subject}".</p>
-                <p>Our team will review your inquiry and respond as soon as possible.</p>
-                <p>For reference, here's a copy of your message:</p>
-                <blockquote>${message}</blockquote>
-                <p>Best regards,<br>Invest Up Support Team</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You For Contacting Us</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; }
+        .header { border-bottom: 2px solid #4A86E8; padding-bottom: 10px; margin-bottom: 20px; }
+        .message { background-color: #f9f9f9; padding: 15px; border-left: 3px solid #4A86E8; margin-bottom: 15px; }
+        .footer { font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Thank you for contacting us, ${name}!</h2>
+        </div>
+        
+        <p>We have received your message regarding "${subject}".</p>
+        <p>Our team will review your inquiry and respond as soon as possible.</p>
+        
+        <div class="message">
+            <h3>For reference, here's a copy of your message:</h3>
+            <p style="color: #555;">${message.replace(/\n/g, '<br>')}</p>
+        </div>
+        
+        <p>We typically respond to inquiries within 24-48 hours during business days.</p>
+        
+        <div class="footer">
+            <p>Best regards,<br>Invest Up Support Team</p>
+        </div>
+    </div>
+</body>
+</html>
             `
         };
         
-        await transporter.sendMail(userMailOptions);
+        try {
+            console.log('Sending confirmation email to:', email);
+            const info = await transporter.sendMail(userMailOptions);
+            console.log('Confirmation email sent successfully:', info.messageId);
+        } catch (emailError) {
+            // Log email error but continue with the request
+            console.error('Failed to send confirmation email:', emailError);
+            console.error('This error is non-fatal - message was saved to database');
+        }
         
         res.json({ success: true, message: 'Message sent successfully' });
     } catch (error) {
@@ -101,30 +154,142 @@ export const replyToMessage = async (req, res) => {
             return res.json({ success: false, message: 'Message not found' });
         }
 
-        // Send reply email
-        const mailOptions = {
-            from: {
-                name: 'Invest Up',
-                address: process.env.SENDER_EMAIL
-            },
-            to: message.email,
-            subject: `Re: ${message.subject}`,
-            html: `
-                <h2>Hello ${message.name},</h2>
-                <p>Thank you for your message. Here is our response:</p>
-                <blockquote>${reply}</blockquote>
-                <p>Best regards,<br>Invest Up Support Team</p>
-            `
-        };
-
-        await transporter.sendMail(mailOptions);
+        console.log('Attempting to send reply to:', message.email);
+        
+        // First, update the message with the reply in the database
+        // This ensures that even if email fails, the reply is saved
         await message.update({ 
             reply,
             status: 'replied'
         });
         
-        res.json({ success: true, message: 'Reply sent successfully' });
+        // Create a unique message ID for tracking
+        const emailMessageId = `reply-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        
+        // Enhanced logging for troubleshooting
+        console.log('Email configuration when attempting to send reply:');
+        console.log('- SMTP_HOST:', process.env.SMTP_HOST || 'not set');
+        console.log('- SMTP_PORT:', process.env.SMTP_PORT || 'not set');
+        console.log('- SENDER_EMAIL:', process.env.SENDER_EMAIL || 'not set');
+        console.log('- SMTP_USER:', process.env.SMTP_USER ? 'set' : 'not set');
+        console.log('- SMTP_PASS:', process.env.SMTP_PASS ? 'set' : 'not set');
+        
+        // Simplified email structure for better deliverability
+        const mailOptions = {
+            from: {
+                name: process.env.SENDER_NAME || 'Invest Up Support',
+                address: process.env.SENDER_EMAIL
+            },
+            to: message.email,
+            subject: `Re: ${message.subject}`,
+            text: `Hello ${message.name},
+
+Thank you for contacting Invest Up support. We've reviewed your message and have the following response:
+
+YOUR ORIGINAL MESSAGE:
+${message.message}
+
+OUR RESPONSE:
+${reply}
+
+If you have any further questions, please don't hesitate to contact us again.
+
+Best regards,
+Invest Up Support Team`,
+            html: `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Response from Invest Up</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; }
+        .header { border-bottom: 2px solid #4A86E8; padding-bottom: 10px; margin-bottom: 20px; }
+        .message { background-color: #f9f9f9; padding: 15px; border-left: 3px solid #4A86E8; margin-bottom: 15px; }
+        .footer { font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Hello ${message.name},</h2>
+        </div>
+        
+        <p>Thank you for contacting Invest Up support. We've reviewed your message and have the following response:</p>
+        
+        <div class="message">
+            <h3>Your original message:</h3>
+            <p style="color: #555;">${message.message.replace(/\n/g, '<br>')}</p>
+            
+            <h3>Our response:</h3>
+            <p>${reply.replace(/\n/g, '<br>')}</p>
+        </div>
+        
+        <p>If you have any further questions, please don't hesitate to contact us again.</p>
+        
+        <div class="footer">
+            <p>Best regards,<br>Invest Up Support Team</p>
+        </div>
+    </div>
+</body>
+</html>
+            `
+        };
+
+        try {
+            console.log('SMTP configuration for reply:', {
+                host: process.env.SMTP_HOST || 'smtp-brevo.com',
+                port: process.env.SMTP_PORT || '587',
+                user: process.env.SMTP_USER,
+                sender: process.env.SENDER_EMAIL,
+                recipient: message.email
+            });
+            
+            // Attempt to send the email
+            const info = await transporter.sendMail(mailOptions);
+            
+            // Check if we're in preview mode (email not actually sent)
+            if (info.preview) {
+                console.log('Email in preview mode or SMTP connection failed. Message stored but email not sent.');
+                
+                // Return partial success since the reply was saved but email isn't sent in preview mode
+                return res.json({ 
+                    success: true, 
+                    message: 'Reply saved but email delivery is in preview mode. The message will be available in the user\'s dashboard.',
+                    emailSent: false,
+                    emailError: 'SMTP server not available or in preview mode'
+                });
+            }
+            
+            console.log('Reply email sent successfully:', info.messageId);
+            
+            // Always return success since the reply was saved in the database
+            return res.json({ 
+                success: true, 
+                message: 'Reply sent successfully',
+                emailSent: true
+            });
+        } catch (emailError) {
+            console.error('Failed to send reply email:', emailError);
+            console.error('Email details:', {
+                to: message.email,
+                subject: mailOptions.subject,
+                error: emailError.message,
+                code: emailError.code
+            });
+            
+            // Return partial success since the reply was saved but email failed
+            return res.json({ 
+                success: true, 
+                message: 'Reply saved but could not be sent via email. User will see the reply when they log in.',
+                emailSent: false,
+                emailError: emailError.message
+            });
+        }
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        console.error('Error in replyToMessage:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 }; 

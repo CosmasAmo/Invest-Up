@@ -5,7 +5,7 @@ function GoogleAuthButton({ type = 'login' }) {
   // Get the correct API URL based on environment
   const getApiUrl = () => {
     if (import.meta.env.PROD) {
-      return import.meta.env.VITE_API_URL || window.location.origin.replace(/:\d+$/, ':5000');
+      return import.meta.env.VITE_BACKEND_URL || window.location.origin.replace(/:\d+$/, ':5000');
     }
     return 'http://localhost:5000';
   };

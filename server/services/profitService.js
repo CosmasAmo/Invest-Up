@@ -3,6 +3,7 @@ import User from '../models/userModel.js';
 import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
 import { isWeekend } from '../utils/dateUtils.js';
+import { getSetting } from '../controllers/settingsController.js';
 
 export const calculateAndUpdateProfits = async () => {
     try {
@@ -12,12 +13,26 @@ export const calculateAndUpdateProfits = async () => {
             return false;
         }
 
+        // Get profit settings from admin dashboard
+        const defaultProfitPercentage = await getSetting('profitPercentage');
+        if (!defaultProfitPercentage) {
+            console.error('Default profit percentage not found in settings');
+            return false;
+        }
+        
+        // Get profit interval in minutes from settings (default to 1440 minutes = 24 hours if not set)
+        const profitIntervalMinutes = await getSetting('profitInterval') || 1440;
+        console.log(`Using profit interval of ${profitIntervalMinutes} minutes from settings`);
+        
+        // Convert profitInterval from minutes to milliseconds
+        const profitIntervalMs = parseInt(profitIntervalMinutes) * 60 * 1000;
+
         const approvedInvestments = await Investment.findAll({
             where: {
                 status: 'approved',
                 lastProfitUpdate: {
                     [Op.or]: [
-                        { [Op.lt]: new Date(new Date() - 24 * 60 * 60 * 1000) }, // More than 24 hours ago
+                        { [Op.lt]: new Date(new Date() - profitIntervalMs) }, // More than profitInterval ago
                         { [Op.is]: null } // Never updated
                     ]
                 }
@@ -25,16 +40,18 @@ export const calculateAndUpdateProfits = async () => {
             include: [{ model: User }]
         });
 
-        console.log(`Found ${approvedInvestments.length} investments for daily profit update`);
+        console.log(`Found ${approvedInvestments.length} investments for profit update using ${profitIntervalMinutes} minute interval`);
         let updatedCount = 0;
 
         for (const investment of approvedInvestments) {
-            const dailyProfit = parseFloat(investment.amount) * (parseFloat(investment.dailyProfitRate) / 100);
+            // Use investment's specific profit rate or fall back to default
+            const profitRate = investment.dailyProfitRate || defaultProfitPercentage;
+            const dailyProfit = parseFloat(investment.amount) * (parseFloat(profitRate) / 100);
             
             await sequelize.transaction(async (t) => {
-                // Update investment profits
+                // Update investment profits with proper case sensitivity
                 await investment.update({
-                    totalProfit: sequelize.literal(`totalProfit + ${dailyProfit}`),
+                    totalProfit: sequelize.literal(`"totalProfit" + ${dailyProfit}`),
                     lastProfitUpdate: new Date()
                 }, { transaction: t });
 
@@ -49,7 +66,7 @@ export const calculateAndUpdateProfits = async () => {
         }
         
         if (updatedCount > 0) {
-            console.log(`Updated daily profits for ${updatedCount} investments`);
+            console.log(`Updated profits for ${updatedCount} investments`);
         }
 
         return true;
