@@ -1,0 +1,105 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build directories
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE and Editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Node-related
+.node-gyp/
+.npm/
+.eslintcache
+
+# Local development
+*.local
+.env.test
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# Editor backups
+*.bak
+*.swp
+*.swo
+*~
+
+# Miscellaneous
+.cache/
+temp/
+tmp/
+
+# Uploads (keep the directory, but ignore uploaded files)
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Session files
+session/
+sessions/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# MacOS
+.AppleDouble
+.LSOverride
+*.app
+
+# Windows
+*.lnk
+Thumbs.db
