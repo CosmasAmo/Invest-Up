@@ -61,6 +61,18 @@ export function PrivateRoute({ children }) {
     currentPath: location.pathname
   });
 
+  // If ?token= is present the AuthCallback component is about to process a Google OAuth
+  // response. Hold as a spinner so we don't redirect to /login before the token is
+  // extracted and isAuthenticated is set to true.
+  const hasOAuthToken = urlParams.has('token');
+  if (hasOAuthToken) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
@@ -91,6 +103,17 @@ export function PublicRoute({ children }) {
   const hasGoogleParams = urlParams.has('googleId') && urlParams.has('email');
   const hasToken = urlParams.has('token');
   const isGoogleAuthFlow = hasGoogleParams || hasToken;
+
+  // If a ?token= is present, the AuthCallback component is actively processing a Google
+  // OAuth response. Show a spinner here so the login form doesn't flash before the
+  // redirect to /dashboard happens.
+  if (hasToken && !isCompleteProfilePage && !isResetPasswordPage) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
   
   // Special case for complete-profile - always allow access if it's Google authentication flow
   // If the user is already authenticated and not temporary, redirect to dashboard

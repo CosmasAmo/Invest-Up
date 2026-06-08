@@ -80,10 +80,13 @@ function Navbar() {
       // Show loading toast
       const toastId = toast.loading("Logging out...")
       
-      // Call the logout function
+      // Call the logout function (clears all state and localStorage)
       await logout()
       
-      // Update toast on success (will be shown briefly before redirect)
+      // Navigate using React Router — no hard reload, no double render
+      navigate('/login', { replace: true })
+      
+      // Update toast on success
       toast.update(toastId, {
         render: "Logged out successfully",
         type: "success",

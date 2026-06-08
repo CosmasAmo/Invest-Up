@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import Home from './pages/home'
 import Login from './pages/login'
@@ -35,6 +35,7 @@ import TestApiConnection from './pages/TestApiConnection'
 
 function App() {
   const { initialize, fetchServerConfig, fetchSettings, checkSessionExpiration, error } = useStore();
+  const [isInitializing, setIsInitializing] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,7 +82,9 @@ function App() {
           navigate('/login');
         } else {
           // Initialize the store
-          initialize();
+          initialize().then(() => {
+            setIsInitializing(false);
+          });
         }
       });
     });
@@ -108,6 +111,14 @@ function App() {
                           urlParams.has('googleId') && urlParams.has('email')));
   
   console.log('URL check for auth callback:', { hasToken, hasError, isAuthCallback, pathname: location.pathname });
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container bg-slate-900 text-white min-h-screen w-full">

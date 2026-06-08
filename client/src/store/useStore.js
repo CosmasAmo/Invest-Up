@@ -78,7 +78,7 @@ const useStore = create(
       isVerified: false,
       isAdmin: false,
       error: null,
-      isLoading: false,
+      isLoading: true,
       serverUrl: 'https://backend.investuptrading.com', // Set default server URL
       uploadsUrl: 'https://backend.investuptrading.com/uploads', // Set default uploads URL
       settings: null, // Store admin settings
@@ -502,6 +502,7 @@ const useStore = create(
           } catch (error) {
             console.error('Error updating profile images:', error);
           }
+          set({ isLoading: false }); // Ensure we clear the loading state when returning early!
           return;
         }
 
@@ -767,6 +768,14 @@ const useStore = create(
       },
 
       logout: async () => {
+        // Immediately clear auth state to prevent routing flashes
+        set({
+          isAuthenticated: false,
+          isAdmin: false,
+          userData: null,
+          isVerified: false
+        });
+        
         try {
           // Call the logout endpoint to clear server-side cookies
           await axiosInstance.post('/api/auth/logout');
@@ -808,7 +817,8 @@ const useStore = create(
             }
           });
           
-          // Reset store state
+          // Reset store state — navigation to /login is handled by the calling component
+          // (navbar / admin layout) using React Router navigate(), avoiding a hard reload
           set({
             isAuthenticated: false,
             isAdmin: false,
@@ -816,9 +826,6 @@ const useStore = create(
             userData: null,
             error: null
           });
-          
-          // Use hard redirect with cache busting parameter to ensure a complete reset of the app state
-          window.location.href = `/login?t=${new Date().getTime()}&clean=true`;
         }
       },
 

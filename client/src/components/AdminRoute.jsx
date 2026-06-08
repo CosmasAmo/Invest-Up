@@ -76,8 +76,8 @@ function AdminRoute({ children }) {
         verifyAuth();
     }, [checkAuth, navigate, isLoading]);
 
-    // Show loading state if store is still loading or we're checking auth
-    if (isLoading || isChecking) {
+    // Show loading state if we're checking auth
+    if (isChecking) {
         return <div className="min-h-screen bg-slate-900 flex items-center justify-center">
             <div className="text-white text-xl">Verifying admin access...</div>
         </div>;
