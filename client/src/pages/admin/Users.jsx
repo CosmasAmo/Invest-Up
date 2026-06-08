@@ -330,18 +330,7 @@ function Users() {
 
     return (
         <AdminLayout>
-            {/* Temporary admin status debug display */}
-            {import.meta.env.DEV && (
-                <div className="mb-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
-                    <h3 className="text-sm font-semibold text-blue-400 mb-2">Admin Status Debug:</h3>
-                    <div className="text-xs text-gray-300 space-y-1">
-                        <div>Store isAdmin: {String(isAdmin)}</div>
-                        <div>userData?.isAdmin: {String(userData?.isAdmin)}</div>
-                        <div>localStorage is_admin: {localStorage.getItem('is_admin')}</div>
-                        <div>Final isUserAdmin: {String(isUserAdmin)}</div>
-                    </div>
-                </div>
-            )}
+
 
             <div className="space-y-6">
                 {/* Page Header */}

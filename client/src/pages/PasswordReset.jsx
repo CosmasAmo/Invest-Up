@@ -8,6 +8,45 @@ import useStore from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
 import zxcvbn from 'zxcvbn';
 
+// Memoized OTP Input Component
+const OtpInput = memo(({ index, value, onInput, onKeyDown, onPaste, disabled, inputRef }) => (
+  <input
+    ref={inputRef}
+    type="text"
+    inputMode="numeric"
+    pattern="[0-9]*"
+    maxLength={1}
+    value={value}
+    onChange={(e) => onInput(e.target.value)}
+    onKeyDown={onKeyDown}
+    onPaste={onPaste}
+    onClick={(e) => e.target.select()}
+    enterKeyHint={index < 5 ? "next" : "done"}
+    autoCorrect="off"
+    autoCapitalize="none"
+    spellCheck="false"
+    className="w-10 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-white"
+    required
+    disabled={disabled}
+    autoComplete="one-time-code"
+    aria-label={`Digit ${index + 1}`}
+  />
+));
+
+// Add prop types validation
+OtpInput.propTypes = {
+  index: PropTypes.number.isRequired,
+  value: PropTypes.string.isRequired,
+  onInput: PropTypes.func.isRequired,
+  onKeyDown: PropTypes.func.isRequired,
+  onPaste: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+  inputRef: PropTypes.func.isRequired,
+};
+
+// Add display name
+OtpInput.displayName = 'OtpInput';
+
 function PasswordReset() {
   const { sendResetOtp, verifyOtp, resetPassword } = useStore();
   const navigate = useNavigate();
@@ -622,44 +661,7 @@ function PasswordReset() {
     }
   };
 
-  // Memoized OTP Input Component
-  const OtpInput = memo(({ index, value, onInput, onKeyDown, onPaste, disabled, inputRef }) => (
-    <input
-      ref={inputRef}
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      maxLength={1}
-      value={value}
-      onChange={(e) => onInput(e.target.value)}
-      onKeyDown={onKeyDown}
-      onPaste={onPaste}
-      onClick={(e) => e.target.select()}
-      enterKeyHint={index < 5 ? "next" : "done"}
-      autoCorrect="off"
-      autoCapitalize="none"
-      spellCheck="false"
-      className="w-10 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-white"
-      required
-      disabled={disabled}
-      autoComplete="one-time-code"
-      aria-label={`Digit ${index + 1}`}
-    />
-  ));
 
-  // Add prop types validation
-  OtpInput.propTypes = {
-    index: PropTypes.number.isRequired,
-    value: PropTypes.string.isRequired,
-    onInput: PropTypes.func.isRequired,
-    onKeyDown: PropTypes.func.isRequired,
-    onPaste: PropTypes.func.isRequired,
-    disabled: PropTypes.bool,
-    inputRef: PropTypes.func.isRequired,
-  };
-
-  // Add display name
-  OtpInput.displayName = 'OtpInput';
 
   // Step 1: Email Entry Form
   const EmailStep = () => (
@@ -1059,16 +1061,16 @@ function PasswordReset() {
 
     switch (currentStep) {
       case 'email':
-        return <EmailStep key="email-step" />;
+        return EmailStep();
       case 'otp':
-        return <OtpStep key="otp-step" />;
+        return OtpStep();
       case 'newPassword':
-        return <NewPasswordStep key="new-password-step" />;
+        return NewPasswordStep();
       case 'complete':
-        return <CompleteStep key="complete-step" />;
+        return CompleteStep();
       default:
         console.warn('Unknown step:', currentStep);
-        return <EmailStep key="email-step" />;
+        return EmailStep();
     }
   };
 
@@ -1079,14 +1081,7 @@ function PasswordReset() {
           {renderStep()}
         </AnimatePresence>
 
-        {import.meta.env.DEV && (
-          <div className="mt-4 text-xs text-gray-500 opacity-50">
-            <div>Current step: {activeStep}</div>
-            <div>Step history: {stepsRef.current.history.join(' → ')}</div>
-            <div>URL params: {window.location.search}</div>
-            <div>Email: {email}</div>
-          </div>
-        )}
+
       </div>
     </AuthLayout>
   );
