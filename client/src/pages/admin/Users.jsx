@@ -354,22 +354,7 @@ function Users() {
                                 className="w-full pl-10 pr-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
                             />
                         </div>
-                        <button
-                            onClick={async () => {
-                                if (window.confirm('Are you sure you want to generate missing referral codes?')) {
-                                    try {
-                                        await generateMissingReferralCodes();
-                                        await fetchAllUsers();
-                                    } catch (err) {
-                                        console.error(err);
-                                    }
-                                }
-                            }}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg hover:from-purple-700 hover:to-purple-600 transition-all duration-200 flex items-center gap-2 shadow-lg shadow-purple-500/20 w-full sm:w-auto justify-center"
-                        >
-                            <ArrowPathIcon className="w-5 h-5" />
-                            <span>Fix Referral Codes</span>
-                        </button>
+
                         <button
                             onClick={() => {
                                 setEditingUser(null);
