@@ -257,6 +257,135 @@ export const updateSettings = async (req, res) => {
   }
 };
 
+// Update platform system settings (strictly decoupled from deposit addresses)
+export const updateSystemSettings = async (req, res) => {
+  try {
+    const {
+      referralBonus,
+      minWithdrawal,
+      minDeposit,
+      minInvestment,
+      profitPercentage,
+      profitInterval,
+      profitDays,
+      withdrawalFee,
+      referralsRequired
+    } = req.body;
+
+    // Validate profit days
+    if (!profitDays || !Array.isArray(profitDays) || profitDays.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must select at least one profit day'
+      });
+    }
+
+    // Validate inputs
+    if (
+      referralBonus < 0 ||
+      minWithdrawal < 0 ||
+      minDeposit < 0 ||
+      minInvestment < 0 ||
+      profitInterval < 1 ||
+      withdrawalFee < 0 ||
+      referralsRequired < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid settings values.'
+      });
+    }
+
+    let settings;
+    try {
+      [settings] = await Settings.findOrCreate({
+        where: { id: 1 },
+        defaults: {
+          referralBonus: 5,
+          minWithdrawal: 3,
+          minDeposit: 3,
+          minInvestment: 3,
+          profitPercentage: 5,
+          profitInterval: 5,
+          profitDays: [1, 2, 3, 4, 5],
+          withdrawalFee: 2,
+          referralsRequired: 2,
+          depositAddresses: {
+            BINANCE: '374592285',
+            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
+            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
+            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
+          }
+        }
+      });
+    } catch (dbError) {
+      console.error('Database error finding/creating settings:', dbError);
+      return res.status(500).json({
+        success: false,
+        message: 'Database error when accessing settings'
+      });
+    }
+
+    // Check if profitInterval has changed
+    const profitIntervalChanged = settings.profitInterval !== profitInterval;
+
+    // Update system settings ONLY - never touch depositAddresses
+    try {
+      await settings.update({
+        referralBonus,
+        minWithdrawal,
+        minDeposit,
+        minInvestment,
+        profitPercentage,
+        profitInterval,
+        profitDays,
+        withdrawalFee,
+        referralsRequired
+      });
+    } catch (updateError) {
+      console.error('Error updating system settings:', updateError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update system settings'
+      });
+    }
+
+    if (profitIntervalChanged) {
+      console.log(`Profit interval changed from ${settings.profitInterval} to ${profitInterval} minutes`);
+      try {
+        const serverModule = await import('../server.js');
+        if (typeof serverModule.setupProfitCalculationInterval === 'function') {
+          await serverModule.setupProfitCalculationInterval();
+          console.log('Profit calculation interval scheduler updated successfully');
+        }
+      } catch (error) {
+        console.error('Error updating profit calculation interval scheduler:', error);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'System configuration updated successfully',
+      settings: await Settings.findByPk(1)
+    });
+  } catch (error) {
+    console.error('Error in updateSystemSettings:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error when updating system settings'
+    });
+  }
+};
+
+// Update payment addresses (currently locked against modifications)
+export const updatePaymentAddresses = async (req, res) => {
+  return res.status(403).json({
+    success: false,
+    message: 'Payment addresses are currently locked against modifications for security.'
+  });
+};
+
 // Get a specific setting by key
 export const getSetting = async (key) => {
   try {

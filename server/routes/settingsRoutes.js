@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSettings, updateSettings, getPublicSettings } from '../controllers/settingsController.js';
+import { getSettings, updateSettings, getPublicSettings, updateSystemSettings, updatePaymentAddresses } from '../controllers/settingsController.js';
 import { isAuthenticated, isAdmin } from '../middleware/authMiddleware.js';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
@@ -115,8 +115,14 @@ router.get('/test', (req, res) => {
 // Get all settings - accessible to all authenticated users
 router.get('/', isAuthenticated, getSettings);
 
-// Update settings - only accessible to admins
+// Update all settings (legacy) - only accessible to admins
 router.post('/update', isAuthenticatedAdmin, updateSettings);
+
+// Update system settings only - strictly decoupled from payment addresses
+router.post('/system', isAuthenticatedAdmin, updateSystemSettings);
+
+// Update payment addresses (currently locked)
+router.post('/payment-addresses', isAuthenticatedAdmin, updatePaymentAddresses);
 
 // Test endpoint for checking API connectivity
 router.get('/test', (req, res) => {

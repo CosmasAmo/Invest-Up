@@ -288,7 +288,7 @@ const useStore = create(
           };
           
           set({ settings: defaultSettings });
-          localStorage.setItem('adminSettings', JSON.stringify(defaultSettings));
+          // Do not overwrite localStorage adminSettings with defaults on error
           
           return defaultSettings;
         }

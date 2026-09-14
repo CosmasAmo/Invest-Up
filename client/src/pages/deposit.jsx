@@ -246,34 +246,6 @@ function Deposit() {
         depositAddresses: defaultAddresses
       });
       
-      // Save these defaults to localStorage for future use
-      try {
-        const savedSettings = localStorage.getItem('adminSettings');
-        if (savedSettings) {
-          const parsedSettings = JSON.parse(savedSettings);
-          // Update just the depositAddresses in the existing settings
-          parsedSettings.depositAddresses = defaultAddresses;
-          localStorage.setItem('adminSettings', JSON.stringify(parsedSettings));
-        } else {
-          // Create new settings object with defaults
-          const defaultSettings = {
-            referralBonus: 5,
-            minWithdrawal: 3,
-            minDeposit: 3,
-            minInvestment: 3,
-            profitPercentage: 5,
-            profitInterval: 5,
-            withdrawalFee: 2,
-            referralsRequired: 2,
-            depositAddresses: defaultAddresses
-          };
-          localStorage.setItem('adminSettings', JSON.stringify(defaultSettings));
-        }
-        console.log('Default settings saved to localStorage');
-      } catch (error) {
-        console.error('Failed to save default settings to localStorage:', error);
-      }
-      
       // Set up deposit methods based on the addresses
       const methods = {};
       Object.entries(defaultAddresses).forEach(([key, address]) => {
