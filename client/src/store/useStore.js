@@ -176,15 +176,10 @@ const useStore = create(
                   depositAddresses = JSON.parse(depositAddresses);
                 } catch (error) {
                   console.error('Error parsing depositAddresses:', error);
-                  depositAddresses = {
-                    BINANCE: '374592285',
-                    TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-                    BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                    ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                    OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-                  };
+                  depositAddresses = {}; // Never fall back to hardcoded addresses
                 }
               }
+              if (!depositAddresses) depositAddresses = {};
               
               // Create a complete settings object
               const completeSettings = {
@@ -193,7 +188,7 @@ const useStore = create(
               };
               
               set({ settings: completeSettings });
-              localStorage.setItem('adminSettings', JSON.stringify(completeSettings));
+              // Note: do NOT cache depositAddresses in localStorage
               return completeSettings;
             }
           } catch (publicError) {
@@ -216,25 +211,13 @@ const useStore = create(
             // Ensure depositAddresses exists and is an object, not a string
             let depositAddresses = settingsData.depositAddresses;
             if (!depositAddresses) {
-              depositAddresses = {
-                BINANCE: '374592285',
-                TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-                BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-              };
+              depositAddresses = {}; // Never fall back to hardcoded addresses
             } else if (typeof depositAddresses === 'string') {
               try {
                 depositAddresses = JSON.parse(depositAddresses);
               } catch (error) {
                 console.error('Error parsing depositAddresses:', error);
-                depositAddresses = {
-                  BINANCE: '374592285',
-                  TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-                  BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                  ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                  OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-                };
+                depositAddresses = {}; // Never fall back to hardcoded addresses
               }
             }
             
@@ -244,9 +227,8 @@ const useStore = create(
               depositAddresses
             };
             
-            // Save to state and localStorage
+            // Save to state (do NOT cache depositAddresses in localStorage)
             set({ settings: completeSettings });
-            localStorage.setItem('adminSettings', JSON.stringify(completeSettings));
             
             console.log('Settings fetched and stored successfully');
             return completeSettings;
@@ -268,7 +250,7 @@ const useStore = create(
             console.error('Failed to load settings from localStorage:', localError);
           }
           
-          // If all else fails, use default settings
+          // If all else fails, use minimal default settings without hardcoded addresses
           const defaultSettings = {
             referralBonus: 5,
             minWithdrawal: 3,
@@ -278,18 +260,10 @@ const useStore = create(
             profitInterval: 1440,
             withdrawalFee: 2,
             referralsRequired: 2,
-            depositAddresses: {
-              BINANCE: '374592285',
-              TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-              BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-              ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-              OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-            }
+            depositAddresses: {} // Never hardcode addresses here
           };
           
           set({ settings: defaultSettings });
-          // Do not overwrite localStorage adminSettings with defaults on error
-          
           return defaultSettings;
         }
       },

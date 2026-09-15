@@ -71,14 +71,10 @@ const Settings = sequelize.define('Settings', {
     defaultValue: 2
   },
   depositAddresses: {
+    // Addresses are served from server .env at runtime via getEnvDepositAddresses().
+    // This DB column intentionally stores an empty object as a placeholder.
     type: DataTypes.JSON,
-    defaultValue: {
-      BINANCE: '374592285',
-      TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-      BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-      ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-      OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-    },
+    defaultValue: {},
     get() {
       const rawValue = this.getDataValue('depositAddresses');
       if (typeof rawValue === 'string') {
@@ -86,16 +82,10 @@ const Settings = sequelize.define('Settings', {
           return JSON.parse(rawValue);
         } catch (error) {
           console.error('Error parsing depositAddresses:', error);
-          return {
-            BINANCE: '374592285',
-            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-          };
+          return {}; // Never fall back to hardcoded addresses
         }
       }
-      return rawValue;
+      return rawValue || {};
     },
     set(value) {
       if (typeof value === 'object') {

@@ -97,7 +97,7 @@ function Deposit() {
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
-        toast.error('Failed to load payment methods from server. Trying local storage.');
+        toast.error('Failed to load payment methods from server. Please try refreshing the page.');
         
         // Define tryLoadFromLocalStorage inside useEffect
         const tryLoadFromLocalStorage = () => {
@@ -107,34 +107,18 @@ function Deposit() {
               const parsedSettings = JSON.parse(savedSettings);
               
               // Extract deposit addresses
-              let depositAddressesData = parsedSettings.depositAddresses || {};
+              const depositAddressesData = parsedSettings.depositAddresses || {};
               
-              // Make sure depositAddresses is an object (not null or undefined)
-              if (!depositAddressesData || typeof depositAddressesData !== 'object' || Object.keys(depositAddressesData).length === 0) {
-                console.warn('Invalid or empty depositAddresses from localStorage, using default values');
-                depositAddressesData = {
-                  BINANCE: '374592285',
-                  TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-                  BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                  ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                  OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-                };
-              }
-              
-              // Update settings state
+              // Update settings state – never inject hardcoded addresses
               setSettings({
                 minDeposit: parsedSettings.minDeposit || 3,
                 depositAddresses: depositAddressesData
               });
               
-              // Set up deposit methods based on the addresses
+              // Set up deposit methods based on the addresses from server
               const methods = {};
-              
-              // Dynamically create methods for all deposit addresses
               Object.entries(depositAddressesData).forEach(([key, address]) => {
-                // Make sure the key is properly handled, normalize to uppercase
                 const methodKey = key.trim().toUpperCase();
-                
                 methods[methodKey] = {
                   name: getMethodName(methodKey),
                   icon: '₮',
@@ -143,74 +127,21 @@ function Deposit() {
                 };
               });
               
-              console.log('Setting deposit methods from localStorage:', methods);
+              console.log('Setting deposit methods from localStorage:', Object.keys(methods));
               setDepositMethods(methods);
             } else {
-              console.log('No settings found in localStorage, using default values');
-              
-              // Use default values if nothing in localStorage
-              const defaultAddresses = {
-                BINANCE: '374592285',
-                TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-                BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-                OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-              };
-              
-              setSettings({
-                minDeposit: 3,
-                depositAddresses: defaultAddresses
-              });
-              
-              // Set up deposit methods with default addresses
-              const methods = {};
-              Object.entries(defaultAddresses).forEach(([key, address]) => {
-                const methodKey = key.trim().toUpperCase();
-                methods[methodKey] = {
-                  name: getMethodName(methodKey),
-                  icon: '₮',
-                  address: address,
-                  description: getMethodDescription(methodKey)
-                };
-              });
-              
-              console.log('Setting default deposit methods:', methods);
-              setDepositMethods(methods);
+              console.log('No settings found in localStorage. Wallet addresses must be configured in server .env.');
+              // Do NOT inject hardcoded default addresses
+              setSettings({ minDeposit: 3, depositAddresses: {} });
+              setDepositMethods({});
             }
             
             return true;
           } catch (error) {
             console.error('Error loading from localStorage:', error);
-            
-            // Fallback to hardcoded default values on any error
-            const defaultAddresses = {
-              BINANCE: '374592285',
-              TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-              BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-              ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-              OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-            };
-            
-            setSettings({
-              minDeposit: 3,
-              depositAddresses: defaultAddresses
-            });
-            
-            // Set up deposit methods with default addresses
-            const methods = {};
-            Object.entries(defaultAddresses).forEach(([key, address]) => {
-              const methodKey = key.trim().toUpperCase();
-              methods[methodKey] = {
-                name: getMethodName(methodKey),
-                icon: '₮',
-                address: address,
-                description: getMethodDescription(methodKey)
-              };
-            });
-            
-            console.log('Setting fallback default deposit methods:', methods);
-            setDepositMethods(methods);
-            
+            // Do NOT inject hardcoded default addresses on error
+            setSettings({ minDeposit: 3, depositAddresses: {} });
+            setDepositMethods({});
             return true;
           } finally {
             setIsLoadingSettings(false);
@@ -227,41 +158,8 @@ function Deposit() {
     fetchSettings();
   }, []);
 
-  // Additional function to manually initialize default settings if needed
-  useEffect(() => {
-    // Check if we have payment methods
-    if (!isLoadingSettings && Object.keys(depositMethods).length === 0) {
-      console.log('No payment methods available after loading, initializing defaults');
-      
-      const defaultAddresses = {
-        BINANCE: '374592285',
-        TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-        BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-        ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-        OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-      };
-      
-      setSettings({
-        minDeposit: 3,
-        depositAddresses: defaultAddresses
-      });
-      
-      // Set up deposit methods based on the addresses
-      const methods = {};
-      Object.entries(defaultAddresses).forEach(([key, address]) => {
-        const methodKey = key.trim().toUpperCase();
-        methods[methodKey] = {
-          name: getMethodName(methodKey),
-          icon: '₮',
-          address: address,
-          description: getMethodDescription(methodKey)
-        };
-      });
-      
-      console.log('Setting default deposit methods:', methods);
-      setDepositMethods(methods);
-    }
-  }, [isLoadingSettings, depositMethods]);
+  // Note: Removed the secondary useEffect that used to inject hardcoded defaults.
+  // If depositMethods is empty after loading, it means no WALLET_* env vars are set on the server.
 
   const handleAmountChange = (e) => {
     const value = e.target.value;

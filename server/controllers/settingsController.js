@@ -1,5 +1,35 @@
 import Settings from '../models/Settings.js';
 
+// ============================================================
+// Helper: Read deposit addresses from environment variables.
+// These are NEVER stored in the database or hardcoded.
+// To set addresses, add them to the server .env file:
+//   WALLET_BINANCE=your_binance_id
+//   WALLET_TRC20=your_trc20_address
+//   WALLET_BEP20=your_bep20_address
+//   WALLET_ERC20=your_erc20_address
+//   WALLET_OPTIMISM=your_optimism_address
+// ============================================================
+export const getEnvDepositAddresses = () => {
+  const addresses = {};
+  // Named convenience keys
+  if (process.env.WALLET_BINANCE)  addresses.BINANCE  = process.env.WALLET_BINANCE.trim();
+  if (process.env.WALLET_TRC20)    addresses.TRC20    = process.env.WALLET_TRC20.trim();
+  if (process.env.WALLET_BEP20)    addresses.BEP20    = process.env.WALLET_BEP20.trim();
+  if (process.env.WALLET_ERC20)    addresses.ERC20    = process.env.WALLET_ERC20.trim();
+  if (process.env.WALLET_OPTIMISM) addresses.OPTIMISM = process.env.WALLET_OPTIMISM.trim();
+  // Dynamic: any WALLET_<METHOD> key not already covered above
+  Object.keys(process.env).forEach(envKey => {
+    if (envKey.startsWith('WALLET_')) {
+      const methodKey = envKey.substring(7).toUpperCase();
+      if (!addresses[methodKey] && process.env[envKey]) {
+        addresses[methodKey] = process.env[envKey].trim();
+      }
+    }
+  });
+  return addresses;
+};
+
 // Initialize settings if they don't exist
 export const initializeSettings = async () => {
   try {
@@ -15,13 +45,7 @@ export const initializeSettings = async () => {
         profitDays: [1, 2, 3, 4, 5], // Default to weekdays
         withdrawalFee: 2,
         referralsRequired: 2,
-        depositAddresses: {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        }
+        depositAddresses: {} // Never stored – served from .env at runtime
       });
       console.log('Settings initialized successfully');
     }
@@ -46,59 +70,25 @@ export const getSettings = async (req, res) => {
         profitDays: [1, 2, 3, 4, 5], // Default to weekdays
         withdrawalFee: 2,
         referralsRequired: 2,
-        depositAddresses: {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        }
+        depositAddresses: {}
       }
     });
 
-    // Parse depositAddresses if it's a string
-    if (typeof settings.depositAddresses === 'string') {
-      try {
-        settings.depositAddresses = JSON.parse(settings.depositAddresses);
-      } catch (parseError) {
-        console.error('Error parsing depositAddresses:', parseError);
-        // Set default addresses on parse error
-        settings.depositAddresses = {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        };
-      }
-    }
-    
     // Parse profitDays if it's a string
     if (typeof settings.profitDays === 'string') {
       try {
         settings.profitDays = JSON.parse(settings.profitDays);
       } catch (parseError) {
         console.error('Error parsing profitDays:', parseError);
-        // Set default days on parse error
         settings.profitDays = [1, 2, 3, 4, 5]; // Default to weekdays
       }
     }
-
-    // Ensure depositAddresses exists (backward compatibility)
-    if (!settings.depositAddresses) {
-      settings.depositAddresses = {
-        BINANCE: '374592285',
-        TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-        BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-        ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-        OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-      };
-    }
-    
-    // Ensure profitDays exists (backward compatibility)
     if (!settings.profitDays) {
-      settings.profitDays = [1, 2, 3, 4, 5]; // Default to weekdays
+      settings.profitDays = [1, 2, 3, 4, 5];
     }
+
+    // Always serve deposit addresses from .env – never from DB
+    settings.depositAddresses = getEnvDepositAddresses();
 
     res.json({
       success: true,
@@ -125,8 +115,8 @@ export const updateSettings = async (req, res) => {
       profitInterval,
       profitDays,
       withdrawalFee,
-      referralsRequired,
-      depositAddresses
+      referralsRequired
+      // depositAddresses intentionally NOT destructured – they come from .env only
     } = req.body;
 
     // Validate profit days
@@ -134,18 +124,6 @@ export const updateSettings = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'You must select at least one profit day'
-      });
-    }
-
-    // Validate deposit addresses
-    if (!depositAddresses || typeof depositAddresses !== 'object') {
-      console.error('Invalid depositAddresses format', { 
-        type: typeof depositAddresses, 
-        value: depositAddresses 
-      });
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid deposit addresses format'
       });
     }
 
@@ -165,8 +143,6 @@ export const updateSettings = async (req, res) => {
       });
     }
 
-// Get the first settings record or create default if none exists 
-
     // Get the first settings record or create default if none exists
     let settings;
     try {
@@ -179,16 +155,10 @@ export const updateSettings = async (req, res) => {
           minInvestment: 3,
           profitPercentage: 5,
           profitInterval: 5,
-          profitDays: [1, 2, 3, 4, 5], // Default to weekdays
+          profitDays: [1, 2, 3, 4, 5],
           withdrawalFee: 2,
           referralsRequired: 2,
-          depositAddresses: {
-            BINANCE: '374592285',
-            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-          }
+          depositAddresses: {}
         }
       });
     } catch (dbError) {
@@ -202,7 +172,7 @@ export const updateSettings = async (req, res) => {
     // Check if profitInterval has changed
     const profitIntervalChanged = settings.profitInterval !== profitInterval;
 
-    // Update the settings
+    // Update the settings – never include depositAddresses
     try {
       await settings.update({
         referralBonus,
@@ -213,8 +183,7 @@ export const updateSettings = async (req, res) => {
         profitInterval,
         profitDays,
         withdrawalFee,
-        referralsRequired,
-        depositAddresses
+        referralsRequired
       });
     } catch (updateError) {
       console.error('Error updating settings:', updateError);
@@ -227,8 +196,6 @@ export const updateSettings = async (req, res) => {
     // If profitInterval was changed, log it and update the scheduler
     if (profitIntervalChanged) {
       console.log(`Profit interval changed from ${settings.profitInterval} to ${profitInterval} minutes`);
-      
-      // Update the profit calculation interval by importing and calling setupProfitCalculationInterval
       try {
         const serverModule = await import('../server.js');
         if (typeof serverModule.setupProfitCalculationInterval === 'function') {
@@ -243,10 +210,12 @@ export const updateSettings = async (req, res) => {
     }
 
     // Return success
+    const updatedSettings = await Settings.findByPk(1);
+    updatedSettings.depositAddresses = getEnvDepositAddresses();
     return res.json({
       success: true,
       message: 'Settings updated successfully',
-      settings: await Settings.findByPk(1)
+      settings: updatedSettings
     });
   } catch (error) {
     console.error('Error in updateSettings:', error);
@@ -310,13 +279,7 @@ export const updateSystemSettings = async (req, res) => {
           profitDays: [1, 2, 3, 4, 5],
           withdrawalFee: 2,
           referralsRequired: 2,
-          depositAddresses: {
-            BINANCE: '374592285',
-            TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-            BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-            ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-            OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-          }
+          depositAddresses: {}
         }
       });
     } catch (dbError) {
@@ -364,10 +327,12 @@ export const updateSystemSettings = async (req, res) => {
       }
     }
 
+    const updatedSettings = await Settings.findByPk(1);
+    updatedSettings.depositAddresses = getEnvDepositAddresses();
     return res.json({
       success: true,
       message: 'System configuration updated successfully',
-      settings: await Settings.findByPk(1)
+      settings: updatedSettings
     });
   } catch (error) {
     console.error('Error in updateSystemSettings:', error);
@@ -378,17 +343,22 @@ export const updateSystemSettings = async (req, res) => {
   }
 };
 
-// Update payment addresses (currently locked against modifications)
+// Update payment addresses (locked – addresses come from .env only)
 export const updatePaymentAddresses = async (req, res) => {
   return res.status(403).json({
     success: false,
-    message: 'Payment addresses are currently locked against modifications for security.'
+    message: 'Payment addresses are managed via server environment variables (.env). They cannot be changed through this API.'
   });
 };
 
 // Get a specific setting by key
 export const getSetting = async (key) => {
   try {
+    // depositAddresses always come from .env, never from DB
+    if (key === 'depositAddresses') {
+      return getEnvDepositAddresses();
+    }
+
     const [settings] = await Settings.findOrCreate({
       where: { id: 1 },
       defaults: {
@@ -401,33 +371,10 @@ export const getSetting = async (key) => {
         profitDays: [1, 2, 3, 4, 5], // Default to weekdays
         withdrawalFee: 2,
         referralsRequired: 2,
-        depositAddresses: {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        }
+        depositAddresses: {}
       }
     });
 
-    // Special handling for depositAddresses
-    if (key === 'depositAddresses' && typeof settings[key] === 'string') {
-      try {
-        return JSON.parse(settings[key]);
-      } catch (parseError) {
-        console.error('Error parsing depositAddresses:', parseError);
-        // Return default addresses on parse error
-        return {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        };
-      }
-    }
-    
     // Special handling for profitDays
     if (key === 'profitDays') {
       if (typeof settings[key] === 'string') {
@@ -438,21 +385,14 @@ export const getSetting = async (key) => {
           return [1, 2, 3, 4, 5]; // Default to weekdays
         }
       }
-      return settings[key] || [1, 2, 3, 4, 5]; // Return default if not set
+      return settings[key] || [1, 2, 3, 4, 5];
     }
 
     return settings[key];
   } catch (error) {
     console.error(`Error getting setting ${key}:`, error);
-    // Return default values for specific keys
     if (key === 'depositAddresses') {
-      return {
-        BINANCE: '374592285',
-        TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-        BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-        ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-        OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-      };
+      return getEnvDepositAddresses(); // Still from .env even on error
     } else if (key === 'profitDays') {
       return [1, 2, 3, 4, 5]; // Default to weekdays
     }
@@ -478,39 +418,14 @@ export const getPublicSettings = async (req, res) => {
         profitInterval: 5,
         withdrawalFee: 2,
         referralsRequired: 2,
-        depositAddresses: {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        }
+        depositAddresses: {}
       }
     });
     console.log('Settings retrieved:', settings ? 'Found' : 'Not found');
 
-    // Parse depositAddresses if it's a string
-    let depositAddresses = settings.depositAddresses;
-    console.log('Raw depositAddresses type:', typeof depositAddresses);
-    
-    if (typeof depositAddresses === 'string') {
-      try {
-        console.log('Parsing depositAddresses string');
-        depositAddresses = JSON.parse(depositAddresses);
-        console.log('Successfully parsed depositAddresses');
-      } catch (parseError) {
-        console.error('Error parsing depositAddresses:', parseError);
-        // Fallback to default addresses
-        depositAddresses = {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        };
-        console.log('Using default depositAddresses after parse error');
-      }
-    }
+    // Always serve deposit addresses from .env – never from DB
+    const depositAddresses = getEnvDepositAddresses();
+    console.log('depositAddresses sourced from .env, keys:', Object.keys(depositAddresses));
 
     // Only return a subset of settings that are safe for public consumption
     const publicSettings = {
@@ -519,7 +434,7 @@ export const getPublicSettings = async (req, res) => {
       profitPercentage: settings.profitPercentage,
       referralBonus: settings.referralBonus,
       referralsRequired: settings.referralsRequired,
-      depositAddresses: depositAddresses
+      depositAddresses
     };
     
     console.log('Sending public settings response');
@@ -538,7 +453,6 @@ export const getPublicSettings = async (req, res) => {
     console.log('Public settings response sent successfully');
   } catch (error) {
     console.error('Error getting public settings:', error);
-    // Return default public settings on error
     console.log('Sending default settings due to error');
     
     // Explicitly set CORS headers for this public endpoint
@@ -556,15 +470,9 @@ export const getPublicSettings = async (req, res) => {
         profitPercentage: 5,
         referralBonus: 5,
         referralsRequired: 2,
-        depositAddresses: {
-          BINANCE: '374592285',
-          TRC20: 'TYKbfLuFUUz5T3X2UFvhBuTSNvLE6TQpjX',
-          BEP20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          ERC20: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3',
-          OPTIMISM: '0x6f4f06ece1fae66ec369881b4963a4a939fd09a3'
-        }
+        depositAddresses: getEnvDepositAddresses()
       }
     });
     console.log('Default settings response sent successfully');
   }
-}; 
+};
