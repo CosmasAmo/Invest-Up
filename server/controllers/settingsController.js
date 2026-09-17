@@ -48,6 +48,14 @@ export const initializeSettings = async () => {
         depositAddresses: {} // Never stored – served from .env at runtime
       });
       console.log('Settings initialized successfully');
+    } else {
+      // Purge any legacy or compromised addresses previously stored in the database
+      const existing = await Settings.findByPk(1);
+      if (existing && existing.depositAddresses && Object.keys(existing.depositAddresses).length > 0) {
+        console.log('Purging legacy deposit addresses from database settings table...');
+        await existing.update({ depositAddresses: {} });
+        console.log('Database deposit addresses wiped to empty object.');
+      }
     }
   } catch (error) {
     console.error('Error initializing settings:', error);
